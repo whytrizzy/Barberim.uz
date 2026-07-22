@@ -2,15 +2,18 @@
 
 import React from 'react';
 import { Role } from '@/types';
-import { Scissors, ShieldCheck, UserCheck } from 'lucide-react';
+import { useLanguage } from '@/lib/i18n/LanguageContext';
+import { Language } from '@/lib/i18n/translations';
+import { Scissors, Globe, ShieldCheck, User } from 'lucide-react';
 import { Badge } from './ui/Badge';
 
 interface HeaderProps {
   currentRole: Role;
-  onRoleToggle: (role: Role) => void;
 }
 
-export function Header({ currentRole, onRoleToggle }: HeaderProps) {
+export function Header({ currentRole }: HeaderProps) {
+  const { language, setLanguage, t } = useLanguage();
+
   return (
     <header className="sticky top-0 z-40 w-full glass-card border-b border-slate-800/80 px-4 py-3">
       <div className="max-w-md mx-auto flex items-center justify-between">
@@ -21,36 +24,40 @@ export function Header({ currentRole, onRoleToggle }: HeaderProps) {
           </div>
           <div>
             <h1 className="text-lg font-extrabold tracking-tight text-white flex items-center gap-1.5">
-              Barberim<span className="text-amber-400 font-medium text-xs bg-amber-400/10 px-1.5 py-0.5 rounded border border-amber-400/20">.uz</span>
+              {t('appName')}
             </h1>
-            <p className="text-[10px] text-slate-400 font-medium">Smart Barber Scheduling</p>
+            <p className="text-[10px] text-slate-400 font-medium">{t('tagline')}</p>
           </div>
         </div>
 
-        {/* Role Switcher Pill */}
-        <div className="flex items-center bg-slate-900/90 p-1 rounded-xl border border-slate-800">
-          <button
-            onClick={() => onRoleToggle('BARBER')}
-            className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold transition-all ${
-              currentRole === 'BARBER'
-                ? 'bg-amber-500 text-slate-950 shadow-sm'
-                : 'text-slate-400 hover:text-slate-200'
-            }`}
-          >
-            <ShieldCheck className="w-3.5 h-3.5" />
-            Barber
-          </button>
-          <button
-            onClick={() => onRoleToggle('CLIENT')}
-            className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold transition-all ${
-              currentRole === 'CLIENT'
-                ? 'bg-amber-500 text-slate-950 shadow-sm'
-                : 'text-slate-400 hover:text-slate-200'
-            }`}
-          >
-            <UserCheck className="w-3.5 h-3.5" />
-            Client
-          </button>
+        {/* Right side: Language Selector & Role Badge */}
+        <div className="flex items-center gap-2">
+          {/* Language selector pill */}
+          <div className="flex items-center bg-slate-900/90 p-1 rounded-xl border border-slate-800">
+            <Globe className="w-3.5 h-3.5 text-amber-400 ml-1.5 mr-0.5" />
+            <select
+              value={language}
+              onChange={(e) => setLanguage(e.target.value as Language)}
+              className="bg-transparent text-xs font-bold text-slate-200 outline-none pr-1 cursor-pointer"
+            >
+              <option value="uz" className="bg-slate-900 text-white">UZ</option>
+              <option value="ru" className="bg-slate-900 text-white">RU</option>
+              <option value="en" className="bg-slate-900 text-white">EN</option>
+            </select>
+          </div>
+
+          {/* Role indicator badge */}
+          <Badge variant={currentRole === 'BARBER' ? 'gold' : 'info'}>
+            {currentRole === 'BARBER' ? (
+              <span className="flex items-center gap-1">
+                <ShieldCheck className="w-3 h-3" /> {t('roleBarber')}
+              </span>
+            ) : (
+              <span className="flex items-center gap-1">
+                <User className="w-3 h-3" /> {t('roleClient')}
+              </span>
+            )}
+          </Badge>
         </div>
       </div>
     </header>

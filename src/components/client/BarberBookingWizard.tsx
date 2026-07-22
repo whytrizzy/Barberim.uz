@@ -1,9 +1,10 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { BarberProfileType, ServiceType, TimeSlot, BookingType } from '@/types';
+import { BarberProfileType, TimeSlot, BookingType } from '@/types';
+import { useLanguage } from '@/lib/i18n/LanguageContext';
 import { TimeSlotPicker } from './TimeSlotPicker';
-import { MapPin, Phone, Clock, Banknote, Calendar as CalendarIcon, CheckCircle2, Scissors, ArrowRight, User } from 'lucide-react';
+import { MapPin, Phone, Clock, CheckCircle2, Scissors, ArrowRight, User } from 'lucide-react';
 import { Button } from '../ui/Button';
 
 interface BarberBookingWizardProps {
@@ -12,6 +13,7 @@ interface BarberBookingWizardProps {
 }
 
 export function BarberBookingWizard({ barber, onBookingComplete }: BarberBookingWizardProps) {
+  const { t } = useLanguage();
   const [selectedServiceIds, setSelectedServiceIds] = useState<string[]>([]);
   const [selectedDate, setSelectedDate] = useState<string>(() => {
     const today = new Date();
@@ -28,7 +30,6 @@ export function BarberBookingWizard({ barber, onBookingComplete }: BarberBooking
   const [confirmedBooking, setConfirmedBooking] = useState<BookingType | null>(null);
 
   const services = barber.services || [];
-
   const selectedServices = services.filter((s) => selectedServiceIds.includes(s.id));
   const totalDurationMinutes = selectedServices.reduce((sum, s) => sum + s.durationMinutes, 0) || 30;
   const totalPrice = selectedServices.reduce((sum, s) => sum + s.price, 0);
@@ -41,7 +42,6 @@ export function BarberBookingWizard({ barber, onBookingComplete }: BarberBooking
     }
   };
 
-  // Generate next 14 days for date picker ribbon
   const dateOptions = Array.from({ length: 14 }).map((_, i) => {
     const d = new Date();
     d.setDate(d.getDate() + i);
@@ -52,7 +52,6 @@ export function BarberBookingWizard({ barber, onBookingComplete }: BarberBooking
     return { isoDate, dayName, dayNum, monthName };
   });
 
-  // Fetch slots whenever date or selected duration changes
   useEffect(() => {
     if (step === 'SLOT' || step === 'CONFIRM') {
       fetchSlots();
@@ -114,7 +113,6 @@ export function BarberBookingWizard({ barber, onBookingComplete }: BarberBooking
 
   return (
     <div className="space-y-4 pb-6">
-      {/* Barber Header Info Card */}
       <div className="glass-card-gold rounded-2xl p-4 flex items-start gap-3.5 relative">
         <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-amber-500 to-yellow-600 flex items-center justify-center text-slate-950 font-black text-xl shadow-md shrink-0">
           ✂️
@@ -130,14 +128,12 @@ export function BarberBookingWizard({ barber, onBookingComplete }: BarberBooking
         </div>
       </div>
 
-      {/* STEP 1: SERVICE SELECTION */}
       {step === 'SERVICES' && (
         <div className="glass-card rounded-2xl p-5 space-y-4">
           <div className="border-b border-slate-800 pb-2.5">
             <h3 className="text-sm font-bold text-white flex items-center gap-2">
-              <Scissors className="w-4 h-4 text-amber-400" /> Step 1: Select Service(s)
+              <Scissors className="w-4 h-4 text-amber-400" /> {t('step1Services')}
             </h3>
-            <p className="text-xs text-slate-400">Tap to select one or multiple haircut services</p>
           </div>
 
           <div className="space-y-2.5">
@@ -179,15 +175,13 @@ export function BarberBookingWizard({ barber, onBookingComplete }: BarberBooking
             })}
           </div>
 
-          {/* Sticky Total Summary & Next Button */}
           {selectedServiceIds.length > 0 && (
             <div className="pt-3 border-t border-slate-800 flex items-center justify-between">
               <div>
                 <span className="text-[10px] text-slate-400 uppercase tracking-wider block font-semibold">
-                  Total ({selectedServices.length} items)
+                  {t('total')} ({selectedServices.length})
                 </span>
                 <span className="text-sm font-extrabold text-amber-300">{formatPrice(totalPrice)}</span>
-                <span className="text-xs text-slate-400 ml-2">({totalDurationMinutes} mins)</span>
               </div>
               <Button
                 variant="primary"
@@ -195,32 +189,29 @@ export function BarberBookingWizard({ barber, onBookingComplete }: BarberBooking
                 onClick={() => setStep('SLOT')}
                 className="gap-1.5"
               >
-                Choose Date & Time <ArrowRight className="w-4 h-4" />
+                {t('chooseDateTime')} <ArrowRight className="w-4 h-4" />
               </Button>
             </div>
           )}
         </div>
       )}
 
-      {/* STEP 2 & 3: DATE & TIME SLOT SELECTION */}
       {step === 'SLOT' && (
         <div className="glass-card rounded-2xl p-5 space-y-4">
           <div className="flex items-center justify-between border-b border-slate-800 pb-2.5">
             <div>
               <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                <CalendarIcon className="w-4 h-4 text-amber-400" /> Step 2: Date & Time Slot
+                <Clock className="w-4 h-4 text-amber-400" /> {t('step2Slot')}
               </h3>
-              <p className="text-xs text-slate-400">Total duration: {totalDurationMinutes} minutes</p>
             </div>
             <button
               onClick={() => setStep('SERVICES')}
               className="text-xs text-amber-400 hover:underline font-medium"
             >
-              Edit Services
+              {t('back')}
             </button>
           </div>
 
-          {/* Date Picker Horizontal Ribbon */}
           <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none">
             {dateOptions.map((item) => {
               const isSelected = selectedDate === item.isoDate;
@@ -242,7 +233,6 @@ export function BarberBookingWizard({ barber, onBookingComplete }: BarberBooking
             })}
           </div>
 
-          {/* Time Slot Picker Grid */}
           <TimeSlotPicker
             slots={availableSlots}
             selectedSlot={selectedSlot}
@@ -250,7 +240,6 @@ export function BarberBookingWizard({ barber, onBookingComplete }: BarberBooking
             loading={loadingSlots}
           />
 
-          {/* Continue Button */}
           {selectedSlot && (
             <Button
               variant="primary"
@@ -259,48 +248,44 @@ export function BarberBookingWizard({ barber, onBookingComplete }: BarberBooking
               onClick={() => setStep('CONFIRM')}
               className="mt-4 gap-1.5"
             >
-              Confirm Booking Details <ArrowRight className="w-4 h-4" />
+              {t('confirmBooking')} <ArrowRight className="w-4 h-4" />
             </Button>
           )}
         </div>
       )}
 
-      {/* STEP 4: CONFIRMATION & CLIENT PHONE */}
       {step === 'CONFIRM' && selectedSlot && (
         <div className="glass-card rounded-2xl p-5 space-y-4">
           <div className="border-b border-slate-800 pb-2.5">
             <h3 className="text-sm font-bold text-white flex items-center gap-2">
-              <CheckCircle2 className="w-4 h-4 text-emerald-400" /> Step 3: Confirm Booking
+              <CheckCircle2 className="w-4 h-4 text-emerald-400" /> {t('step3Confirm')}
             </h3>
-            <p className="text-xs text-slate-400">Review selected time slot and enter phone number</p>
           </div>
 
-          {/* Summary Box */}
           <div className="bg-slate-900/80 border border-slate-800 rounded-xl p-4 space-y-3">
             <div className="flex items-center justify-between border-b border-slate-800 pb-2">
-              <span className="text-xs text-slate-400">Date & Time Slot</span>
+              <span className="text-xs text-slate-400">Date & Time</span>
               <span className="text-xs font-bold text-amber-300">
                 {selectedDate} @ {selectedSlot.time}
               </span>
             </div>
 
             <div className="flex items-center justify-between border-b border-slate-800 pb-2">
-              <span className="text-xs text-slate-400">Selected Services</span>
+              <span className="text-xs text-slate-400">{t('tabServices')}</span>
               <span className="text-xs font-bold text-white text-right max-w-[180px]">
                 {selectedServices.map((s) => s.name).join(', ')}
               </span>
             </div>
 
             <div className="flex items-center justify-between">
-              <span className="text-xs text-slate-400">Total Price</span>
+              <span className="text-xs text-slate-400">{t('total')}</span>
               <span className="text-sm font-extrabold text-emerald-400">{formatPrice(totalPrice)}</span>
             </div>
           </div>
 
-          {/* Phone Form */}
           <div className="space-y-3">
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1">Your Full Name</label>
+              <label className="block text-xs font-semibold text-slate-300 mb-1">{t('fullName')}</label>
               <div className="relative">
                 <User className="w-4 h-4 text-slate-500 absolute left-3 top-3" />
                 <input
@@ -308,14 +293,13 @@ export function BarberBookingWizard({ barber, onBookingComplete }: BarberBooking
                   value={clientName}
                   onChange={(e) => setClientName(e.target.value)}
                   className="w-full bg-slate-900 border border-slate-700 rounded-xl pl-9 pr-3 py-2.5 text-xs text-white focus:outline-none focus:border-amber-500"
-                  placeholder="Enter your name"
                   required
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1">Phone Number for Confirmation</label>
+              <label className="block text-xs font-semibold text-slate-300 mb-1">{t('phone')}</label>
               <div className="relative">
                 <Phone className="w-4 h-4 text-slate-500 absolute left-3 top-3" />
                 <input
@@ -323,7 +307,6 @@ export function BarberBookingWizard({ barber, onBookingComplete }: BarberBooking
                   value={clientPhone}
                   onChange={(e) => setClientPhone(e.target.value)}
                   className="w-full bg-slate-900 border border-slate-700 rounded-xl pl-9 pr-3 py-2.5 text-xs text-white focus:outline-none focus:border-amber-500"
-                  placeholder="+998 90 123 45 67"
                   required
                 />
               </div>
@@ -332,7 +315,7 @@ export function BarberBookingWizard({ barber, onBookingComplete }: BarberBooking
 
           <div className="flex items-center gap-2 pt-2">
             <Button variant="secondary" size="md" onClick={() => setStep('SLOT')}>
-              Back
+              {t('back')}
             </Button>
             <Button
               variant="primary"
@@ -341,13 +324,12 @@ export function BarberBookingWizard({ barber, onBookingComplete }: BarberBooking
               disabled={submitting || !clientPhone}
               onClick={handleCreateBooking}
             >
-              {submitting ? 'Confirming...' : '✂️ Complete Haircut Booking'}
+              {submitting ? t('saving') : `✂️ ${t('confirmBooking')}`}
             </Button>
           </div>
         </div>
       )}
 
-      {/* STEP 5: SUCCESS CONFIRMATION */}
       {step === 'SUCCESS' && confirmedBooking && (
         <div className="glass-card-gold rounded-2xl p-6 text-center space-y-4 animate-in fade-in zoom-in-95 duration-300">
           <div className="w-16 h-16 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 flex items-center justify-center mx-auto">
@@ -355,28 +337,9 @@ export function BarberBookingWizard({ barber, onBookingComplete }: BarberBooking
           </div>
 
           <div>
-            <span className="text-xs uppercase tracking-wider text-amber-400 font-bold">Booking Confirmed!</span>
-            <h3 className="text-xl font-extrabold text-white mt-1">See You Soon!</h3>
-            <p className="text-xs text-slate-300 mt-1">
-              Your appointment with <span className="text-white font-bold">{barber.user?.fullName}</span> has been reserved.
-            </p>
-          </div>
-
-          <div className="bg-slate-900/90 border border-slate-800 rounded-xl p-4 text-left text-xs space-y-2">
-            <div className="flex justify-between">
-              <span className="text-slate-400">Time Slot:</span>
-              <span className="font-bold text-amber-300">
-                {new Date(confirmedBooking.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })}
-              </span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-slate-400">Total Price:</span>
-              <span className="font-bold text-emerald-400">{formatPrice(confirmedBooking.totalPrice)}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-slate-400">Salon Address:</span>
-              <span className="font-medium text-white">{barber.address}</span>
-            </div>
+            <span className="text-xs uppercase tracking-wider text-amber-400 font-bold">{t('bookingSuccessTitle')}</span>
+            <h3 className="text-xl font-extrabold text-white mt-1">{t('seeYouSoon')}</h3>
+            <p className="text-xs text-slate-300 mt-1">{t('bookingSuccessMsg')}</p>
           </div>
 
           <Button
@@ -389,7 +352,7 @@ export function BarberBookingWizard({ barber, onBookingComplete }: BarberBooking
               setSelectedSlot(null);
             }}
           >
-            Done
+            {t('done')}
           </Button>
         </div>
       )}

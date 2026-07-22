@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { WorkingHours } from '@/types';
+import { useLanguage } from '@/lib/i18n/LanguageContext';
 import { Calendar, Clock, Coffee, Save, Check } from 'lucide-react';
 import { Button } from '../ui/Button';
 
@@ -21,6 +22,7 @@ const DAYS_MAP = [
 ];
 
 export function ScheduleManager({ workingHours, onSaveSchedule }: ScheduleManagerProps) {
+  const { t } = useLanguage();
   const [workDays, setWorkDays] = useState<number[]>(workingHours.workDays || [1, 2, 3, 4, 5, 6]);
   const [startTime, setStartTime] = useState(workingHours.startTime || '09:00');
   const [endTime, setEndTime] = useState(workingHours.endTime || '20:00');
@@ -63,21 +65,20 @@ export function ScheduleManager({ workingHours, onSaveSchedule }: ScheduleManage
       <div className="flex items-center justify-between border-b border-slate-800 pb-3">
         <div>
           <h3 className="text-base font-bold text-white flex items-center gap-2">
-            <Calendar className="w-4 h-4 text-amber-400" /> Working Schedule
+            <Calendar className="w-4 h-4 text-amber-400" /> {t('workingSchedule')}
           </h3>
-          <p className="text-xs text-slate-400">Set work days, hours & lunch breaks</p>
+          <p className="text-xs text-slate-400">{t('scheduleDesc')}</p>
         </div>
         {savedSuccess && (
           <span className="text-xs text-emerald-400 flex items-center gap-1 font-medium bg-emerald-500/10 px-2 py-1 rounded border border-emerald-500/20">
-            <Check className="w-3.5 h-3.5" /> Updated!
+            <Check className="w-3.5 h-3.5" /> {t('saved')}
           </span>
         )}
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-4">
-        {/* Working Days Selector */}
         <div>
-          <label className="block text-xs font-semibold text-slate-300 mb-2">Working Days</label>
+          <label className="block text-xs font-semibold text-slate-300 mb-2">{t('workingDays')}</label>
           <div className="flex items-center gap-1.5 flex-wrap">
             {DAYS_MAP.map((day) => {
               const active = workDays.includes(day.id);
@@ -99,14 +100,13 @@ export function ScheduleManager({ workingHours, onSaveSchedule }: ScheduleManage
           </div>
         </div>
 
-        {/* Start / End Hours */}
         <div>
           <label className="block text-xs font-semibold text-slate-300 mb-2 flex items-center gap-1.5">
-            <Clock className="w-3.5 h-3.5 text-amber-400" /> Salon Hours
+            <Clock className="w-3.5 h-3.5 text-amber-400" /> {t('salonHours')}
           </label>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <span className="block text-[10px] text-slate-400 mb-1">Start Time</span>
+              <span className="block text-[10px] text-slate-400 mb-1">{t('startTime')}</span>
               <input
                 type="time"
                 value={startTime}
@@ -116,7 +116,7 @@ export function ScheduleManager({ workingHours, onSaveSchedule }: ScheduleManage
               />
             </div>
             <div>
-              <span className="block text-[10px] text-slate-400 mb-1">Closing Time</span>
+              <span className="block text-[10px] text-slate-400 mb-1">{t('endTime')}</span>
               <input
                 type="time"
                 value={endTime}
@@ -128,14 +128,13 @@ export function ScheduleManager({ workingHours, onSaveSchedule }: ScheduleManage
           </div>
         </div>
 
-        {/* Lunch Break Times */}
         <div>
           <label className="block text-xs font-semibold text-slate-300 mb-2 flex items-center gap-1.5">
-            <Coffee className="w-3.5 h-3.5 text-amber-400" /> Lunch / Break Hours
+            <Coffee className="w-3.5 h-3.5 text-amber-400" /> {t('breakHours')}
           </label>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <span className="block text-[10px] text-slate-400 mb-1">Break Starts</span>
+              <span className="block text-[10px] text-slate-400 mb-1">{t('breakStarts')}</span>
               <input
                 type="time"
                 value={breakStart}
@@ -144,7 +143,7 @@ export function ScheduleManager({ workingHours, onSaveSchedule }: ScheduleManage
               />
             </div>
             <div>
-              <span className="block text-[10px] text-slate-400 mb-1">Break Ends</span>
+              <span className="block text-[10px] text-slate-400 mb-1">{t('breakEnds')}</span>
               <input
                 type="time"
                 value={breakEnd}
@@ -156,9 +155,9 @@ export function ScheduleManager({ workingHours, onSaveSchedule }: ScheduleManage
         </div>
 
         <Button type="submit" variant="primary" size="md" fullWidth disabled={loading}>
-          {loading ? 'Saving Schedule...' : (
+          {loading ? t('saving') : (
             <span className="flex items-center justify-center gap-1.5">
-              <Save className="w-4 h-4" /> Save Schedule Changes
+              <Save className="w-4 h-4" /> {t('saveSchedule')}
             </span>
           )}
         </Button>

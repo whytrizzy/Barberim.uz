@@ -2,12 +2,12 @@
 
 import React, { useState } from 'react';
 import { BarberProfileType, ServiceType, BookingType, WorkingHours, BookingStatus } from '@/types';
-import { ReferralShare } from './ReferralShare';
+import { useLanguage } from '@/lib/i18n/LanguageContext';
 import { ProfileSettings } from './ProfileSettings';
 import { ServiceManager } from './ServiceManager';
 import { ScheduleManager } from './ScheduleManager';
 import { BookingManager } from './BookingManager';
-import { Calendar, Scissors, Settings, Clock, Share2 } from 'lucide-react';
+import { Calendar, Scissors, Settings, Clock } from 'lucide-react';
 
 interface BarberDashboardProps {
   profile: BarberProfileType;
@@ -30,15 +30,13 @@ export function BarberDashboard({
   onUpdateSchedule,
   onUpdateBookingStatus,
 }: BarberDashboardProps) {
+  const { t } = useLanguage();
   const [activeTab, setActiveTab] = useState<'BOOKINGS' | 'SERVICES' | 'SCHEDULE' | 'PROFILE'>('BOOKINGS');
 
   const activeBookingsCount = bookings.filter((b) => b.status === 'CONFIRMED').length;
 
   return (
     <div className="space-y-4">
-      {/* Referral Share Card */}
-      <ReferralShare barberId={profile.id} barberName={profile.user?.fullName || 'Barber'} />
-
       {/* Navigation Tabs */}
       <div className="grid grid-cols-4 gap-1 bg-slate-900/90 p-1.5 rounded-2xl border border-slate-800">
         <button
@@ -50,7 +48,7 @@ export function BarberDashboard({
           }`}
         >
           <Calendar className="w-4 h-4 mb-1" />
-          <span>Bookings</span>
+          <span>{t('tabBookings')}</span>
           {activeBookingsCount > 0 && activeTab !== 'BOOKINGS' && (
             <span className="absolute -top-1 -right-1 w-4 h-4 bg-amber-500 text-slate-950 rounded-full text-[10px] font-bold flex items-center justify-center border border-slate-900">
               {activeBookingsCount}
@@ -67,7 +65,7 @@ export function BarberDashboard({
           }`}
         >
           <Scissors className="w-4 h-4 mb-1" />
-          <span>Services</span>
+          <span>{t('tabServices')}</span>
         </button>
 
         <button
@@ -79,7 +77,7 @@ export function BarberDashboard({
           }`}
         >
           <Clock className="w-4 h-4 mb-1" />
-          <span>Schedule</span>
+          <span>{t('tabSchedule')}</span>
         </button>
 
         <button
@@ -91,7 +89,7 @@ export function BarberDashboard({
           }`}
         >
           <Settings className="w-4 h-4 mb-1" />
-          <span>Profile</span>
+          <span>{t('tabProfile')}</span>
         </button>
       </div>
 

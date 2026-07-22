@@ -1,0 +1,297 @@
+export type Language = 'uz' | 'ru' | 'en';
+
+export const translations = {
+  uz: {
+    // Header & Common
+    appName: 'Barberim.uz',
+    tagline: 'Aqlli Sartaroshlik Xizmati',
+    loading: 'Barberim.uz yuklanmoqda...',
+    save: 'Saqlash',
+    saving: 'Saqlanmoqda...',
+    saved: 'Saqlandi!',
+    cancel: 'Bekor qilish',
+    confirm: 'Tasdiqlash',
+    all: 'Barchasi',
+    back: 'Orqaga',
+    done: 'Tayyor',
+    
+    // Onboarding
+    onboardingTitle: 'Barberim.uz ga xush kelibsiz! ✂️',
+    onboardingSubtitle: 'Davom etish uchun til va hisob turini tanlang:',
+    selectLanguage: 'Tilni tanlang',
+    selectRoleTitle: 'Siz kimsiz?',
+    roleClient: 'Mijozman',
+    roleClientDesc: 'Sartaroshlarni qidirish va vaqt band qilish',
+    roleBarber: 'Sartaroshman',
+    roleBarberDesc: 'Jadval, xizmatlar va mijozlarni boshqarish',
+    startApp: 'Ilovaga kirish',
+
+    // Barber Admin
+    barberDashboard: 'Sartarosh Kabineti',
+    tabBookings: 'Buyurtmalar',
+    tabServices: 'Xizmatlar',
+    tabSchedule: 'Ish Jadvali',
+    tabProfile: 'Profil',
+    
+    // Barber Profile Settings
+    profileSetup: 'Sartarosh Profili',
+    fullName: 'F.I.SH (Ism Familiya)',
+    phone: 'Telefon raqam',
+    salonAddress: 'Sartaroshxona manzili',
+    bio: 'Sartarosh haqida (Maʼlumot)',
+    saveProfile: 'Profilni saqlash',
+
+    // Services Manager
+    serviceManagement: 'Xizmatlar Boshqaruvi',
+    serviceDesc: 'Xizmat turi, davomiyligi va narxini belgilang',
+    addService: 'Xizmat qoʻshish',
+    newServiceDetails: 'Yangi xizmat tafsilotlari',
+    serviceName: 'Xizmat nomi',
+    durationMins: 'Davomiyligi (daqiqa)',
+    priceUzs: 'Narxi (SOʻM)',
+    saveService: 'Xizmatni saqlash',
+    noServices: 'Hozircha xizmatlar qoʻshilmadi.',
+
+    // Schedule Manager
+    workingSchedule: 'Ish Jadvali',
+    scheduleDesc: 'Ish kunlari, vaqti va tushlik tanaffusini belgilang',
+    workingDays: 'Ish kunlari',
+    salonHours: 'Ish soatlari',
+    startTime: 'Ish boshlanishi',
+    endTime: 'Ish tugashi',
+    breakHours: 'Tushlik / Tanaffus',
+    breakStarts: 'Tanaffus boshlanishi',
+    breakEnds: 'Tanaffus tugashi',
+    saveSchedule: 'Jadvalni saqlash',
+
+    // Bookings Manager
+    bookingManagement: 'Buyurtmalar Boshqaruvi',
+    bookingDesc: 'Kunlik va haftalik vaqtlarni koʻrish hamda boshqarish',
+    confirmed: 'Tasdiqlangan',
+    completed: 'Bajarildi',
+    cancelled: 'Bekor qilindi',
+    pending: 'Kutilmoqda',
+    completeAction: 'Bajarildi belgilash',
+    cancelAction: 'Bekor qilish',
+    noBookings: 'Ushbu boʻlimda buyurtmalar yoʻq.',
+
+    // Client Marketplace & Discovery
+    searchBarbers: 'Sartaroshlarni qidirish',
+    searchPlaceholder: 'Nomi, telefon raqami yoki manzil boʻyicha...',
+    filterAll: 'Barcha sartaroshlar',
+    filterNear: 'Yaqin atrofdagilar',
+    noBarbersFound: 'Topilmadi. Qidiruv soʻrovini oʻzgartirib koʻring.',
+    bookCut: 'Vaqt band qilish',
+    myBookings: 'Mening buyurtmalarim',
+    upcomingAppts: 'Kutilayotgan buyurtmalar',
+    pastAppts: 'Oʻtgan buyurtmalar tarixi',
+    noUpcoming: 'Sizda hozircha faol buyurtmalar yoʻq.',
+
+    // Booking Wizard
+    step1Services: '1-bosqich: Xizmat(lar)ni tanlang',
+    step2Slot: '2-bosqich: Sana va Vaqtni tanlang',
+    step3Confirm: '3-bosqich: Tasdiqlash',
+    total: 'Jami',
+    chooseDateTime: 'Sana va vaqtni tanlash',
+    confirmBooking: 'Buyurtmani tasdiqlash',
+    bookingSuccessTitle: 'Buyurtma tasdiqlandi!',
+    bookingSuccessMsg: 'Sizning qabulingiz muvaffaqiyatli band qilindi.',
+    seeYouSoon: 'Koʻrishguncha!',
+  },
+
+  ru: {
+    // Header & Common
+    appName: 'Barberim.uz',
+    tagline: 'Умная запись к барберу',
+    loading: 'Загрузка Barberim.uz...',
+    save: 'Сохранить',
+    saving: 'Сохранение...',
+    saved: 'Сохранено!',
+    cancel: 'Отмена',
+    confirm: 'Подтвердить',
+    all: 'Все',
+    back: 'Назад',
+    done: 'Готово',
+    
+    // Onboarding
+    onboardingTitle: 'Добро пожаловать в Barberim.uz! ✂️',
+    onboardingSubtitle: 'Выберите язык и тип аккаунта для продолжения:',
+    selectLanguage: 'Выберите язык',
+    selectRoleTitle: 'Кто вы?',
+    roleClient: 'Я Клиент',
+    roleClientDesc: 'Поиск барберов и онлайн-запись',
+    roleBarber: 'Я Барбер',
+    roleBarberDesc: 'Управление графиком, услугами и клиентами',
+    startApp: 'Войти в приложение',
+
+    // Barber Admin
+    barberDashboard: 'Кабинет Барбера',
+    tabBookings: 'Записи',
+    tabServices: 'Услуги',
+    tabSchedule: 'График',
+    tabProfile: 'Профиль',
+    
+    // Barber Profile Settings
+    profileSetup: 'Профиль Барбера',
+    fullName: 'Ф.И.О',
+    phone: 'Номер телефона',
+    salonAddress: 'Адрес барбершопа',
+    bio: 'О себе / Описание',
+    saveProfile: 'Сохранить профиль',
+
+    // Services Manager
+    serviceManagement: 'Управление услугами',
+    serviceDesc: 'Укажите название, длительность и стоимость',
+    addService: 'Добавить услугу',
+    newServiceDetails: 'Детали новой услуги',
+    serviceName: 'Название услуги',
+    durationMins: 'Длительность (мин)',
+    priceUzs: 'Цена (СУМ)',
+    saveService: 'Сохранить услугу',
+    noServices: 'Услуги пока не добавлены.',
+
+    // Schedule Manager
+    workingSchedule: 'Рабочий график',
+    scheduleDesc: 'Настройте рабочие дни, часы и обеденный перерыв',
+    workingDays: 'Рабочие дни',
+    salonHours: 'Часы работы',
+    startTime: 'Начало работы',
+    endTime: 'Конец работы',
+    breakHours: 'Обед / Перерыв',
+    breakStarts: 'Начало перерыва',
+    breakEnds: 'Конец перерыва',
+    saveSchedule: 'Сохранить график',
+
+    // Bookings Manager
+    bookingManagement: 'Управление записями',
+    bookingDesc: 'Просмотр и статус онлайн-записей клиентов',
+    confirmed: 'Подтверждено',
+    completed: 'Завершено',
+    cancelled: 'Отменено',
+    pending: 'В ожидании',
+    completeAction: 'Завершить',
+    cancelAction: 'Отменить',
+    noBookings: 'В этом разделе нет записей.',
+
+    // Client Marketplace & Discovery
+    searchBarbers: 'Поиск барберов',
+    searchPlaceholder: 'По названию, телефону или адресу...',
+    filterAll: 'Все барберы',
+    filterNear: 'Рядом со мной',
+    noBarbersFound: 'Ничего не найдено. Попробуйте изменить запрос.',
+    bookCut: 'Записаться',
+    myBookings: 'Мои записи',
+    upcomingAppts: 'Предстоящие записи',
+    pastAppts: 'История записей',
+    noUpcoming: 'У вас пока нет активных записей.',
+
+    // Booking Wizard
+    step1Services: 'Шаг 1: Выберите услугу(и)',
+    step2Slot: 'Шаг 2: Выберите дату и время',
+    step3Confirm: 'Шаг 3: Подтверждение',
+    total: 'Итого',
+    chooseDateTime: 'Выбрать дату и время',
+    confirmBooking: 'Подтвердить запись',
+    bookingSuccessTitle: 'Запись подтверждена!',
+    bookingSuccessMsg: 'Ваш визит успешно забронирован.',
+    seeYouSoon: 'До встречи!',
+  },
+
+  en: {
+    // Header & Common
+    appName: 'Barberim.uz',
+    tagline: 'Smart Barber Scheduling',
+    loading: 'Loading Barberim.uz...',
+    save: 'Save',
+    saving: 'Saving...',
+    saved: 'Saved!',
+    cancel: 'Cancel',
+    confirm: 'Confirm',
+    all: 'All',
+    back: 'Back',
+    done: 'Done',
+    
+    // Onboarding
+    onboardingTitle: 'Welcome to Barberim.uz! ✂️',
+    onboardingSubtitle: 'Choose your language and account type to start:',
+    selectLanguage: 'Select Language',
+    selectRoleTitle: 'I am a...',
+    roleClient: 'Customer',
+    roleClientDesc: 'Search barbers and book haircuts online',
+    roleBarber: 'Barber',
+    roleBarberDesc: 'Manage schedule, services & client bookings',
+    startApp: 'Enter Application',
+
+    // Barber Admin
+    barberDashboard: 'Barber Dashboard',
+    tabBookings: 'Bookings',
+    tabServices: 'Services',
+    tabSchedule: 'Schedule',
+    tabProfile: 'Profile',
+    
+    // Barber Profile Settings
+    profileSetup: 'Barber Profile',
+    fullName: 'Full Name',
+    phone: 'Phone Number',
+    salonAddress: 'Salon Address / Location',
+    bio: 'Bio / Barber Notes',
+    saveProfile: 'Save Profile',
+
+    // Services Manager
+    serviceManagement: 'Service Management',
+    serviceDesc: 'Set service names, duration and pricing',
+    addService: 'Add Service',
+    newServiceDetails: 'New Service Details',
+    serviceName: 'Service Name',
+    durationMins: 'Duration (Mins)',
+    priceUzs: 'Price (UZS)',
+    saveService: 'Save Service',
+    noServices: 'No services added yet.',
+
+    // Schedule Manager
+    workingSchedule: 'Working Schedule',
+    scheduleDesc: 'Set work days, hours and lunch break times',
+    workingDays: 'Working Days',
+    salonHours: 'Salon Hours',
+    startTime: 'Start Time',
+    endTime: 'Closing Time',
+    breakHours: 'Lunch / Break Hours',
+    breakStarts: 'Break Starts',
+    breakEnds: 'Break Ends',
+    saveSchedule: 'Save Schedule',
+
+    // Bookings Manager
+    bookingManagement: 'Booking Management',
+    bookingDesc: 'View daily slots & manage client appointments',
+    confirmed: 'Confirmed',
+    completed: 'Completed',
+    cancelled: 'Cancelled',
+    pending: 'Pending',
+    completeAction: 'Complete',
+    cancelAction: 'Cancel',
+    noBookings: 'No bookings found in this view.',
+
+    // Client Marketplace & Discovery
+    searchBarbers: 'Find Barbers',
+    searchPlaceholder: 'Search by name, phone or address...',
+    filterAll: 'All Barbers',
+    filterNear: 'Nearby',
+    noBarbersFound: 'No barbers found matching search query.',
+    bookCut: 'Book Haircut',
+    myBookings: 'My Appointments',
+    upcomingAppts: 'Upcoming Appointments',
+    pastAppts: 'Appointment History',
+    noUpcoming: 'You have no upcoming appointments.',
+
+    // Booking Wizard
+    step1Services: 'Step 1: Select Service(s)',
+    step2Slot: 'Step 2: Choose Date & Time',
+    step3Confirm: 'Step 3: Confirmation',
+    total: 'Total',
+    chooseDateTime: 'Choose Date & Time',
+    confirmBooking: 'Confirm Appointment',
+    bookingSuccessTitle: 'Booking Confirmed!',
+    bookingSuccessMsg: 'Your haircut appointment has been reserved.',
+    seeYouSoon: 'See you soon!',
+  },
+};

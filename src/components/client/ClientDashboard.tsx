@@ -2,9 +2,10 @@
 
 import React, { useState } from 'react';
 import { BarberProfileType, BookingType } from '@/types';
-import { BarberBookingWizard } from './BarberBookingWizard';
+import { useLanguage } from '@/lib/i18n/LanguageContext';
+import { BarberDiscovery } from './BarberDiscovery';
 import { MyBookings } from './MyBookings';
-import { Scissors, Calendar } from 'lucide-react';
+import { Search, Calendar } from 'lucide-react';
 
 interface ClientDashboardProps {
   barber: BarberProfileType;
@@ -14,12 +15,12 @@ interface ClientDashboardProps {
 }
 
 export function ClientDashboard({
-  barber,
   clientBookings,
   onBookingComplete,
   onCancelBooking,
 }: ClientDashboardProps) {
-  const [activeTab, setActiveTab] = useState<'BOOK' | 'MY_BOOKINGS'>('BOOK');
+  const { t } = useLanguage();
+  const [activeTab, setActiveTab] = useState<'DISCOVERY' | 'MY_BOOKINGS'>('DISCOVERY');
 
   const upcomingCount = clientBookings.filter(
     (b) => b.status === 'CONFIRMED' || b.status === 'PENDING'
@@ -27,17 +28,17 @@ export function ClientDashboard({
 
   return (
     <div className="space-y-4">
-      {/* Top Client Navigation Pills */}
+      {/* Top Navigation Pills */}
       <div className="grid grid-cols-2 gap-2 bg-slate-900/90 p-1.5 rounded-2xl border border-slate-800">
         <button
-          onClick={() => setActiveTab('BOOK')}
+          onClick={() => setActiveTab('DISCOVERY')}
           className={`flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-bold transition-all ${
-            activeTab === 'BOOK'
+            activeTab === 'DISCOVERY'
               ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20'
               : 'text-slate-400 hover:text-slate-200'
           }`}
         >
-          <Scissors className="w-4 h-4" /> Book Appointment
+          <Search className="w-4 h-4" /> {t('searchBarbers')}
         </button>
 
         <button
@@ -48,7 +49,7 @@ export function ClientDashboard({
               : 'text-slate-400 hover:text-slate-200'
           }`}
         >
-          <Calendar className="w-4 h-4" /> My Appointments
+          <Calendar className="w-4 h-4" /> {t('myBookings')}
           {upcomingCount > 0 && activeTab !== 'MY_BOOKINGS' && (
             <span className="w-4 h-4 bg-amber-500 text-slate-950 rounded-full text-[10px] font-extrabold flex items-center justify-center">
               {upcomingCount}
@@ -57,10 +58,9 @@ export function ClientDashboard({
         </button>
       </div>
 
-      {/* Views */}
-      {activeTab === 'BOOK' ? (
-        <BarberBookingWizard
-          barber={barber}
+      {/* View Tabs */}
+      {activeTab === 'DISCOVERY' ? (
+        <BarberDiscovery
           onBookingComplete={(booking) => {
             onBookingComplete(booking);
             setActiveTab('MY_BOOKINGS');

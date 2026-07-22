@@ -2,7 +2,8 @@
 
 import React, { useState } from 'react';
 import { BookingType, BookingStatus } from '@/types';
-import { Calendar as CalendarIcon, User, Phone, Clock, CheckCircle2, XCircle, Banknote, Filter } from 'lucide-react';
+import { useLanguage } from '@/lib/i18n/LanguageContext';
+import { Calendar as CalendarIcon, User, Phone, Clock, CheckCircle2, XCircle, Banknote } from 'lucide-react';
 import { Badge } from '../ui/Badge';
 import { Button } from '../ui/Button';
 
@@ -12,6 +13,7 @@ interface BookingManagerProps {
 }
 
 export function BookingManager({ bookings, onUpdateStatus }: BookingManagerProps) {
+  const { t } = useLanguage();
   const [filterStatus, setFilterStatus] = useState<string>('ALL');
 
   const filteredBookings = bookings.filter((b) => {
@@ -33,13 +35,13 @@ export function BookingManager({ bookings, onUpdateStatus }: BookingManagerProps
   const getStatusBadge = (status: BookingStatus) => {
     switch (status) {
       case 'CONFIRMED':
-        return <Badge variant="success">Confirmed</Badge>;
+        return <Badge variant="success">{t('confirmed')}</Badge>;
       case 'COMPLETED':
-        return <Badge variant="gold">Completed</Badge>;
+        return <Badge variant="gold">{t('completed')}</Badge>;
       case 'CANCELLED':
-        return <Badge variant="danger">Cancelled</Badge>;
+        return <Badge variant="danger">{t('cancelled')}</Badge>;
       default:
-        return <Badge variant="warning">Pending</Badge>;
+        return <Badge variant="warning">{t('pending')}</Badge>;
     }
   };
 
@@ -48,13 +50,12 @@ export function BookingManager({ bookings, onUpdateStatus }: BookingManagerProps
       <div className="flex items-center justify-between border-b border-slate-800 pb-3">
         <div>
           <h3 className="text-base font-bold text-white flex items-center gap-2">
-            <CalendarIcon className="w-4 h-4 text-amber-400" /> Booking Management
+            <CalendarIcon className="w-4 h-4 text-amber-400" /> {t('bookingManagement')}
           </h3>
-          <p className="text-xs text-slate-400">View daily slots & manage client appointments</p>
+          <p className="text-xs text-slate-400">{t('bookingDesc')}</p>
         </div>
       </div>
 
-      {/* Filter Tabs */}
       <div className="flex items-center gap-1.5 overflow-x-auto pb-1">
         {['ALL', 'CONFIRMED', 'COMPLETED', 'CANCELLED'].map((st) => (
           <button
@@ -66,17 +67,16 @@ export function BookingManager({ bookings, onUpdateStatus }: BookingManagerProps
                 : 'bg-slate-900/80 text-slate-400 border-slate-800 hover:text-slate-200'
             }`}
           >
-            {st === 'ALL' ? 'All Bookings' : st}
+            {st === 'ALL' ? t('all') : st}
           </button>
         ))}
       </div>
 
-      {/* Bookings List */}
       <div className="space-y-3">
         {filteredBookings.length === 0 ? (
           <div className="text-center py-8 bg-slate-900/40 rounded-xl border border-slate-800">
             <CalendarIcon className="w-8 h-8 text-slate-600 mx-auto mb-2" />
-            <p className="text-xs text-slate-400 font-medium">No bookings found for this filter.</p>
+            <p className="text-xs text-slate-400 font-medium">{t('noBookings')}</p>
           </div>
         ) : (
           filteredBookings.map((booking) => {
@@ -88,7 +88,6 @@ export function BookingManager({ bookings, onUpdateStatus }: BookingManagerProps
                 key={booking.id}
                 className="bg-slate-900/80 border border-slate-800 hover:border-slate-700/80 rounded-2xl p-4 space-y-3 transition-all"
               >
-                {/* Header: Date, Time & Status */}
                 <div className="flex items-center justify-between border-b border-slate-800/80 pb-2.5">
                   <div className="flex items-center gap-2">
                     <span className="bg-amber-500/15 text-amber-300 font-bold px-2.5 py-1 rounded-lg text-xs border border-amber-500/20">
@@ -101,7 +100,6 @@ export function BookingManager({ bookings, onUpdateStatus }: BookingManagerProps
                   {getStatusBadge(booking.status)}
                 </div>
 
-                {/* Body: Client Details & Services */}
                 <div className="space-y-1.5">
                   <div className="flex items-center justify-between">
                     <h4 className="text-sm font-bold text-white flex items-center gap-1.5">
@@ -121,13 +119,12 @@ export function BookingManager({ bookings, onUpdateStatus }: BookingManagerProps
 
                   <div className="bg-slate-950/60 p-2.5 rounded-xl border border-slate-800/60 mt-2">
                     <span className="text-[10px] uppercase font-bold tracking-wider text-slate-500 block">
-                      Services
+                      {t('tabServices')}
                     </span>
                     <p className="text-xs text-amber-200 font-medium mt-0.5">{serviceNames}</p>
                   </div>
                 </div>
 
-                {/* Actions: Mark Completed or Cancel */}
                 {booking.status === 'CONFIRMED' && (
                   <div className="flex items-center gap-2 pt-1 border-t border-slate-800/80">
                     <Button
@@ -136,7 +133,7 @@ export function BookingManager({ bookings, onUpdateStatus }: BookingManagerProps
                       className="flex-1 text-xs"
                       onClick={() => onUpdateStatus(booking.id, 'COMPLETED')}
                     >
-                      <CheckCircle2 className="w-3.5 h-3.5 mr-1" /> Complete
+                      <CheckCircle2 className="w-3.5 h-3.5 mr-1" /> {t('completeAction')}
                     </Button>
                     <Button
                       variant="danger"
@@ -144,7 +141,7 @@ export function BookingManager({ bookings, onUpdateStatus }: BookingManagerProps
                       className="flex-1 text-xs"
                       onClick={() => onUpdateStatus(booking.id, 'CANCELLED')}
                     >
-                      <XCircle className="w-3.5 h-3.5 mr-1" /> Cancel
+                      <XCircle className="w-3.5 h-3.5 mr-1" /> {t('cancelAction')}
                     </Button>
                   </div>
                 )}
