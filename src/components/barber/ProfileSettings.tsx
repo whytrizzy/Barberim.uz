@@ -3,7 +3,8 @@
 import React, { useState } from 'react';
 import { BarberProfileType } from '@/types';
 import { useLanguage } from '@/lib/i18n/LanguageContext';
-import { User, Phone, MapPin, FileText, Save, Check } from 'lucide-react';
+import { Language } from '@/lib/i18n/translations';
+import { User, Phone, MapPin, FileText, Save, Check, Globe } from 'lucide-react';
 import { Button } from '../ui/Button';
 
 interface ProfileSettingsProps {
@@ -12,7 +13,7 @@ interface ProfileSettingsProps {
 }
 
 export function ProfileSettings({ profile, onSave }: ProfileSettingsProps) {
-  const { t } = useLanguage();
+  const { language, setLanguage, t } = useLanguage();
   const [fullName, setFullName] = useState(profile.user?.fullName || 'Sardor Barber');
   const [phone, setPhone] = useState(profile.user?.phone || '+998 90 123 45 67');
   const [address, setAddress] = useState(profile.address || '');
@@ -45,6 +46,36 @@ export function ProfileSettings({ profile, onSave }: ProfileSettingsProps) {
             <Check className="w-3.5 h-3.5" /> {t('saved')}
           </span>
         )}
+      </div>
+
+      {/* Language Selector in Profile Tab */}
+      <div className="bg-slate-900/80 p-3.5 rounded-xl border border-slate-800 space-y-2">
+        <label className="block text-xs font-semibold text-slate-300 flex items-center gap-1.5">
+          <Globe className="w-3.5 h-3.5 text-amber-400" /> {t('selectLanguage')}
+        </label>
+        <div className="grid grid-cols-3 gap-2">
+          {[
+            { code: 'uz', name: 'Oʻzbek' },
+            { code: 'ru', name: 'Русский' },
+            { code: 'en', name: 'English' },
+          ].map((lang) => {
+            const active = language === lang.code;
+            return (
+              <button
+                type="button"
+                key={lang.code}
+                onClick={() => setLanguage(lang.code as Language)}
+                className={`py-1.5 px-2 rounded-lg text-xs font-bold transition-all border ${
+                  active
+                    ? 'bg-amber-500 text-slate-950 border-amber-400 shadow-sm'
+                    : 'bg-slate-950 text-slate-400 border-slate-800 hover:text-white'
+                }`}
+              >
+                {lang.name}
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-3.5">

@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { Role } from '@/types';
 import { useLanguage } from '@/lib/i18n/LanguageContext';
 import { Language } from '@/lib/i18n/translations';
+import { getTelegramUser } from '@/lib/telegramWebApp';
 import { Scissors, User, ShieldCheck, Check, Globe } from 'lucide-react';
 import { Button } from './ui/Button';
 
@@ -20,12 +21,28 @@ export function OnboardingModal({ onComplete }: OnboardingModalProps) {
     if (!selectedRole) return;
     setSubmitting(true);
     try {
+      const tgUser = getTelegramUser();
+      const telegramId = tgUser?.id || Date.now();
+      const fullName = tgUser?.first_name ? `${tgUser.first_name} ${tgUser.last_name || ''}`.trim() : 'New User';
+
+      // Persist in PostgreSQL DB via API
+      await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          telegramId,
+          fullName,
+          role: selectedRole,
+        }),
+      });
+
       if (typeof window !== 'undefined') {
         localStorage.setItem('barberim_user_role', selectedRole);
       }
       onComplete(selectedRole);
     } catch (err) {
-      console.error(err);
+      console.error('Onboarding registration error:', err);
+      onComplete(selectedRole);
     } finally {
       setSubmitting(false);
     }
@@ -34,7 +51,6 @@ export function OnboardingModal({ onComplete }: OnboardingModalProps) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/90 backdrop-blur-md">
       <div className="w-full max-w-md glass-card-gold rounded-3xl p-6 space-y-5 animate-in fade-in zoom-in-95 duration-300">
-        {/* Header Logo */}
         <div className="text-center space-y-2">
           <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-amber-500 to-yellow-600 flex items-center justify-center text-slate-950 mx-auto shadow-lg shadow-amber-500/20">
             <Scissors className="w-8 h-8 stroke-[2.5]" />
@@ -73,13 +89,13 @@ export function OnboardingModal({ onComplete }: OnboardingModalProps) {
           </div>
         </div>
 
-        {/* Role Choice */}
+        {/* Account Type Selection */}
         <div className="space-y-2.5">
           <label className="block text-xs font-semibold text-slate-300">
             {t('selectRoleTitle')}
           </label>
 
-          {/* Client Option */}
+          {/* Client option */}
           <div
             onClick={() => setSelectedRole('CLIENT')}
             className={`p-4 rounded-2xl border transition-all cursor-pointer flex items-center gap-3.5 ${
@@ -100,7 +116,7 @@ export function OnboardingModal({ onComplete }: OnboardingModalProps) {
             </div>
           </div>
 
-          {/* Barber Option */}
+          {/* Barber option */}
           <div
             onClick={() => setSelectedRole('BARBER')}
             className={`p-4 rounded-2xl border transition-all cursor-pointer flex items-center gap-3.5 ${
@@ -122,7 +138,6 @@ export function OnboardingModal({ onComplete }: OnboardingModalProps) {
           </div>
         </div>
 
-        {/* Submit */}
         <Button
           variant="primary"
           size="lg"
@@ -130,7 +145,7 @@ export function OnboardingModal({ onComplete }: OnboardingModalProps) {
           disabled={!selectedRole || submitting}
           onClick={handleFinish}
         >
-          {submitting ? '...' : t('startApp')}
+          {submitting ? t('saving') : t('startApp')}
         </Button>
       </div>
     </div>
