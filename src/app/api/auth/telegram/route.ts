@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { validateTelegramWebAppData } from '@/lib/telegramAuth';
 import { MOCK_BARBER_USER, MOCK_CLIENT_USER } from '@/lib/mockData';
 
+export const dynamic = 'force-dynamic';
+
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
@@ -22,7 +24,6 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // Fallback for development without initData signature
     const role = mockRole || 'BARBER';
     const fallbackUser = role === 'BARBER' ? MOCK_BARBER_USER : MOCK_CLIENT_USER;
 

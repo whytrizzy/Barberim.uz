@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServices, createService } from '@/lib/dataService';
 import { MOCK_BARBER_PROFILE } from '@/lib/mockData';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET() {
   try {
     const services = await getServices(MOCK_BARBER_PROFILE.id);

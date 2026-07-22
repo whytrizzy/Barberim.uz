@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getBarberProfile, getBookings } from '@/lib/dataService';
 import { calculateTimeSlots } from '@/lib/slotEngine';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(
   req: NextRequest,
   { params }: { params: { id: string } }

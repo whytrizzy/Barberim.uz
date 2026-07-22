@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getBarberProfile, updateBarberProfile } from '@/lib/dataService';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET() {
   try {
     const profile = await getBarberProfile();
