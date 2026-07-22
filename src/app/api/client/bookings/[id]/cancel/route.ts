@@ -5,10 +5,11 @@ export const dynamic = 'force-dynamic';
 
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> | { id: string } }
 ) {
   try {
-    const bookingId = params.id;
+    const resolvedParams = await params;
+    const bookingId = resolvedParams.id;
     const updated = await updateBookingStatus(bookingId, 'CANCELLED');
     return NextResponse.json({ success: true, booking: updated });
   } catch (err) {

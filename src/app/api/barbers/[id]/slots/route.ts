@@ -6,9 +6,10 @@ export const dynamic = 'force-dynamic';
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> | { id: string } }
 ) {
   try {
+    const resolvedParams = await params;
     const { searchParams } = new URL(req.url);
     const date = searchParams.get('date'); // YYYY-MM-DD
     const durationMinutes = Number(searchParams.get('duration')) || 30;
@@ -17,8 +18,8 @@ export async function GET(
       return NextResponse.json({ success: false, error: 'Date parameter is required' }, { status: 400 });
     }
 
-    const profile = await getBarberProfile(params.id);
-    const bookings = await getBookings({ barberId: params.id });
+    const profile = await getBarberProfile(resolvedParams.id);
+    const bookings = await getBookings({ barberId: resolvedParams.id });
 
     const slots = calculateTimeSlots(date, profile.workingHours, durationMinutes, bookings);
 
