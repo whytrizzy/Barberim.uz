@@ -1,16 +1,48 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { Prisma } from '@prisma/client';
 
 export const dynamic = 'force-dynamic';
 
-// Helper function to execute a database query with a 5-second timeout limit
-function withTimeout<T>(promise: Promise<T>, ms: number = 5000): Promise<T> {
-  return Promise.race([
-    promise,
-    new Promise<T>((_, reject) =>
-      setTimeout(() => reject(new Error('DATABASE_TIMEOUT')), ms)
-    ),
-  ]);
+/**
+ * Executes a database query with a connection timeout and a 1-time retry mechanism
+ * specifically targeting PrismaClientInitializationError / connection failures during cold starts.
+ */
+async function executeWithRetry<T>(
+  queryFn: () => Promise<T>,
+  timeoutMs: number = 10000,
+  maxRetries: number = 1
+): Promise<T> {
+  let attempt = 0;
+  while (attempt <= maxRetries) {
+    attempt++;
+    try {
+      const timeoutPromise = new Promise<T>((_, reject) =>
+        setTimeout(() => reject(new Error('DATABASE_TIMEOUT')), timeoutMs)
+      );
+      return await Promise.race([queryFn(), timeoutPromise]);
+    } catch (err: any) {
+      const isInitError =
+        err instanceof Prisma.PrismaClientInitializationError ||
+        err?.name === 'PrismaClientInitializationError' ||
+        err?.code === 'P1001' || // Cannot reach database server
+        err?.code === 'P1002' || // Database server timed out
+        err?.message?.includes("Can't reach database server") ||
+        err?.message?.includes('connection') ||
+        err?.message === 'DATABASE_TIMEOUT';
+
+      if (isInitError && attempt <= maxRetries) {
+        console.warn(
+          `⚠️ Prisma DB connection attempt ${attempt} failed (${err?.message}). Retrying once (attempt ${attempt + 1})...`
+        );
+        // Brief 400ms pause to allow DB pool / cold start connection to settle
+        await new Promise((resolve) => setTimeout(resolve, 400));
+        continue;
+      }
+      throw err;
+    }
+  }
+  throw new Error('DATABASE_CONNECTION_ERROR');
 }
 
 export async function POST(req: NextRequest) {
@@ -48,25 +80,33 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Look up existing user in DB with 5s timeout safeguard
+    // Look up existing user in DB with retry safeguard
     let existingUser = null;
     try {
-      existingUser = await withTimeout(
+      existingUser = await executeWithRetry(() =>
         prisma.user.findUnique({
           where: { telegramId: tId },
           include: { barberProfile: true },
-        }),
-        5000
+        })
       );
     } catch (dbErr: any) {
-      console.error('Database query timed out or failed in auth sync:', dbErr);
+      console.error('Database connection error in auth sync after retry:', dbErr);
       const isTimeout = dbErr?.message === 'DATABASE_TIMEOUT';
+      const isInitError =
+        dbErr instanceof Prisma.PrismaClientInitializationError ||
+        dbErr?.name === 'PrismaClientInitializationError' ||
+        dbErr?.message === 'DATABASE_CONNECTION_ERROR';
+
       return NextResponse.json(
         {
           success: false,
-          error: isTimeout ? 'DATABASE_TIMEOUT' : 'Database connection error',
+          error: isTimeout
+            ? 'DATABASE_TIMEOUT'
+            : isInitError
+            ? 'DATABASE_CONNECTION_ERROR'
+            : 'Database connection error',
         },
-        { status: isTimeout ? 504 : 500 }
+        { status: 500 }
       );
     }
 
@@ -74,7 +114,7 @@ export async function POST(req: NextRequest) {
       // Returning user — update name/username if changed
       if (fullName || username) {
         try {
-          await withTimeout(
+          await executeWithRetry(() =>
             prisma.user.update({
               where: { id: existingUser.id },
               data: {
@@ -82,7 +122,8 @@ export async function POST(req: NextRequest) {
                 ...(username !== undefined && { username }),
               },
             }),
-            3000
+            5000,
+            0 // Don't retry non-critical update
           );
         } catch (updateErr) {
           console.warn('Non-fatal error updating user details in sync:', updateErr);
@@ -117,12 +158,20 @@ export async function POST(req: NextRequest) {
   } catch (err: any) {
     console.error('Unexpected Auth sync API error:', err);
     const isTimeout = err?.message === 'DATABASE_TIMEOUT';
+    const isInitError =
+      err instanceof Prisma.PrismaClientInitializationError ||
+      err?.name === 'PrismaClientInitializationError';
+
     return NextResponse.json(
       {
         success: false,
-        error: isTimeout ? 'DATABASE_TIMEOUT' : (err?.message || 'Server error occurred during auth sync'),
+        error: isTimeout
+          ? 'DATABASE_TIMEOUT'
+          : isInitError
+          ? 'DATABASE_CONNECTION_ERROR'
+          : err?.message || 'Server error occurred during auth sync',
       },
-      { status: isTimeout ? 504 : 500 }
+      { status: 500 }
     );
   }
 }
