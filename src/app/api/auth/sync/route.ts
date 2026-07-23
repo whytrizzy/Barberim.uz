@@ -5,9 +5,18 @@ export const dynamic = 'force-dynamic';
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json();
+    let body;
+    try {
+      body = await req.json();
+    } catch {
+      return NextResponse.json(
+        { success: false, error: 'Invalid JSON request body' },
+        { status: 400 }
+      );
+    }
+
     const { telegramId, fullName, username } = body as {
-      telegramId: string | number;
+      telegramId?: string | number;
       fullName?: string;
       username?: string;
     };
@@ -19,24 +28,48 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const tId = BigInt(telegramId);
+    let tId: bigint;
+    try {
+      tId = BigInt(telegramId);
+    } catch {
+      return NextResponse.json(
+        { success: false, error: 'Invalid telegramId format' },
+        { status: 400 }
+      );
+    }
 
-    // Look up existing user in DB
-    const existingUser = await prisma.user.findUnique({
-      where: { telegramId: tId },
-      include: { barberProfile: true },
-    });
+    // Look up existing user in DB with try/catch safeguard for DB connection errors
+    let existingUser = null;
+    try {
+      existingUser = await prisma.user.findUnique({
+        where: { telegramId: tId },
+        include: { barberProfile: true },
+      });
+    } catch (dbErr: any) {
+      console.error('Database connection failed in auth sync:', dbErr);
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Database connection failed. Please check your Supabase connection.',
+        },
+        { status: 500 }
+      );
+    }
 
     if (existingUser) {
       // Returning user — update name/username if changed
       if (fullName || username) {
-        await prisma.user.update({
-          where: { id: existingUser.id },
-          data: {
-            ...(fullName && { fullName }),
-            ...(username !== undefined && { username }),
-          },
-        });
+        try {
+          await prisma.user.update({
+            where: { id: existingUser.id },
+            data: {
+              ...(fullName && { fullName }),
+              ...(username !== undefined && { username }),
+            },
+          });
+        } catch (updateErr) {
+          console.warn('Non-fatal error updating user details in sync:', updateErr);
+        }
       }
 
       return NextResponse.json({
@@ -64,10 +97,13 @@ export async function POST(req: NextRequest) {
         username: username || null,
       },
     });
-  } catch (err) {
-    console.error('Auth sync API error:', err);
+  } catch (err: any) {
+    console.error('Unexpected Auth sync API error:', err);
     return NextResponse.json(
-      { success: false, error: 'Auth sync failed' },
+      {
+        success: false,
+        error: err?.message || 'Server error occurred during auth sync',
+      },
       { status: 500 }
     );
   }

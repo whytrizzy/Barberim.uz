@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { Role, UserType } from '@/types';
+import { Role } from '@/types';
 import { getTelegramUser, initTelegramWebApp } from '@/lib/telegramWebApp';
 
 interface AuthUser {
@@ -18,32 +18,46 @@ interface AuthContextType {
   user: AuthUser | null;
   loading: boolean;
   isNewUser: boolean;
+  error: string | null;
   isAuthenticated: boolean;
   refreshAuth: () => Promise<void>;
   setAuthUser: (user: AuthUser) => void;
   clearNewUserFlag: () => void;
+  clearError: () => void;
 }
 
 const AuthContext = createContext<AuthContextType>({
   user: null,
   loading: true,
   isNewUser: false,
+  error: null,
   isAuthenticated: false,
   refreshAuth: async () => {},
   setAuthUser: () => {},
   clearNewUserFlag: () => {},
+  clearError: () => {},
 });
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
   const [isNewUser, setIsNewUser] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const syncAuth = useCallback(async () => {
     setLoading(true);
+    setError(null);
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => {
+      controller.abort();
+    }, 4000); // 4-second safety timeout limit
+
     try {
+      // 1. Mandatory Telegram WebApp Ready & Expand call
       initTelegramWebApp();
 
+      // 2. Extract Telegram user data
       const tgUser = getTelegramUser();
       const telegramId = tgUser?.id || null;
       const fullName = tgUser?.first_name
@@ -51,9 +65,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         : null;
       const username = tgUser?.username || null;
 
+      // Browser fallback when opened outside Telegram
       if (!telegramId) {
-        // Development fallback — no Telegram context available
-        // Check localStorage for dev user state
+        clearTimeout(timeoutId);
         const savedDevUser = typeof window !== 'undefined'
           ? localStorage.getItem('barberim_dev_user')
           : null;
@@ -69,20 +83,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         } else {
           setIsNewUser(true);
         }
-        setLoading(false);
         return;
       }
 
-      // Call /api/auth/sync with Telegram user data
+      // 3. Perform /api/auth/sync with 4s timeout signal
       const res = await fetch('/api/auth/sync', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ telegramId, fullName, username }),
+        signal: controller.signal,
       });
+
+      clearTimeout(timeoutId);
 
       const data = await res.json();
 
-      if (data.success && !data.isNewUser && data.user) {
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || 'Auth sync failed on server');
+      }
+
+      if (data.isNewUser) {
+        setIsNewUser(true);
+        setUser(null);
+      } else if (data.user) {
         const authUser: AuthUser = {
           id: data.user.id,
           telegramId: data.user.telegramId,
@@ -95,32 +118,36 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUser(authUser);
         setIsNewUser(false);
 
-        // Save to localStorage as dev backup
         if (typeof window !== 'undefined') {
           localStorage.setItem('barberim_dev_user', JSON.stringify(authUser));
         }
-      } else {
-        // New user — needs onboarding
-        setIsNewUser(true);
-        setUser(null);
       }
-    } catch (err) {
-      console.error('Auth sync failed:', err);
-      // On error, check localStorage dev fallback
+    } catch (err: any) {
+      clearTimeout(timeoutId);
+      console.error('⚡ Auth sync error/timeout:', err);
+
+      if (err.name === 'AbortError') {
+        setError('Request timeout (4s exceeded)');
+      } else {
+        setError(err.message || 'Network or database error');
+      }
+
+      // Dev fallback backup check
       const savedDevUser = typeof window !== 'undefined'
         ? localStorage.getItem('barberim_dev_user')
         : null;
-      if (savedDevUser) {
+
+      if (savedDevUser && !user) {
         try {
           setUser(JSON.parse(savedDevUser));
           setIsNewUser(false);
+          setError(null); // recovered using cached dev user
         } catch {
-          setIsNewUser(true);
+          // Keep error state for retry UI
         }
-      } else {
-        setIsNewUser(true);
       }
     } finally {
+      clearTimeout(timeoutId);
       setLoading(false);
     }
   }, []);
@@ -136,6 +163,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const setAuthUser = useCallback((newUser: AuthUser) => {
     setUser(newUser);
     setIsNewUser(false);
+    setError(null);
     if (typeof window !== 'undefined') {
       localStorage.setItem('barberim_dev_user', JSON.stringify(newUser));
     }
@@ -145,16 +173,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setIsNewUser(false);
   }, []);
 
+  const clearError = useCallback(() => {
+    setError(null);
+  }, []);
+
   return (
     <AuthContext.Provider
       value={{
         user,
         loading,
         isNewUser,
+        error,
         isAuthenticated: !!user,
         refreshAuth,
         setAuthUser,
         clearNewUserFlag,
+        clearError,
       }}
     >
       {children}

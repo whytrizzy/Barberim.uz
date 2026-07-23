@@ -16,15 +16,19 @@ export function getTelegramWebApp() {
 }
 
 export function initTelegramWebApp() {
-  const tg = getTelegramWebApp();
-  if (tg) {
-    tg.ready();
-    tg.expand();
+  if (typeof window !== 'undefined' && window.Telegram?.WebApp) {
+    const tg = window.Telegram.WebApp;
     try {
-      tg.setHeaderColor('#0f172a');
-      tg.setBackgroundColor('#0f172a');
+      tg.ready();
+      tg.expand();
+      if (typeof tg.setHeaderColor === 'function') {
+        tg.setHeaderColor('#0f172a');
+      }
+      if (typeof tg.setBackgroundColor === 'function') {
+        tg.setBackgroundColor('#0f172a');
+      }
     } catch (e) {
-      // Ignore if unsupported in older client
+      console.warn('⚡ Telegram WebApp init exception:', e);
     }
   }
 }

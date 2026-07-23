@@ -14,6 +14,9 @@ export const translations = {
     all: 'Barchasi',
     back: 'Orqaga',
     done: 'Tayyor',
+    retry: 'Qayta urinish',
+    errorTitle: 'Xatolik yuz berdi',
+    connectionError: 'Tarmoq yoki ma’lumotlar bazasi bilan aloqa oʻrnatib boʻlmadi.',
     
     // Onboarding
     onboardingTitle: 'Barberim.uz ga xush kelibsiz! ✂️',
@@ -114,6 +117,9 @@ export const translations = {
     all: 'Все',
     back: 'Назад',
     done: 'Готово',
+    retry: 'Повторить попытку',
+    errorTitle: 'Произошла ошибка',
+    connectionError: 'Не удалось установить соединение с сетью или базой данных.',
     
     // Onboarding
     onboardingTitle: 'Добро пожаловать в Barberim.uz! ✂️',
@@ -214,6 +220,9 @@ export const translations = {
     all: 'All',
     back: 'Back',
     done: 'Done',
+    retry: 'Retry',
+    errorTitle: 'An error occurred',
+    connectionError: 'Could not connect to the network or database.',
     
     // Onboarding
     onboardingTitle: 'Welcome to Barberim.uz! ✂️',
