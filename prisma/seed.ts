@@ -32,6 +32,7 @@ async function main() {
     update: {},
     create: {
       userId: barberUser.id,
+      shopName: 'Sardor Barbershop',
       bio: 'Master Barber with 8 years of experience. Premium haircuts, beard grooming, and hot towel treatments in Tashkent.',
       address: 'Amir Temur Avenue 42, Tashkent, Uzbekistan',
       workingHours: workingHoursJson,

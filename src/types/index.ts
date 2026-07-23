@@ -14,6 +14,7 @@ export interface WorkingHours {
 export interface UserType {
   id: string;
   telegramId: string;
+  username?: string | null;
   role: Role;
   fullName: string;
   phone?: string | null;
@@ -23,8 +24,9 @@ export interface UserType {
 export interface BarberProfileType {
   id: string;
   userId: string;
+  shopName?: string | null;
   bio: string | null;
-  address: string;
+  address: string | null;
   workingHours: WorkingHours;
   user?: UserType;
   services?: ServiceType[];
@@ -65,3 +67,12 @@ export interface TimeSlot {
   available: boolean;
   reason?: string; // "lunch", "booked", "past"
 }
+
+export const DEFAULT_WORKING_HOURS: WorkingHours = {
+  workDays: [1, 2, 3, 4, 5, 6], // Mon - Sat
+  startTime: '09:00',
+  endTime: '20:00',
+  breakStart: '13:00',
+  breakEnd: '14:00',
+  slotDurationMinutes: 30,
+};

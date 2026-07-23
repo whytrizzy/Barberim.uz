@@ -1,26 +1,53 @@
 'use client';
 
-import React, { useState } from 'react';
-import { BarberProfileType, BookingType } from '@/types';
+import React, { useState, useEffect, useCallback } from 'react';
+import { BookingType } from '@/types';
+import { useAuth } from '@/lib/AuthContext';
 import { useLanguage } from '@/lib/i18n/LanguageContext';
 import { BarberDiscovery } from './BarberDiscovery';
 import { MyBookings } from './MyBookings';
 import { Search, Calendar } from 'lucide-react';
 
-interface ClientDashboardProps {
-  barber: BarberProfileType;
-  clientBookings: BookingType[];
-  onBookingComplete: (booking: BookingType) => void;
-  onCancelBooking: (bookingId: string) => Promise<void>;
-}
-
-export function ClientDashboard({
-  clientBookings,
-  onBookingComplete,
-  onCancelBooking,
-}: ClientDashboardProps) {
+export function ClientDashboard() {
   const { t } = useLanguage();
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<'DISCOVERY' | 'MY_BOOKINGS'>('DISCOVERY');
+  const [clientBookings, setClientBookings] = useState<BookingType[]>([]);
+
+  const loadClientBookings = useCallback(async () => {
+    if (!user?.id) return;
+    try {
+      const res = await fetch(`/api/client/bookings?clientId=${user.id}`);
+      const data = await res.json();
+      if (data.success) {
+        setClientBookings(data.bookings || []);
+      }
+    } catch (err) {
+      console.error('Failed to load client bookings:', err);
+    }
+  }, [user?.id]);
+
+  useEffect(() => {
+    loadClientBookings();
+  }, [loadClientBookings]);
+
+  const handleBookingComplete = (booking: BookingType) => {
+    setClientBookings([booking, ...clientBookings]);
+  };
+
+  const handleCancelBooking = async (bookingId: string) => {
+    const res = await fetch(`/api/client/bookings/${bookingId}/cancel`, {
+      method: 'PATCH',
+    });
+    const result = await res.json();
+    if (result.success) {
+      setClientBookings(
+        clientBookings.map((b) =>
+          b.id === bookingId ? { ...b, status: 'CANCELLED' } : b
+        )
+      );
+    }
+  };
 
   const upcomingCount = clientBookings.filter(
     (b) => b.status === 'CONFIRMED' || b.status === 'PENDING'
@@ -42,7 +69,10 @@ export function ClientDashboard({
         </button>
 
         <button
-          onClick={() => setActiveTab('MY_BOOKINGS')}
+          onClick={() => {
+            setActiveTab('MY_BOOKINGS');
+            loadClientBookings(); // Refresh when switching
+          }}
           className={`flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-bold transition-all relative ${
             activeTab === 'MY_BOOKINGS'
               ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20'
@@ -62,12 +92,12 @@ export function ClientDashboard({
       {activeTab === 'DISCOVERY' ? (
         <BarberDiscovery
           onBookingComplete={(booking) => {
-            onBookingComplete(booking);
+            handleBookingComplete(booking);
             setActiveTab('MY_BOOKINGS');
           }}
         />
       ) : (
-        <MyBookings bookings={clientBookings} onCancelBooking={onCancelBooking} />
+        <MyBookings bookings={clientBookings} onCancelBooking={handleCancelBooking} />
       )}
     </div>
   );

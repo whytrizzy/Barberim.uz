@@ -22,6 +22,7 @@ enum BookingStatus {
 model User {
   id         String   @id @default(uuid())
   telegramId BigInt   @unique @map("telegram_id")
+  username   String?  @map("username")
   role       Role     @default(CLIENT)
   phone      String?
   fullName   String   @map("full_name")
@@ -37,8 +38,9 @@ model User {
 model BarberProfile {
   id           String   @id @default(uuid())
   userId       String   @unique @map("user_id")
+  shopName     String?  @map("shop_name")
   bio          String?
-  address      String
+  address      String?
   workingHours Json     @map("working_hours")
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")

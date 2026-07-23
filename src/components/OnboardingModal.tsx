@@ -2,18 +2,16 @@
 
 import React, { useState } from 'react';
 import { Role } from '@/types';
+import { useAuth } from '@/lib/AuthContext';
 import { useLanguage } from '@/lib/i18n/LanguageContext';
 import { Language } from '@/lib/i18n/translations';
 import { getTelegramUser } from '@/lib/telegramWebApp';
 import { Scissors, User, ShieldCheck, Check, Globe } from 'lucide-react';
 import { Button } from './ui/Button';
 
-interface OnboardingModalProps {
-  onComplete: (role: Role) => void;
-}
-
-export function OnboardingModal({ onComplete }: OnboardingModalProps) {
+export function OnboardingModal() {
   const { language, setLanguage, t } = useLanguage();
+  const { setAuthUser, clearNewUserFlag } = useAuth();
   const [selectedRole, setSelectedRole] = useState<Role | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -23,26 +21,43 @@ export function OnboardingModal({ onComplete }: OnboardingModalProps) {
     try {
       const tgUser = getTelegramUser();
       const telegramId = tgUser?.id || Date.now();
-      const fullName = tgUser?.first_name ? `${tgUser.first_name} ${tgUser.last_name || ''}`.trim() : 'New User';
+      const fullName = tgUser?.first_name
+        ? `${tgUser.first_name} ${tgUser.last_name || ''}`.trim()
+        : 'New User';
+      const username = tgUser?.username || null;
 
       // Persist in PostgreSQL DB via API
-      await fetch('/api/auth/register', {
+      const res = await fetch('/api/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           telegramId,
           fullName,
+          username,
           role: selectedRole,
         }),
       });
 
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('barberim_user_role', selectedRole);
+      const data = await res.json();
+
+      if (data.success && data.user) {
+        // Set auth context directly — no need to call refreshAuth
+        setAuthUser({
+          id: data.user.id,
+          telegramId: data.user.telegramId,
+          username: data.user.username,
+          role: data.user.role,
+          fullName: data.user.fullName,
+          phone: data.user.phone,
+          barberProfileId: data.user.barberProfileId || null,
+        });
+      } else {
+        // Fallback: just clear new user flag
+        clearNewUserFlag();
       }
-      onComplete(selectedRole);
     } catch (err) {
       console.error('Onboarding registration error:', err);
-      onComplete(selectedRole);
+      clearNewUserFlag();
     } finally {
       setSubmitting(false);
     }

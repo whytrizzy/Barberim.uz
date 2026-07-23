@@ -1,9 +1,9 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { BarberProfileType, BookingType } from '@/types';
 import { useLanguage } from '@/lib/i18n/LanguageContext';
-import { Search, MapPin, Phone, Scissors, Star, Navigation } from 'lucide-react';
+import { Search, MapPin, Phone, Scissors, Star, RefreshCw } from 'lucide-react';
 import { BarberBookingWizard } from './BarberBookingWizard';
 import { Button } from '../ui/Button';
 
@@ -14,18 +14,31 @@ interface BarberDiscoveryProps {
 export function BarberDiscovery({ onBookingComplete }: BarberDiscoveryProps) {
   const { t } = useLanguage();
   const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedQuery, setDebouncedQuery] = useState('');
   const [barbers, setBarbers] = useState<BarberProfileType[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedBarber, setSelectedBarber] = useState<BarberProfileType | null>(null);
+  const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Debounce search input
+  useEffect(() => {
+    if (debounceTimer.current) clearTimeout(debounceTimer.current);
+    debounceTimer.current = setTimeout(() => {
+      setDebouncedQuery(searchQuery);
+    }, 300);
+    return () => {
+      if (debounceTimer.current) clearTimeout(debounceTimer.current);
+    };
+  }, [searchQuery]);
 
   useEffect(() => {
     fetchBarbers();
-  }, [searchQuery]);
+  }, [debouncedQuery]);
 
   const fetchBarbers = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`/api/barbers/search?query=${encodeURIComponent(searchQuery)}`);
+      const res = await fetch(`/api/barbers/search?query=${encodeURIComponent(debouncedQuery)}`);
       const data = await res.json();
       if (data.success) {
         setBarbers(data.barbers || []);
@@ -85,53 +98,74 @@ export function BarberDiscovery({ onBookingComplete }: BarberDiscoveryProps) {
             <p className="text-xs text-slate-400">{t('loading')}</p>
           </div>
         ) : barbers.length === 0 ? (
-          <div className="text-center py-8 bg-slate-900/40 rounded-xl border border-slate-800">
-            <Scissors className="w-8 h-8 text-slate-600 mx-auto mb-2" />
+          <div className="text-center py-8 bg-slate-900/40 rounded-xl border border-slate-800 space-y-3">
+            <Scissors className="w-8 h-8 text-slate-600 mx-auto" />
             <p className="text-xs text-slate-400">{t('noBarbersFound')}</p>
+            <button
+              onClick={fetchBarbers}
+              className="inline-flex items-center gap-1.5 text-xs font-semibold text-amber-400 hover:text-amber-300 bg-amber-500/10 hover:bg-amber-500/20 px-3 py-1.5 rounded-xl border border-amber-500/20 transition-all"
+            >
+              <RefreshCw className="w-3.5 h-3.5" /> {t('refresh') || 'Yangilash'}
+            </button>
           </div>
         ) : (
-          barbers.map((barber) => (
-            <div
-              key={barber.id}
-              className="bg-slate-900/80 border border-slate-800 hover:border-slate-700 rounded-2xl p-4 space-y-3 transition-all"
-            >
-              <div className="flex items-start justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-11 h-11 rounded-2xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center text-amber-400 font-extrabold text-lg shrink-0">
-                    ✂️
+          barbers.map((barber) => {
+            const displayName = barber.shopName || barber.user?.fullName || t('roleBarber');
+            const serviceCount = barber.services?.length || 0;
+
+            return (
+              <div
+                key={barber.id}
+                className="bg-slate-900/80 border border-slate-800 hover:border-slate-700 rounded-2xl p-4 space-y-3 transition-all"
+              >
+                <div className="flex items-start justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-11 h-11 rounded-2xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center text-amber-400 font-extrabold text-lg shrink-0">
+                      ✂️
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-bold text-white">
+                        {displayName}
+                      </h4>
+                      {barber.address && (
+                        <p className="text-xs text-slate-400 flex items-center gap-1 mt-0.5">
+                          <MapPin className="w-3.5 h-3.5 text-amber-400 shrink-0" /> {barber.address}
+                        </p>
+                      )}
+                    </div>
                   </div>
-                  <div>
-                    <h4 className="text-sm font-bold text-white">
-                      {barber.user?.fullName || 'Sardor Barber'}
-                    </h4>
-                    <p className="text-xs text-slate-400 flex items-center gap-1 mt-0.5">
-                      <MapPin className="w-3.5 h-3.5 text-amber-400 shrink-0" /> {barber.address}
-                    </p>
-                  </div>
+                  {serviceCount > 0 && (
+                    <span className="flex items-center gap-1 text-xs font-bold text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20">
+                      <Scissors className="w-3 h-3" /> {serviceCount}
+                    </span>
+                  )}
                 </div>
-                <span className="flex items-center gap-1 text-xs font-bold text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20">
-                  <Star className="w-3 h-3 fill-amber-400" /> 4.9
-                </span>
-              </div>
 
-              <p className="text-xs text-slate-300 line-clamp-2 bg-slate-950/40 p-2 rounded-xl border border-slate-800/60">
-                {barber.bio || 'Master Barber'}
-              </p>
+                {barber.bio && (
+                  <p className="text-xs text-slate-300 line-clamp-2 bg-slate-950/40 p-2 rounded-xl border border-slate-800/60">
+                    {barber.bio}
+                  </p>
+                )}
 
-              <div className="flex items-center justify-between pt-1">
-                <span className="text-[11px] text-slate-400 flex items-center gap-1">
-                  <Phone className="w-3.5 h-3.5 text-sky-400" /> {barber.user?.phone || '+998 90 123 45 67'}
-                </span>
-                <Button
-                  variant="primary"
-                  size="sm"
-                  onClick={() => setSelectedBarber(barber)}
-                >
-                  {t('bookCut')}
-                </Button>
+                <div className="flex items-center justify-between pt-1">
+                  {barber.user?.phone ? (
+                    <span className="text-[11px] text-slate-400 flex items-center gap-1">
+                      <Phone className="w-3.5 h-3.5 text-sky-400" /> {barber.user.phone}
+                    </span>
+                  ) : (
+                    <span />
+                  )}
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    onClick={() => setSelectedBarber(barber)}
+                  >
+                    {t('bookCut')}
+                  </Button>
+                </div>
               </div>
-            </div>
-          ))
+            );
+          })
         )}
       </div>
     </div>

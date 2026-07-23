@@ -53,7 +53,8 @@ export function MyBookings({ bookings, onCancelBooking }: MyBookingsProps) {
             const startDate = new Date(b.startTime);
             const dateStr = startDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
             const timeStr = startDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
-            const serviceNames = b.services?.map((s) => s.service?.name).join(', ') || 'Haircut';
+            const serviceNames = b.services?.map((s) => s.service?.name).join(', ') || '-';
+            const barberName = b.barber?.shopName || b.barber?.user?.fullName || '-';
 
             return (
               <div
@@ -68,10 +69,12 @@ export function MyBookings({ bookings, onCancelBooking }: MyBookingsProps) {
                 </div>
 
                 <div className="space-y-1">
-                  <h4 className="text-sm font-bold text-white">Barber: {b.barber?.user?.fullName || 'Sardor Barber'}</h4>
-                  <p className="text-xs text-slate-300 flex items-center gap-1">
-                    <MapPin className="w-3.5 h-3.5 text-amber-400" /> {b.barber?.address || 'Tashkent'}
-                  </p>
+                  <h4 className="text-sm font-bold text-white">{barberName}</h4>
+                  {b.barber?.address && (
+                    <p className="text-xs text-slate-300 flex items-center gap-1">
+                      <MapPin className="w-3.5 h-3.5 text-amber-400" /> {b.barber.address}
+                    </p>
+                  )}
                   <p className="text-xs text-slate-400 mt-1 font-medium">{t('tabServices')}: {serviceNames}</p>
                   <p className="text-xs font-extrabold text-emerald-400 mt-1">{t('total')}: {formatPrice(b.totalPrice)}</p>
                 </div>

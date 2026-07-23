@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { validateTelegramWebAppData } from '@/lib/telegramAuth';
 import { prisma } from '@/lib/prisma';
-import { MOCK_BARBER_USER, MOCK_CLIENT_USER } from '@/lib/mockData';
 
 export const dynamic = 'force-dynamic';
 
@@ -15,50 +14,50 @@ export async function POST(req: NextRequest) {
 
     if (telegramUser) {
       // Query PostgreSQL DB for user by telegramId
-      try {
-        const dbUser = await prisma.user.findUnique({
-          where: { telegramId: BigInt(telegramUser.id) },
-          include: { barberProfile: true },
-        });
+      const dbUser = await prisma.user.findUnique({
+        where: { telegramId: BigInt(telegramUser.id) },
+        include: { barberProfile: true },
+      });
 
-        if (dbUser) {
-          return NextResponse.json({
-            success: true,
-            isNewUser: false,
-            user: {
-              id: dbUser.id,
-              telegramId: dbUser.telegramId.toString(),
-              fullName: dbUser.fullName,
-              phone: dbUser.phone,
-              role: dbUser.role,
-            },
-          });
-        }
-
-        // First-time user: Needs Onboarding role selection
+      if (dbUser) {
         return NextResponse.json({
           success: true,
-          isNewUser: true,
-          telegramUser: {
-            id: telegramUser.id,
-            first_name: telegramUser.first_name,
-            last_name: telegramUser.last_name,
-            username: telegramUser.username,
+          isNewUser: false,
+          user: {
+            id: dbUser.id,
+            telegramId: dbUser.telegramId.toString(),
+            username: dbUser.username,
+            fullName: dbUser.fullName,
+            phone: dbUser.phone,
+            role: dbUser.role,
+            barberProfileId: dbUser.barberProfile?.id || null,
           },
         });
-      } catch (dbErr) {
-        console.warn('⚡ DB lookup error in telegram auth fallback');
       }
+
+      // First-time user: Needs Onboarding role selection
+      return NextResponse.json({
+        success: true,
+        isNewUser: true,
+        telegramUser: {
+          id: telegramUser.id,
+          first_name: telegramUser.first_name,
+          last_name: telegramUser.last_name,
+          username: telegramUser.username,
+        },
+      });
     }
 
-    // Development / fallback user state
-    return NextResponse.json({
-      success: true,
-      isNewUser: false,
-      user: MOCK_BARBER_USER,
-      isMock: true,
-    });
+    // No valid initData — return error (no mock fallback)
+    return NextResponse.json(
+      { success: false, error: 'Invalid or missing Telegram initData' },
+      { status: 401 }
+    );
   } catch (err) {
-    return NextResponse.json({ success: false, error: 'Auth failed' }, { status: 400 });
+    console.error('Telegram auth error:', err);
+    return NextResponse.json(
+      { success: false, error: 'Auth failed' },
+      { status: 400 }
+    );
   }
 }

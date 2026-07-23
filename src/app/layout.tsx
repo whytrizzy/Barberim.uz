@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next';
 import './globals.css';
 import Script from 'next/script';
 import { LanguageProvider } from '@/lib/i18n/LanguageContext';
+import { AuthProvider } from '@/lib/AuthContext';
 
 export const metadata: Metadata = {
   title: 'Barberim.uz - Telegram Mini App for Barbers & Clients',
@@ -29,7 +30,9 @@ export default function RootLayout({
         />
       </head>
       <body className="bg-slate-950 text-slate-100 antialiased selection:bg-amber-500 selection:text-slate-950">
-        <LanguageProvider>{children}</LanguageProvider>
+        <LanguageProvider>
+          <AuthProvider>{children}</AuthProvider>
+        </LanguageProvider>
       </body>
     </html>
   );

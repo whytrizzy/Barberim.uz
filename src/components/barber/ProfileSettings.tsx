@@ -4,18 +4,25 @@ import React, { useState } from 'react';
 import { BarberProfileType } from '@/types';
 import { useLanguage } from '@/lib/i18n/LanguageContext';
 import { Language } from '@/lib/i18n/translations';
-import { User, Phone, MapPin, FileText, Save, Check, Globe } from 'lucide-react';
+import { User, Phone, MapPin, FileText, Save, Check, Globe, Store } from 'lucide-react';
 import { Button } from '../ui/Button';
 
 interface ProfileSettingsProps {
   profile: BarberProfileType;
-  onSave: (updated: { bio: string; address: string }) => Promise<void>;
+  onSave: (updated: {
+    shopName?: string;
+    bio?: string;
+    address?: string;
+    fullName?: string;
+    phone?: string;
+  }) => Promise<void>;
 }
 
 export function ProfileSettings({ profile, onSave }: ProfileSettingsProps) {
   const { language, setLanguage, t } = useLanguage();
-  const [fullName, setFullName] = useState(profile.user?.fullName || 'Sardor Barber');
-  const [phone, setPhone] = useState(profile.user?.phone || '+998 90 123 45 67');
+  const [fullName, setFullName] = useState(profile.user?.fullName || '');
+  const [phone, setPhone] = useState(profile.user?.phone || '');
+  const [shopName, setShopName] = useState(profile.shopName || '');
   const [address, setAddress] = useState(profile.address || '');
   const [bio, setBio] = useState(profile.bio || '');
   const [loading, setLoading] = useState(false);
@@ -25,7 +32,7 @@ export function ProfileSettings({ profile, onSave }: ProfileSettingsProps) {
     e.preventDefault();
     setLoading(true);
     try {
-      await onSave({ bio, address });
+      await onSave({ shopName, bio, address, fullName, phone });
       setSavedSuccess(true);
       setTimeout(() => setSavedSuccess(false), 2500);
     } catch (err) {
@@ -88,7 +95,21 @@ export function ProfileSettings({ profile, onSave }: ProfileSettingsProps) {
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
               className="w-full bg-slate-900/90 border border-slate-700/80 rounded-xl pl-9 pr-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-500"
-              placeholder="e.g. Sardor Barber"
+              placeholder="e.g. Sardor Karimov"
+            />
+          </div>
+        </div>
+
+        <div>
+          <label className="block text-xs font-semibold text-slate-300 mb-1">{t('shopName')}</label>
+          <div className="relative">
+            <Store className="w-4 h-4 text-slate-500 absolute left-3 top-3" />
+            <input
+              type="text"
+              value={shopName}
+              onChange={(e) => setShopName(e.target.value)}
+              className="w-full bg-slate-900/90 border border-slate-700/80 rounded-xl pl-9 pr-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-500"
+              placeholder="e.g. Royal Barbershop"
             />
           </div>
         </div>
@@ -117,7 +138,6 @@ export function ProfileSettings({ profile, onSave }: ProfileSettingsProps) {
               onChange={(e) => setAddress(e.target.value)}
               className="w-full bg-slate-900/90 border border-slate-700/80 rounded-xl pl-9 pr-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-500"
               placeholder="e.g. Amir Temur Ave 42, Tashkent"
-              required
             />
           </div>
         </div>

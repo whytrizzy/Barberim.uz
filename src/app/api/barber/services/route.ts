@@ -1,15 +1,28 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServices, createService } from '@/lib/dataService';
-import { MOCK_BARBER_PROFILE } from '@/lib/mockData';
 
 export const dynamic = 'force-dynamic';
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
-    const services = await getServices(MOCK_BARBER_PROFILE.id);
+    const { searchParams } = new URL(req.url);
+    const barberId = searchParams.get('barberId');
+
+    if (!barberId) {
+      return NextResponse.json(
+        { success: false, error: 'barberId query parameter is required' },
+        { status: 400 }
+      );
+    }
+
+    const services = await getServices(barberId);
     return NextResponse.json({ success: true, services });
   } catch (err) {
-    return NextResponse.json({ success: false, error: 'Failed to fetch services' }, { status: 500 });
+    console.error('Services GET error:', err);
+    return NextResponse.json(
+      { success: false, error: 'Failed to fetch services' },
+      { status: 500 }
+    );
   }
 }
 
@@ -18,15 +31,15 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const { name, durationMinutes, price, barberId } = body;
 
-    if (!name || !durationMinutes || !price) {
+    if (!name || !durationMinutes || !price || !barberId) {
       return NextResponse.json(
-        { success: false, error: 'Name, duration, and price are required' },
+        { success: false, error: 'Name, duration, price, and barberId are required' },
         { status: 400 }
       );
     }
 
     const service = await createService({
-      barberId: barberId || MOCK_BARBER_PROFILE.id,
+      barberId,
       name,
       durationMinutes: Number(durationMinutes),
       price: Number(price),
@@ -34,6 +47,10 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ success: true, service });
   } catch (err) {
-    return NextResponse.json({ success: false, error: 'Failed to create service' }, { status: 500 });
+    console.error('Services POST error:', err);
+    return NextResponse.json(
+      { success: false, error: 'Failed to create service' },
+      { status: 500 }
+    );
   }
 }

@@ -1,22 +1,25 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { Role } from '@/types';
-import { MOCK_WORKING_HOURS } from '@/lib/mockData';
+import { Role, DEFAULT_WORKING_HOURS } from '@/types';
 
 export const dynamic = 'force-dynamic';
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { telegramId, fullName, phone, role } = body as {
+    const { telegramId, fullName, username, phone, role } = body as {
       telegramId: string | number;
       fullName: string;
+      username?: string;
       phone?: string;
       role: Role;
     };
 
     if (!telegramId || !fullName || !role) {
-      return NextResponse.json({ success: false, error: 'Missing required registration parameters' }, { status: 400 });
+      return NextResponse.json(
+        { success: false, error: 'Missing required registration parameters' },
+        { status: 400 }
+      );
     }
 
     const tId = BigInt(telegramId);
@@ -24,14 +27,17 @@ export async function POST(req: NextRequest) {
     // Upsert User in PostgreSQL
     const user = await prisma.user.upsert({
       where: { telegramId: tId },
-      update: { role: role as any, fullName, phone },
+      update: { role: role as any, fullName, phone, username },
       create: {
         telegramId: tId,
         fullName,
-        phone: phone || '+998900000000',
+        username: username || null,
+        phone: phone || null,
         role: role as any,
       },
     });
+
+    let barberProfileId: string | null = null;
 
     // If role is BARBER, ensure a BarberProfile exists in DB
     if (role === 'BARBER') {
@@ -40,14 +46,18 @@ export async function POST(req: NextRequest) {
       });
 
       if (!existingProfile) {
-        await prisma.barberProfile.create({
+        const newProfile = await prisma.barberProfile.create({
           data: {
             userId: user.id,
-            bio: `${fullName} Master Barber in Uzbekistan.`,
-            address: 'Tashkent, Uzbekistan',
-            workingHours: MOCK_WORKING_HOURS as any,
+            shopName: `${fullName}`,
+            bio: null,
+            address: null,
+            workingHours: DEFAULT_WORKING_HOURS as any,
           },
         });
+        barberProfileId = newProfile.id;
+      } else {
+        barberProfileId = existingProfile.id;
       }
     }
 
@@ -56,13 +66,18 @@ export async function POST(req: NextRequest) {
       user: {
         id: user.id,
         telegramId: user.telegramId.toString(),
+        username: user.username,
         role: user.role,
         fullName: user.fullName,
         phone: user.phone,
+        barberProfileId,
       },
     });
   } catch (err) {
     console.error('Registration API error:', err);
-    return NextResponse.json({ success: false, error: 'Failed to register user' }, { status: 500 });
+    return NextResponse.json(
+      { success: false, error: 'Failed to register user' },
+      { status: 500 }
+    );
   }
 }

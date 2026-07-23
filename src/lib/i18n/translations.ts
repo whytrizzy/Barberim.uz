@@ -40,6 +40,8 @@ export const translations = {
     salonAddress: 'Sartaroshxona manzili',
     bio: 'Sartarosh haqida (Maʼlumot)',
     saveProfile: 'Profilni saqlash',
+    shopName: 'Sartaroshxona nomi',
+    refresh: 'Yangilash',
 
     // Services Manager
     serviceManagement: 'Xizmatlar Boshqaruvi',
@@ -138,6 +140,8 @@ export const translations = {
     salonAddress: 'Адрес барбершопа',
     bio: 'О себе / Описание',
     saveProfile: 'Сохранить профиль',
+    shopName: 'Название барбершопа',
+    refresh: 'Обновить',
 
     // Services Manager
     serviceManagement: 'Управление услугами',
@@ -236,6 +240,8 @@ export const translations = {
     salonAddress: 'Salon Address / Location',
     bio: 'Bio / Barber Notes',
     saveProfile: 'Save Profile',
+    shopName: 'Shop / Salon Name',
+    refresh: 'Refresh',
 
     // Services Manager
     serviceManagement: 'Service Management',

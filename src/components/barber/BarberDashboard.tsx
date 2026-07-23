@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { BarberProfileType, ServiceType, BookingType, WorkingHours, BookingStatus } from '@/types';
+import { useAuth } from '@/lib/AuthContext';
 import { useLanguage } from '@/lib/i18n/LanguageContext';
 import { ProfileSettings } from './ProfileSettings';
 import { ServiceManager } from './ServiceManager';
@@ -9,29 +10,136 @@ import { ScheduleManager } from './ScheduleManager';
 import { BookingManager } from './BookingManager';
 import { Calendar, Scissors, Settings, Clock } from 'lucide-react';
 
-interface BarberDashboardProps {
-  profile: BarberProfileType;
-  services: ServiceType[];
-  bookings: BookingType[];
-  onUpdateProfile: (data: { bio: string; address: string }) => Promise<void>;
-  onAddService: (newService: { name: string; durationMinutes: number; price: number }) => Promise<void>;
-  onDeleteService: (serviceId: string) => Promise<void>;
-  onUpdateSchedule: (schedule: WorkingHours) => Promise<void>;
-  onUpdateBookingStatus: (bookingId: string, status: BookingStatus) => Promise<void>;
-}
-
-export function BarberDashboard({
-  profile,
-  services,
-  bookings,
-  onUpdateProfile,
-  onAddService,
-  onDeleteService,
-  onUpdateSchedule,
-  onUpdateBookingStatus,
-}: BarberDashboardProps) {
+export function BarberDashboard() {
   const { t } = useLanguage();
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<'BOOKINGS' | 'SERVICES' | 'SCHEDULE' | 'PROFILE'>('BOOKINGS');
+
+  const [profile, setProfile] = useState<BarberProfileType | null>(null);
+  const [services, setServices] = useState<ServiceType[]>([]);
+  const [bookings, setBookings] = useState<BookingType[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const barberId = user?.barberProfileId;
+  const userId = user?.id;
+
+  const loadData = useCallback(async () => {
+    if (!userId || !barberId) return;
+    setLoading(true);
+    try {
+      const [profRes, servRes, bookRes] = await Promise.all([
+        fetch(`/api/barber/profile?userId=${userId}`),
+        fetch(`/api/barber/services?barberId=${barberId}`),
+        fetch(`/api/barber/bookings?barberId=${barberId}`),
+      ]);
+
+      const profData = await profRes.json();
+      if (profData.success) setProfile(profData.profile);
+
+      const servData = await servRes.json();
+      if (servData.success) setServices(servData.services || []);
+
+      const bookData = await bookRes.json();
+      if (bookData.success) setBookings(bookData.bookings || []);
+    } catch (err) {
+      console.error('Failed to load barber data:', err);
+    } finally {
+      setLoading(false);
+    }
+  }, [userId, barberId]);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
+
+  // ─── Handler Actions ─────────────────────────────────────────────
+
+  const handleUpdateProfile = async (data: {
+    shopName?: string;
+    bio?: string;
+    address?: string;
+    fullName?: string;
+    phone?: string;
+  }) => {
+    const res = await fetch('/api/barber/profile', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId, ...data }),
+    });
+    const result = await res.json();
+    if (result.success) {
+      setProfile(result.profile);
+    }
+  };
+
+  const handleAddService = async (newService: { name: string; durationMinutes: number; price: number }) => {
+    const res = await fetch('/api/barber/services', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...newService, barberId }),
+    });
+    const result = await res.json();
+    if (result.success) {
+      setServices([...services, result.service]);
+    }
+  };
+
+  const handleEditService = async (serviceId: string, data: { name: string; durationMinutes: number; price: number }) => {
+    const res = await fetch(`/api/barber/services/${serviceId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    const result = await res.json();
+    if (result.success) {
+      setServices(services.map((s) => (s.id === serviceId ? result.service : s)));
+    }
+  };
+
+  const handleDeleteService = async (serviceId: string) => {
+    const res = await fetch(`/api/barber/services/${serviceId}`, {
+      method: 'DELETE',
+    });
+    const result = await res.json();
+    if (result.success) {
+      setServices(services.filter((s) => s.id !== serviceId));
+    }
+  };
+
+  const handleUpdateSchedule = async (schedule: WorkingHours) => {
+    const res = await fetch('/api/barber/profile', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId, workingHours: schedule }),
+    });
+    const result = await res.json();
+    if (result.success) {
+      setProfile(result.profile);
+    }
+  };
+
+  const handleUpdateBookingStatus = async (bookingId: string, status: BookingStatus) => {
+    const res = await fetch(`/api/barber/bookings/${bookingId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status }),
+    });
+    const result = await res.json();
+    if (result.success) {
+      setBookings(bookings.map((b) => (b.id === bookingId ? { ...b, status } : b)));
+    }
+  };
+
+  // ─── Loading State ────────────────────────────────────────────────
+
+  if (loading || !profile) {
+    return (
+      <div className="py-12 text-center space-y-2">
+        <div className="w-6 h-6 border-2 border-amber-400 border-t-transparent rounded-full animate-spin mx-auto" />
+        <p className="text-xs text-slate-400">{t('loading')}</p>
+      </div>
+    );
+  }
 
   const activeBookingsCount = bookings.filter((b) => b.status === 'CONFIRMED').length;
 
@@ -95,20 +203,21 @@ export function BarberDashboard({
 
       {/* Tab Content */}
       {activeTab === 'BOOKINGS' && (
-        <BookingManager bookings={bookings} onUpdateStatus={onUpdateBookingStatus} />
+        <BookingManager bookings={bookings} onUpdateStatus={handleUpdateBookingStatus} />
       )}
       {activeTab === 'SERVICES' && (
         <ServiceManager
           services={services}
-          onAddService={onAddService}
-          onDeleteService={onDeleteService}
+          onAddService={handleAddService}
+          onEditService={handleEditService}
+          onDeleteService={handleDeleteService}
         />
       )}
       {activeTab === 'SCHEDULE' && (
-        <ScheduleManager workingHours={profile.workingHours} onSaveSchedule={onUpdateSchedule} />
+        <ScheduleManager workingHours={profile.workingHours} onSaveSchedule={handleUpdateSchedule} />
       )}
       {activeTab === 'PROFILE' && (
-        <ProfileSettings profile={profile} onSave={onUpdateProfile} />
+        <ProfileSettings profile={profile} onSave={handleUpdateProfile} />
       )}
     </div>
   );

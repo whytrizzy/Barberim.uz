@@ -1,14 +1,27 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { getBookings } from '@/lib/dataService';
-import { MOCK_BARBER_PROFILE } from '@/lib/mockData';
 
 export const dynamic = 'force-dynamic';
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
-    const bookings = await getBookings({ barberId: MOCK_BARBER_PROFILE.id });
+    const { searchParams } = new URL(req.url);
+    const barberId = searchParams.get('barberId');
+
+    if (!barberId) {
+      return NextResponse.json(
+        { success: false, error: 'barberId query parameter is required' },
+        { status: 400 }
+      );
+    }
+
+    const bookings = await getBookings({ barberId });
     return NextResponse.json({ success: true, bookings });
   } catch (err) {
-    return NextResponse.json({ success: false, error: 'Failed to fetch bookings' }, { status: 500 });
+    console.error('Barber bookings GET error:', err);
+    return NextResponse.json(
+      { success: false, error: 'Failed to fetch bookings' },
+      { status: 500 }
+    );
   }
 }

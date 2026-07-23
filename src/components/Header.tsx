@@ -1,18 +1,16 @@
 'use client';
 
 import React from 'react';
-import { Role } from '@/types';
+import { useAuth } from '@/lib/AuthContext';
 import { useLanguage } from '@/lib/i18n/LanguageContext';
 import { Language } from '@/lib/i18n/translations';
 import { Scissors, Globe, ShieldCheck, User } from 'lucide-react';
 import { Badge } from './ui/Badge';
 
-interface HeaderProps {
-  currentRole: Role;
-}
-
-export function Header({ currentRole }: HeaderProps) {
+export function Header() {
   const { language, setLanguage, t } = useLanguage();
+  const { user, isAuthenticated } = useAuth();
+  const currentRole = user?.role || 'CLIENT';
 
   return (
     <header className="sticky top-0 z-40 w-full glass-card border-b border-slate-800/80 px-4 py-3">
@@ -47,17 +45,19 @@ export function Header({ currentRole }: HeaderProps) {
           </div>
 
           {/* Role indicator badge */}
-          <Badge variant={currentRole === 'BARBER' ? 'gold' : 'info'}>
-            {currentRole === 'BARBER' ? (
-              <span className="flex items-center gap-1">
-                <ShieldCheck className="w-3 h-3" /> {t('roleBarber')}
-              </span>
-            ) : (
-              <span className="flex items-center gap-1">
-                <User className="w-3 h-3" /> {t('roleClient')}
-              </span>
-            )}
-          </Badge>
+          {isAuthenticated && (
+            <Badge variant={currentRole === 'BARBER' ? 'gold' : 'info'}>
+              {currentRole === 'BARBER' ? (
+                <span className="flex items-center gap-1">
+                  <ShieldCheck className="w-3 h-3" /> {t('roleBarber')}
+                </span>
+              ) : (
+                <span className="flex items-center gap-1">
+                  <User className="w-3 h-3" /> {t('roleClient')}
+                </span>
+              )}
+            </Badge>
+          )}
         </div>
       </div>
     </header>

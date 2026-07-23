@@ -6,26 +6,28 @@ export const dynamic = 'force-dynamic';
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { barberId, clientId, clientName, clientPhone, serviceIds, startTime } = body;
+    const { barberId, clientId, serviceIds, startTime } = body;
 
-    if (!barberId || !clientPhone || !serviceIds?.length || !startTime) {
+    if (!barberId || !clientId || !serviceIds?.length || !startTime) {
       return NextResponse.json(
-        { success: false, error: 'Missing required booking details' },
+        { success: false, error: 'Missing required booking details (barberId, clientId, serviceIds, startTime)' },
         { status: 400 }
       );
     }
 
     const booking = await createBooking({
       barberId,
-      clientId: clientId || 'client-user-1',
-      clientName: clientName || 'Guest Client',
-      clientPhone,
+      clientId,
       serviceIds,
       startTime,
     });
 
     return NextResponse.json({ success: true, booking });
   } catch (err) {
-    return NextResponse.json({ success: false, error: 'Failed to create booking' }, { status: 500 });
+    console.error('Booking creation error:', err);
+    return NextResponse.json(
+      { success: false, error: 'Failed to create booking' },
+      { status: 500 }
+    );
   }
 }

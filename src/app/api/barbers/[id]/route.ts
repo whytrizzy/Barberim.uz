@@ -10,8 +10,20 @@ export async function GET(
   try {
     const resolvedParams = await params;
     const profile = await getBarberProfile(resolvedParams.id);
+
+    if (!profile) {
+      return NextResponse.json(
+        { success: false, error: 'Barber not found' },
+        { status: 404 }
+      );
+    }
+
     return NextResponse.json({ success: true, profile });
   } catch (err) {
-    return NextResponse.json({ success: false, error: 'Barber not found' }, { status: 404 });
+    console.error('Barber detail GET error:', err);
+    return NextResponse.json(
+      { success: false, error: 'Barber not found' },
+      { status: 404 }
+    );
   }
 }
