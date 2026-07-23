@@ -3,6 +3,16 @@ import { prisma } from '@/lib/prisma';
 
 export const dynamic = 'force-dynamic';
 
+// Helper function to execute a database query with a 5-second timeout limit
+function withTimeout<T>(promise: Promise<T>, ms: number = 5000): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<T>((_, reject) =>
+      setTimeout(() => reject(new Error('DATABASE_TIMEOUT')), ms)
+    ),
+  ]);
+}
+
 export async function POST(req: NextRequest) {
   try {
     let body;
@@ -38,21 +48,25 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Look up existing user in DB with try/catch safeguard for DB connection errors
+    // Look up existing user in DB with 5s timeout safeguard
     let existingUser = null;
     try {
-      existingUser = await prisma.user.findUnique({
-        where: { telegramId: tId },
-        include: { barberProfile: true },
-      });
+      existingUser = await withTimeout(
+        prisma.user.findUnique({
+          where: { telegramId: tId },
+          include: { barberProfile: true },
+        }),
+        5000
+      );
     } catch (dbErr: any) {
-      console.error('Database connection failed in auth sync:', dbErr);
+      console.error('Database query timed out or failed in auth sync:', dbErr);
+      const isTimeout = dbErr?.message === 'DATABASE_TIMEOUT';
       return NextResponse.json(
         {
           success: false,
-          error: 'Database connection failed. Please check your Supabase connection.',
+          error: isTimeout ? 'DATABASE_TIMEOUT' : 'Database connection error',
         },
-        { status: 500 }
+        { status: isTimeout ? 504 : 500 }
       );
     }
 
@@ -60,13 +74,16 @@ export async function POST(req: NextRequest) {
       // Returning user — update name/username if changed
       if (fullName || username) {
         try {
-          await prisma.user.update({
-            where: { id: existingUser.id },
-            data: {
-              ...(fullName && { fullName }),
-              ...(username !== undefined && { username }),
-            },
-          });
+          await withTimeout(
+            prisma.user.update({
+              where: { id: existingUser.id },
+              data: {
+                ...(fullName && { fullName }),
+                ...(username !== undefined && { username }),
+              },
+            }),
+            3000
+          );
         } catch (updateErr) {
           console.warn('Non-fatal error updating user details in sync:', updateErr);
         }
@@ -99,12 +116,13 @@ export async function POST(req: NextRequest) {
     });
   } catch (err: any) {
     console.error('Unexpected Auth sync API error:', err);
+    const isTimeout = err?.message === 'DATABASE_TIMEOUT';
     return NextResponse.json(
       {
         success: false,
-        error: err?.message || 'Server error occurred during auth sync',
+        error: isTimeout ? 'DATABASE_TIMEOUT' : (err?.message || 'Server error occurred during auth sync'),
       },
-      { status: 500 }
+      { status: isTimeout ? 504 : 500 }
     );
   }
 }
