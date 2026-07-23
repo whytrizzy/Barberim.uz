@@ -1,18 +1,40 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, Prisma } from '@prisma/client';
 
 const globalForPrisma = global as unknown as { prisma: PrismaClient };
 
 /**
- * Ensures DATABASE_URL contains connect_timeout=15 and pool_timeout=15
- * to prevent instant timeouts during cold starts on Vercel serverless functions.
+ * Formats the database URL to ensure required SSL, pgbouncer, and timeout parameters
+ * for Supabase + Vercel serverless deployments.
  */
 function getFormattedDatabaseUrl(url?: string): string {
   if (!url) return '';
-  if (!url.includes('connect_timeout=')) {
-    const separator = url.includes('?') ? '&' : '?';
-    return `${url}${separator}connect_timeout=15&pool_timeout=15`;
+
+  try {
+    const isLocalhost = url.includes('localhost') || url.includes('127.0.0.1');
+    let formatted = url;
+
+    // Add connect_timeout=15 if missing
+    if (!formatted.includes('connect_timeout=')) {
+      const sep = formatted.includes('?') ? '&' : '?';
+      formatted += `${sep}connect_timeout=15`;
+    }
+
+    // Add pool_timeout=15 if missing
+    if (!formatted.includes('pool_timeout=')) {
+      const sep = formatted.includes('?') ? '&' : '?';
+      formatted += `${sep}pool_timeout=15`;
+    }
+
+    // Add sslmode=require for non-localhost if missing
+    if (!isLocalhost && !formatted.includes('sslmode=')) {
+      const sep = formatted.includes('?') ? '&' : '?';
+      formatted += `${sep}sslmode=require`;
+    }
+
+    return formatted;
+  } catch {
+    return url;
   }
-  return url;
 }
 
 const dbUrl = getFormattedDatabaseUrl(process.env.DATABASE_URL);
@@ -30,3 +52,44 @@ if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma;
 (BigInt.prototype as any).toJSON = function () {
   return this.toString();
 };
+
+/**
+ * Executes a database query function with automatic retry on PrismaClientInitializationError / connection timeout
+ * specifically designed for Vercel serverless cold starts to Supabase PostgreSQL.
+ */
+export async function withDbRetry<T>(
+  queryFn: () => Promise<T>,
+  timeoutMs: number = 10000,
+  maxRetries: number = 1
+): Promise<T> {
+  let attempt = 0;
+  while (attempt <= maxRetries) {
+    attempt++;
+    try {
+      const timeoutPromise = new Promise<T>((_, reject) =>
+        setTimeout(() => reject(new Error('DATABASE_TIMEOUT')), timeoutMs)
+      );
+      return await Promise.race([queryFn(), timeoutPromise]);
+    } catch (err: any) {
+      const isInitError =
+        err instanceof Prisma.PrismaClientInitializationError ||
+        err?.name === 'PrismaClientInitializationError' ||
+        err?.code === 'P1001' || // Cannot reach database server
+        err?.code === 'P1002' || // Database server timed out
+        err?.message?.includes("Can't reach database server") ||
+        err?.message?.includes('connection') ||
+        err?.message === 'DATABASE_TIMEOUT';
+
+      if (isInitError && attempt <= maxRetries) {
+        console.warn(
+          `⚠️ DB connection attempt ${attempt} failed (${err?.message}). Retrying once (attempt ${attempt + 1})...`
+        );
+        // Brief 400ms pause to allow DB connection pool / cold start to settle
+        await new Promise((resolve) => setTimeout(resolve, 400));
+        continue;
+      }
+      throw err;
+    }
+  }
+  throw new Error('DATABASE_CONNECTION_ERROR');
+}

@@ -1,49 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { prisma, withDbRetry } from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
 
 export const dynamic = 'force-dynamic';
-
-/**
- * Executes a database query with a connection timeout and a 1-time retry mechanism
- * specifically targeting PrismaClientInitializationError / connection failures during cold starts.
- */
-async function executeWithRetry<T>(
-  queryFn: () => Promise<T>,
-  timeoutMs: number = 10000,
-  maxRetries: number = 1
-): Promise<T> {
-  let attempt = 0;
-  while (attempt <= maxRetries) {
-    attempt++;
-    try {
-      const timeoutPromise = new Promise<T>((_, reject) =>
-        setTimeout(() => reject(new Error('DATABASE_TIMEOUT')), timeoutMs)
-      );
-      return await Promise.race([queryFn(), timeoutPromise]);
-    } catch (err: any) {
-      const isInitError =
-        err instanceof Prisma.PrismaClientInitializationError ||
-        err?.name === 'PrismaClientInitializationError' ||
-        err?.code === 'P1001' || // Cannot reach database server
-        err?.code === 'P1002' || // Database server timed out
-        err?.message?.includes("Can't reach database server") ||
-        err?.message?.includes('connection') ||
-        err?.message === 'DATABASE_TIMEOUT';
-
-      if (isInitError && attempt <= maxRetries) {
-        console.warn(
-          `⚠️ Prisma DB connection attempt ${attempt} failed (${err?.message}). Retrying once (attempt ${attempt + 1})...`
-        );
-        // Brief 400ms pause to allow DB pool / cold start connection to settle
-        await new Promise((resolve) => setTimeout(resolve, 400));
-        continue;
-      }
-      throw err;
-    }
-  }
-  throw new Error('DATABASE_CONNECTION_ERROR');
-}
 
 export async function POST(req: NextRequest) {
   try {
@@ -80,10 +39,10 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Look up existing user in DB with retry safeguard
+    // Look up existing user in DB with 10s timeout and 1-time retry on PrismaClientInitializationError
     let existingUser = null;
     try {
-      existingUser = await executeWithRetry(() =>
+      existingUser = await withDbRetry(() =>
         prisma.user.findUnique({
           where: { telegramId: tId },
           include: { barberProfile: true },
@@ -114,16 +73,17 @@ export async function POST(req: NextRequest) {
       // Returning user — update name/username if changed
       if (fullName || username) {
         try {
-          await executeWithRetry(() =>
-            prisma.user.update({
-              where: { id: existingUser.id },
-              data: {
-                ...(fullName && { fullName }),
-                ...(username !== undefined && { username }),
-              },
-            }),
+          await withDbRetry(
+            () =>
+              prisma.user.update({
+                where: { id: existingUser.id },
+                data: {
+                  ...(fullName && { fullName }),
+                  ...(username !== undefined && { username }),
+                },
+              }),
             5000,
-            0 // Don't retry non-critical update
+            0 // Don't retry non-critical user name update
           );
         } catch (updateErr) {
           console.warn('Non-fatal error updating user details in sync:', updateErr);
@@ -160,7 +120,8 @@ export async function POST(req: NextRequest) {
     const isTimeout = err?.message === 'DATABASE_TIMEOUT';
     const isInitError =
       err instanceof Prisma.PrismaClientInitializationError ||
-      err?.name === 'PrismaClientInitializationError';
+      err?.name === 'PrismaClientInitializationError' ||
+      err?.message === 'DATABASE_CONNECTION_ERROR';
 
     return NextResponse.json(
       {
