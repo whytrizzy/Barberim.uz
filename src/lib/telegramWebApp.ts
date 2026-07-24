@@ -65,7 +65,10 @@ export function getTelegramStartParam(): string | null {
 
 export function triggerHapticFeedback(style: 'light' | 'medium' | 'heavy' | 'rigid' | 'soft' = 'medium') {
   const tg = getTelegramWebApp();
-  if (tg?.HapticFeedback) {
-    tg.HapticFeedback.impactOccurred(style);
+  // impactOccurred throws "WebAppMethodUnsupported" on some clients (e.g. Desktop).
+  try {
+    tg?.HapticFeedback?.impactOccurred?.(style);
+  } catch {
+    /* ignore unsupported haptics */
   }
 }

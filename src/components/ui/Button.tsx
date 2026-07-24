@@ -21,7 +21,13 @@ export function Button({
   ...props
 }: ButtonProps) {
   const handleClick = (e: React.MouseEvent<HTMLButtonElement>) => {
-    triggerHapticFeedback('light');
+    // Haptic feedback is unsupported on some Telegram clients (e.g. Desktop) and
+    // can THROW — it must never block the button's real onClick handler.
+    try {
+      triggerHapticFeedback('light');
+    } catch {
+      /* ignore unsupported haptics */
+    }
     if (onClick) onClick(e);
   };
 

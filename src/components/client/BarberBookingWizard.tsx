@@ -105,24 +105,15 @@ export function BarberBookingWizard({ barber, onBookingComplete }: BarberBooking
     }
   };
 
-  const notify = (msg: string) => {
-    setErrorMsg(msg);
-    const tg = getTelegramWebApp();
-    if (tg?.showAlert) {
-      tg.showAlert(msg);
-    } else if (typeof window !== 'undefined') {
-      window.alert(msg);
-    }
-  };
-
   const handleCreateBooking = async () => {
-    // Explicit diagnostics so we can see exactly which precondition fails.
-    if (!user?.id) return notify('DIAG: foydalanuvchi aniqlanmadi (user.id yo\'q)');
-    if (selectedServiceIds.length === 0) return notify('DIAG: xizmat tanlanmagan');
-    if (!selectedSlot) return notify('DIAG: vaqt tanlanmagan');
+    // TEMP diagnostic: proves the button handler actually fired (fixed banner, always visible).
+    setErrorMsg('▶ Tugma bosildi — booking boshlandi...');
+
+    if (!user?.id) { setErrorMsg('DIAG: foydalanuvchi aniqlanmadi (user.id yoʻq)'); return; }
+    if (selectedServiceIds.length === 0) { setErrorMsg('DIAG: xizmat tanlanmagan'); return; }
+    if (!selectedSlot) { setErrorMsg('DIAG: vaqt tanlanmagan'); return; }
 
     setSubmitting(true);
-    setErrorMsg(null);
     try {
       const res = await apiFetch('/api/bookings', {
         method: 'POST',
@@ -136,15 +127,16 @@ export function BarberBookingWizard({ barber, onBookingComplete }: BarberBooking
 
       const data = await res.json();
       if (data.success && data.booking) {
+        setErrorMsg(null);
         setConfirmedBooking(data.booking);
         setStep('SUCCESS');
         onBookingComplete(data.booking);
       } else {
-        notify(`Server (${res.status}): ${data.message || data.error || 'Booking yaratilmadi'}`);
+        setErrorMsg(`Server (${res.status}): ${data.message || data.error || 'Booking yaratilmadi'}`);
       }
     } catch (err: any) {
       console.error(err);
-      notify('Tarmoq/parse xatosi: ' + (err?.message || 'nomaʼlum'));
+      setErrorMsg('Tarmoq/parse xatosi: ' + (err?.message || 'nomaʼlum'));
     } finally {
       setSubmitting(false);
     }
@@ -159,9 +151,13 @@ export function BarberBookingWizard({ barber, onBookingComplete }: BarberBooking
   return (
     <div className="space-y-4 pb-6">
       {errorMsg && (
-        <div className="bg-red-950/40 border border-red-800 text-red-300 text-xs rounded-xl p-3 flex items-start gap-2">
+        <div
+          onClick={() => setErrorMsg(null)}
+          style={{ position: 'fixed', top: 8, left: 8, right: 8, zIndex: 99999 }}
+          className="bg-red-950 border border-red-600 text-red-100 text-xs rounded-xl p-3 shadow-2xl flex items-start gap-2"
+        >
           <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-          <span className="break-words">{errorMsg}</span>
+          <span className="break-words">{errorMsg} (yopish uchun bosing)</span>
         </div>
       )}
       {/* Barber Header Card */}
