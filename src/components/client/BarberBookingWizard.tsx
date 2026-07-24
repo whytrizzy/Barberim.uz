@@ -82,7 +82,10 @@ export function BarberBookingWizard({ barber, onBookingComplete }: BarberBooking
   });
 
   useEffect(() => {
-    if (step === 'SLOT' || step === 'CONFIRM') {
+    // Only (re)load slots on the SLOT step. Fetching on CONFIRM used to reset
+    // selectedSlot (fetchSlots calls setSelectedSlot(null)), which unmounted the
+    // confirm screen and made booking impossible.
+    if (step === 'SLOT') {
       fetchSlots();
     }
   }, [selectedDate, totalDurationMinutes, step]);
@@ -106,12 +109,9 @@ export function BarberBookingWizard({ barber, onBookingComplete }: BarberBooking
   };
 
   const handleCreateBooking = async () => {
-    // TEMP diagnostic: proves the button handler actually fired (fixed banner, always visible).
-    setErrorMsg('2) FINAL Tasdiqlash bosildi — booking yaratilmoqda...');
-
-    if (!user?.id) { setErrorMsg('DIAG: foydalanuvchi aniqlanmadi (user.id yoʻq)'); return; }
-    if (selectedServiceIds.length === 0) { setErrorMsg('DIAG: xizmat tanlanmagan'); return; }
-    if (!selectedSlot) { setErrorMsg('DIAG: vaqt tanlanmagan'); return; }
+    if (!user?.id) { setErrorMsg('Xatolik: foydalanuvchi aniqlanmadi'); return; }
+    if (selectedServiceIds.length === 0) { setErrorMsg('Xizmat tanlanmagan'); return; }
+    if (!selectedSlot) { setErrorMsg('Vaqt tanlanmagan'); return; }
 
     setSubmitting(true);
     try {
@@ -311,7 +311,7 @@ export function BarberBookingWizard({ barber, onBookingComplete }: BarberBooking
               variant="primary"
               size="md"
               fullWidth
-              onClick={() => { setErrorMsg("1) Vaqt tasdiqlash bosildi — keyingi ekranga o'tildi"); setStep('CONFIRM'); }}
+              onClick={() => setStep('CONFIRM')}
               className="mt-4 gap-1.5"
             >
               {t('confirmBooking')} <ArrowRight className="w-4 h-4" />
