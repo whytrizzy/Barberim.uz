@@ -88,11 +88,12 @@ export async function POST(req: NextRequest) {
       console.error('Database connection error in auth sync after retry:', dbErr);
       // Surface the real Prisma error so we can pinpoint the cause:
       // P1001 = can't reach DB, P1000 = auth failed, "Tenant or user not found" = wrong pooler user.
-      const detail =
-        dbErr?.code ||
-        (dbErr?.message ? String(dbErr.message).slice(0, 120) : 'unknown');
+      // Collapse Prisma's multi-line message; keep the informative tail (the real cause).
+      let msg = String(dbErr?.message || 'unknown').replace(/\s+/g, ' ').trim();
+      if (msg.length > 300) msg = msg.slice(-300);
+      const detail = dbErr?.code ? `${dbErr.code}: ${msg}` : msg;
       return NextResponse.json(
-        { success: false, error: `DB xato [${detail}]` },
+        { success: false, error: `DB xato: ${detail}` },
         { status: 500 }
       );
     }

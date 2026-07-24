@@ -57,7 +57,7 @@ export default function Home() {
               {t('connectionError')}
             </p>
             {error && (
-              <p className="text-[10px] text-red-400/80 font-mono bg-red-950/40 p-2 rounded-lg border border-red-900/40 mt-2 truncate">
+              <p className="text-[10px] text-red-400/80 font-mono bg-red-950/40 p-2 rounded-lg border border-red-900/40 mt-2 break-words whitespace-pre-wrap max-h-40 overflow-auto text-left">
                 {error}
               </p>
             )}
