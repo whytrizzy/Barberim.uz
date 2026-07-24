@@ -86,9 +86,13 @@ export async function POST(req: NextRequest) {
       );
     } catch (dbErr: any) {
       console.error('Database connection error in auth sync after retry:', dbErr);
-      const isTimeout = dbErr?.message === 'DATABASE_TIMEOUT';
+      // Surface the real Prisma error so we can pinpoint the cause:
+      // P1001 = can't reach DB, P1000 = auth failed, "Tenant or user not found" = wrong pooler user.
+      const detail =
+        dbErr?.code ||
+        (dbErr?.message ? String(dbErr.message).slice(0, 120) : 'unknown');
       return NextResponse.json(
-        { success: false, error: isTimeout ? 'DATABASE_TIMEOUT' : 'DATABASE_CONNECTION_ERROR' },
+        { success: false, error: `DB xato [${detail}]` },
         { status: 500 }
       );
     }
