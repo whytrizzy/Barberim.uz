@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { Role } from '@/types';
-import { getInitData, initTelegramWebApp } from '@/lib/telegramWebApp';
+import { getInitData, initTelegramWebApp, getTelegramWebApp } from '@/lib/telegramWebApp';
 
 interface AuthUser {
   id: string;
@@ -79,7 +79,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setIsNewUser(true);
           }
         } else {
-          setError('Iltimos, ilovani Telegram orqali oching.');
+          const tg = getTelegramWebApp();
+          const reason =
+            typeof window === 'undefined'
+              ? 'ssr'
+              : !(window as any).Telegram
+              ? 'no-telegram-sdk'
+              : !tg
+              ? 'no-webapp'
+              : tg.initDataUnsafe?.user
+              ? 'initData-empty-but-user-present'
+              : 'not-in-telegram';
+          setError(`Telegram ma'lumoti yo'q [client:${reason}]`);
         }
         return;
       }

@@ -19,8 +19,9 @@ function resolveIdentity(body: any):
   const botToken = process.env.TELEGRAM_BOT_TOKEN || '';
 
   if (body?.initData) {
+    if (!botToken) return { error: 'SERVER_NO_TOKEN' };
     const tgUser = validateTelegramWebAppData(body.initData, botToken);
-    if (!tgUser) return { error: 'INVALID_INITDATA' };
+    if (!tgUser) return { error: 'BAD_SIGNATURE' };
     const fullName = `${tgUser.first_name} ${tgUser.last_name || ''}`.trim();
     return {
       telegramId: BigInt(tgUser.id),
@@ -37,7 +38,7 @@ function resolveIdentity(body: any):
     };
   }
 
-  return { error: 'UNAUTHENTICATED' };
+  return { error: 'NO_INITDATA' };
 }
 
 export async function POST(req: NextRequest) {
@@ -63,10 +64,13 @@ export async function POST(req: NextRequest) {
     }
 
     if ('error' in identity) {
-      return NextResponse.json(
-        { success: false, error: 'Iltimos, ilovani Telegram orqali oching.' },
-        { status: 401 }
-      );
+      const map: Record<string, { msg: string; status: number }> = {
+        SERVER_NO_TOKEN: { msg: "Server sozlamasi xato: TELEGRAM_BOT_TOKEN yo'q. [server:no-token]", status: 500 },
+        BAD_SIGNATURE: { msg: "Imzo tekshiruvdan o'tmadi — bot token noto'g'ri bo'lishi mumkin. [server:bad-signature]", status: 401 },
+        NO_INITDATA: { msg: "Telegram ma'lumoti kelmadi. [server:no-initData]", status: 401 },
+      };
+      const e = map[identity.error] || { msg: identity.error, status: 401 };
+      return NextResponse.json({ success: false, error: e.msg }, { status: e.status });
     }
 
     const { telegramId: tId, fullName, username } = identity;
