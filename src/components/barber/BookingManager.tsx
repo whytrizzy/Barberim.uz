@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { BookingType, BookingStatus } from '@/types';
 import { useLanguage } from '@/lib/i18n/LanguageContext';
+import { formatTashkentDateTime } from '@/lib/dateUtils';
 import { Calendar as CalendarIcon, User, Phone, Clock, CheckCircle2, XCircle, Banknote } from 'lucide-react';
 import { Badge } from '../ui/Badge';
 import { Button } from '../ui/Button';
@@ -26,10 +27,7 @@ export function BookingManager({ bookings, onUpdateStatus }: BookingManagerProps
   };
 
   const formatDateTime = (iso: string) => {
-    const d = new Date(iso);
-    const dateStr = d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
-    const timeStr = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
-    return { dateStr, timeStr };
+    return formatTashkentDateTime(iso);
   };
 
   const getStatusBadge = (status: BookingStatus) => {

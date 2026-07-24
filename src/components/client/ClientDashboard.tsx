@@ -33,7 +33,8 @@ export function ClientDashboard() {
   }, [loadClientBookings]);
 
   const handleBookingComplete = (booking: BookingType) => {
-    setClientBookings([booking, ...clientBookings]);
+    setClientBookings((prev) => [booking, ...prev.filter((b) => b.id !== booking.id)]);
+    loadClientBookings();
   };
 
   const handleCancelBooking = async (bookingId: string) => {

@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { BookingType } from '@/types';
 import { useLanguage } from '@/lib/i18n/LanguageContext';
+import { formatTashkentDateTime, formatTashkentDate } from '@/lib/dateUtils';
 import { Calendar, MapPin, XCircle, AlertCircle } from 'lucide-react';
 import { Badge } from '../ui/Badge';
 import { Button } from '../ui/Button';
@@ -50,9 +51,7 @@ export function MyBookings({ bookings, onCancelBooking }: MyBookingsProps) {
           </div>
         ) : (
           upcomingBookings.map((b) => {
-            const startDate = new Date(b.startTime);
-            const dateStr = startDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
-            const timeStr = startDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+            const { dateStr, timeStr } = formatTashkentDateTime(b.startTime);
             const serviceNames = b.services?.map((s) => s.service?.name).join(', ') || '-';
             const barberName = b.barber?.shopName || b.barber?.user?.fullName || '-';
 
@@ -103,12 +102,11 @@ export function MyBookings({ bookings, onCancelBooking }: MyBookingsProps) {
           <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">{t('pastAppts')}</h3>
           <div className="space-y-2">
             {pastBookings.map((b) => {
-              const startDate = new Date(b.startTime);
-              const dateStr = startDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+              const { dateStr, timeStr } = formatTashkentDateTime(b.startTime);
               return (
                 <div key={b.id} className="flex items-center justify-between bg-slate-900/60 p-3 rounded-xl border border-slate-800 text-xs">
                   <div>
-                    <span className="font-semibold text-white">{dateStr}</span>
+                    <span className="font-semibold text-white">{dateStr} @ {timeStr}</span>
                     <span className="text-slate-400 block text-[11px]">{b.services?.map(s => s.service?.name).join(', ')}</span>
                   </div>
                   {b.status === 'COMPLETED' ? (

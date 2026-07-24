@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getBarberProfile, updateBarberProfile } from '@/lib/dataService';
 import { getAuthUser } from '@/lib/authGuard';
+import { prisma } from '@/lib/prisma';
+import { DEFAULT_WORKING_HOURS } from '@/types';
 
 export const dynamic = 'force-dynamic';
 
@@ -15,7 +17,21 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ success: false, error: 'FORBIDDEN' }, { status: 403 });
     }
 
-    const profile = await getBarberProfile(undefined, auth.id);
+    let profile = await getBarberProfile(undefined, auth.id);
+    if (!profile) {
+      // Auto-create barber profile if missing
+      await prisma.barberProfile.create({
+        data: {
+          userId: auth.id,
+          shopName: auth.fullName,
+          bio: null,
+          address: null,
+          workingHours: DEFAULT_WORKING_HOURS as any,
+        },
+      });
+      profile = await getBarberProfile(undefined, auth.id);
+    }
+
     if (!profile) {
       return NextResponse.json({ success: false, error: 'Barber profile not found' }, { status: 404 });
     }

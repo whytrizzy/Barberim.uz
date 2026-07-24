@@ -25,29 +25,35 @@ export function BarberDashboard() {
   const userId = user?.id;
 
   const loadData = useCallback(async () => {
-    if (!userId || !barberId) return;
+    if (!userId) {
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     try {
-      const [profRes, servRes, bookRes] = await Promise.all([
-        apiFetch(`/api/barber/profile?userId=${userId}`),
-        apiFetch(`/api/barber/services?barberId=${barberId}`),
-        apiFetch(`/api/barber/bookings?barberId=${barberId}`),
-      ]);
-
+      const profRes = await apiFetch('/api/barber/profile');
       const profData = await profRes.json();
-      if (profData.success) setProfile(profData.profile);
+      if (profData.success && profData.profile) {
+        setProfile(profData.profile);
+        const bId = profData.profile.id;
 
-      const servData = await servRes.json();
-      if (servData.success) setServices(servData.services || []);
+        const [servRes, bookRes] = await Promise.all([
+          apiFetch(`/api/barber/services?barberId=${bId}`),
+          apiFetch(`/api/barber/bookings?barberId=${bId}`),
+        ]);
 
-      const bookData = await bookRes.json();
-      if (bookData.success) setBookings(bookData.bookings || []);
+        const servData = await servRes.json();
+        if (servData.success) setServices(servData.services || []);
+
+        const bookData = await bookRes.json();
+        if (bookData.success) setBookings(bookData.bookings || []);
+      }
     } catch (err) {
       console.error('Failed to load barber data:', err);
     } finally {
       setLoading(false);
     }
-  }, [userId, barberId]);
+  }, [userId]);
 
   useEffect(() => {
     loadData();

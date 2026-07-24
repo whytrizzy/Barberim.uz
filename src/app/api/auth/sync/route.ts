@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma, withDbRetry } from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
 import { validateTelegramWebAppData } from '@/lib/telegramAuth';
+import { DEFAULT_WORKING_HOURS } from '@/types';
 
 export const dynamic = 'force-dynamic';
 
@@ -119,6 +120,26 @@ export async function POST(req: NextRequest) {
         }
       }
 
+      let barberProfileId = existingUser.barberProfile?.id || null;
+      if (existingUser.role === 'BARBER' && !barberProfileId) {
+        try {
+          const newProfile = await withDbRetry(() =>
+            prisma.barberProfile.create({
+              data: {
+                userId: existingUser.id,
+                shopName: existingUser.fullName,
+                bio: null,
+                address: null,
+                workingHours: DEFAULT_WORKING_HOURS as any,
+              },
+            })
+          );
+          barberProfileId = newProfile.id;
+        } catch (err) {
+          console.error('Failed to auto-create barber profile in sync:', err);
+        }
+      }
+
       return NextResponse.json({
         success: true,
         isNewUser: false,
@@ -129,7 +150,7 @@ export async function POST(req: NextRequest) {
           role: existingUser.role,
           fullName: fullName || existingUser.fullName,
           phone: existingUser.phone,
-          barberProfileId: existingUser.barberProfile?.id || null,
+          barberProfileId,
         },
       });
     }
