@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { BarberProfileType, ServiceType, TimeSlot, BookingType } from '@/types';
 import { useAuth } from '@/lib/AuthContext';
 import { apiFetch } from '@/lib/apiClient';
+import { getTelegramWebApp } from '@/lib/telegramWebApp';
 import { useLanguage } from '@/lib/i18n/LanguageContext';
 import { TimeSlotPicker } from './TimeSlotPicker';
 import { MapPin, Phone, Clock, CheckCircle2, Scissors, ArrowRight, AlertCircle } from 'lucide-react';
@@ -104,8 +105,21 @@ export function BarberBookingWizard({ barber, onBookingComplete }: BarberBooking
     }
   };
 
+  const notify = (msg: string) => {
+    setErrorMsg(msg);
+    const tg = getTelegramWebApp();
+    if (tg?.showAlert) {
+      tg.showAlert(msg);
+    } else if (typeof window !== 'undefined') {
+      window.alert(msg);
+    }
+  };
+
   const handleCreateBooking = async () => {
-    if (!selectedSlot || selectedServiceIds.length === 0 || !user?.id) return;
+    // Explicit diagnostics so we can see exactly which precondition fails.
+    if (!user?.id) return notify('DIAG: foydalanuvchi aniqlanmadi (user.id yo\'q)');
+    if (selectedServiceIds.length === 0) return notify('DIAG: xizmat tanlanmagan');
+    if (!selectedSlot) return notify('DIAG: vaqt tanlanmagan');
 
     setSubmitting(true);
     setErrorMsg(null);
@@ -126,11 +140,11 @@ export function BarberBookingWizard({ barber, onBookingComplete }: BarberBooking
         setStep('SUCCESS');
         onBookingComplete(data.booking);
       } else {
-        setErrorMsg(data.message || data.error || 'Booking yaratilmadi');
+        notify(`Server (${res.status}): ${data.message || data.error || 'Booking yaratilmadi'}`);
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
-      setErrorMsg("Tarmoq xatosi. Qayta urinib ko'ring.");
+      notify('Tarmoq/parse xatosi: ' + (err?.message || 'nomaʼlum'));
     } finally {
       setSubmitting(false);
     }
