@@ -44,8 +44,9 @@ export async function POST(req: NextRequest) {
       );
     }
     console.error('Booking creation error:', err);
+    const detail = String(err?.message || 'unknown').replace(/\s+/g, ' ').slice(0, 200);
     return NextResponse.json(
-      { success: false, error: 'Failed to create booking' },
+      { success: false, error: 'Failed to create booking', message: `Xato: ${detail}` },
       { status: 500 }
     );
   }

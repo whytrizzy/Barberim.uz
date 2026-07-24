@@ -45,6 +45,7 @@ export function BarberBookingWizard({ barber, onBookingComplete }: BarberBooking
 
   // ─── Booking State ──────────────────────────────────────────────
   const [selectedServiceIds, setSelectedServiceIds] = useState<string[]>([]);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [selectedDate, setSelectedDate] = useState<string>(() => {
     const today = new Date();
     return today.toISOString().split('T')[0];
@@ -107,6 +108,7 @@ export function BarberBookingWizard({ barber, onBookingComplete }: BarberBooking
     if (!selectedSlot || selectedServiceIds.length === 0 || !user?.id) return;
 
     setSubmitting(true);
+    setErrorMsg(null);
     try {
       const res = await apiFetch('/api/bookings', {
         method: 'POST',
@@ -123,9 +125,12 @@ export function BarberBookingWizard({ barber, onBookingComplete }: BarberBooking
         setConfirmedBooking(data.booking);
         setStep('SUCCESS');
         onBookingComplete(data.booking);
+      } else {
+        setErrorMsg(data.message || data.error || 'Booking yaratilmadi');
       }
     } catch (err) {
       console.error(err);
+      setErrorMsg("Tarmoq xatosi. Qayta urinib ko'ring.");
     } finally {
       setSubmitting(false);
     }
@@ -139,6 +144,12 @@ export function BarberBookingWizard({ barber, onBookingComplete }: BarberBooking
 
   return (
     <div className="space-y-4 pb-6">
+      {errorMsg && (
+        <div className="bg-red-950/40 border border-red-800 text-red-300 text-xs rounded-xl p-3 flex items-start gap-2">
+          <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+          <span className="break-words">{errorMsg}</span>
+        </div>
+      )}
       {/* Barber Header Card */}
       <div className="glass-card-gold rounded-2xl p-4 flex items-start gap-3.5 relative">
         <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-amber-500 to-yellow-600 flex items-center justify-center text-slate-950 font-black text-xl shadow-md shrink-0">

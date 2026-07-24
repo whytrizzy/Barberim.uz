@@ -248,41 +248,42 @@ export async function createBooking(data: {
     throw new Error('NO_VALID_SERVICES');
   }
 
-  // Re-check availability inside a transaction to prevent double-booking:
-  // two clients racing for the same slot cannot both pass the overlap check.
-  const booking = await prisma.$transaction(async (tx) => {
-    const overlap = await tx.booking.findFirst({
-      where: {
-        barberId: data.barberId,
-        status: { in: ['CONFIRMED', 'PENDING'] },
-        startTime: { lt: endDate },
-        endTime: { gt: startDate },
-      },
-      select: { id: true },
-    });
+  // Best-effort overlap check to prevent double-booking.
+  // NOTE: interactive transactions ($transaction with a callback) are avoided
+  // here because they are unreliable over the Supabase transaction pooler
+  // (pgbouncer, port 6543). Full race safety will come from a DB-level
+  // exclusion constraint added via migration later.
+  const overlap = await prisma.booking.findFirst({
+    where: {
+      barberId: data.barberId,
+      status: { in: ['CONFIRMED', 'PENDING'] },
+      startTime: { lt: endDate },
+      endTime: { gt: startDate },
+    },
+    select: { id: true },
+  });
 
-    if (overlap) {
-      throw new Error('SLOT_TAKEN');
-    }
+  if (overlap) {
+    throw new Error('SLOT_TAKEN');
+  }
 
-    return tx.booking.create({
-      data: {
-        clientId: data.clientId,
-        barberId: data.barberId,
-        startTime: startDate,
-        endTime: endDate,
-        totalPrice,
-        status: 'CONFIRMED',
-        services: {
-          create: data.serviceIds.map((sid) => ({ serviceId: sid })),
-        },
+  const booking = await prisma.booking.create({
+    data: {
+      clientId: data.clientId,
+      barberId: data.barberId,
+      startTime: startDate,
+      endTime: endDate,
+      totalPrice,
+      status: 'CONFIRMED',
+      services: {
+        create: data.serviceIds.map((sid) => ({ serviceId: sid })),
       },
-      include: {
-        client: true,
-        barber: { include: { user: true } },
-        services: { include: { service: true } },
-      },
-    });
+    },
+    include: {
+      client: true,
+      barber: { include: { user: true } },
+      services: { include: { service: true } },
+    },
   });
 
   return {
