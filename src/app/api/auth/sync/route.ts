@@ -1,8 +1,44 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma, withDbRetry } from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
+import { validateTelegramWebAppData } from '@/lib/telegramAuth';
 
 export const dynamic = 'force-dynamic';
+
+const isDev = process.env.NODE_ENV !== 'production';
+
+/**
+ * Resolves the caller's verified identity.
+ * In production, identity MUST come from a valid, signed Telegram initData.
+ * In development, an unsigned { telegramId, fullName, username } body is
+ * accepted so the app can be tested locally outside Telegram.
+ */
+function resolveIdentity(body: any):
+  | { telegramId: bigint; fullName: string; username: string | null }
+  | { error: string } {
+  const botToken = process.env.TELEGRAM_BOT_TOKEN || '';
+
+  if (body?.initData) {
+    const tgUser = validateTelegramWebAppData(body.initData, botToken);
+    if (!tgUser) return { error: 'INVALID_INITDATA' };
+    const fullName = `${tgUser.first_name} ${tgUser.last_name || ''}`.trim();
+    return {
+      telegramId: BigInt(tgUser.id),
+      fullName: fullName || 'Telegram User',
+      username: tgUser.username || null,
+    };
+  }
+
+  if (isDev && body?.telegramId) {
+    return {
+      telegramId: BigInt(body.telegramId),
+      fullName: body.fullName || 'Dev User',
+      username: body.username ?? null,
+    };
+  }
+
+  return { error: 'UNAUTHENTICATED' };
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -16,30 +52,26 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const { telegramId, fullName, username } = body as {
-      telegramId?: string | number;
-      fullName?: string;
-      username?: string;
-    };
-
-    if (!telegramId) {
-      return NextResponse.json(
-        { success: false, error: 'telegramId is required' },
-        { status: 400 }
-      );
-    }
-
-    let tId: bigint;
+    let identity;
     try {
-      tId = BigInt(telegramId);
+      identity = resolveIdentity(body);
     } catch {
       return NextResponse.json(
-        { success: false, error: 'Invalid telegramId format' },
+        { success: false, error: 'Invalid identity data' },
         { status: 400 }
       );
     }
 
-    // Look up existing user in DB with 10s timeout and 1-time retry on PrismaClientInitializationError
+    if ('error' in identity) {
+      return NextResponse.json(
+        { success: false, error: 'Iltimos, ilovani Telegram orqali oching.' },
+        { status: 401 }
+      );
+    }
+
+    const { telegramId: tId, fullName, username } = identity;
+
+    // Look up existing user (with cold-start retry).
     let existingUser = null;
     try {
       existingUser = await withDbRetry(() =>
@@ -51,39 +83,27 @@ export async function POST(req: NextRequest) {
     } catch (dbErr: any) {
       console.error('Database connection error in auth sync after retry:', dbErr);
       const isTimeout = dbErr?.message === 'DATABASE_TIMEOUT';
-      const isInitError =
-        dbErr instanceof Prisma.PrismaClientInitializationError ||
-        dbErr?.name === 'PrismaClientInitializationError' ||
-        dbErr?.message === 'DATABASE_CONNECTION_ERROR';
-
       return NextResponse.json(
-        {
-          success: false,
-          error: isTimeout
-            ? 'DATABASE_TIMEOUT'
-            : isInitError
-            ? 'DATABASE_CONNECTION_ERROR'
-            : 'Database connection error',
-        },
+        { success: false, error: isTimeout ? 'DATABASE_TIMEOUT' : 'DATABASE_CONNECTION_ERROR' },
         { status: 500 }
       );
     }
 
     if (existingUser) {
-      // Returning user — update name/username if changed
+      // Keep the display name / username fresh.
       if (fullName || username) {
         try {
           await withDbRetry(
             () =>
               prisma.user.update({
-                where: { id: existingUser.id },
+                where: { id: existingUser!.id },
                 data: {
                   ...(fullName && { fullName }),
                   ...(username !== undefined && { username }),
                 },
               }),
             5000,
-            0 // Don't retry non-critical user name update
+            0
           );
         } catch (updateErr) {
           console.warn('Non-fatal error updating user details in sync:', updateErr);
@@ -105,14 +125,14 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // New user — needs onboarding
+    // New, verified user — needs onboarding (role selection).
     return NextResponse.json({
       success: true,
       isNewUser: true,
       telegramUser: {
-        telegramId: telegramId.toString(),
-        fullName: fullName || 'New User',
-        username: username || null,
+        telegramId: tId.toString(),
+        fullName,
+        username,
       },
     });
   } catch (err: any) {

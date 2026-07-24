@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { Role } from '@/types';
-import { getTelegramUser, initTelegramWebApp } from '@/lib/telegramWebApp';
+import { getInitData, initTelegramWebApp } from '@/lib/telegramWebApp';
 
 interface AuthUser {
   id: string;
@@ -57,40 +57,38 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // 1. Mandatory Telegram WebApp Ready & Expand call
       initTelegramWebApp();
 
-      // 2. Extract Telegram user data
-      const tgUser = getTelegramUser();
-      const telegramId = tgUser?.id || null;
-      const fullName = tgUser?.first_name
-        ? `${tgUser.first_name} ${tgUser.last_name || ''}`.trim()
-        : null;
-      const username = tgUser?.username || null;
+      // 2. Get the signed initData string. Identity is verified server-side.
+      const initData = getInitData();
 
-      // Browser fallback when opened outside Telegram
-      if (!telegramId) {
+      // Opened outside Telegram (no signed initData).
+      // Allowed only in development for local testing; blocked in production.
+      if (!initData) {
         clearTimeout(timeoutId);
-        const savedDevUser = typeof window !== 'undefined'
-          ? localStorage.getItem('barberim_dev_user')
-          : null;
-
-        if (savedDevUser) {
-          try {
-            const parsed = JSON.parse(savedDevUser);
-            setUser(parsed);
-            setIsNewUser(false);
-          } catch {
+        if (process.env.NODE_ENV !== 'production') {
+          const savedDevUser = typeof window !== 'undefined'
+            ? localStorage.getItem('barberim_dev_user')
+            : null;
+          if (savedDevUser) {
+            try {
+              setUser(JSON.parse(savedDevUser));
+              setIsNewUser(false);
+            } catch {
+              setIsNewUser(true);
+            }
+          } else {
             setIsNewUser(true);
           }
         } else {
-          setIsNewUser(true);
+          setError('Iltimos, ilovani Telegram orqali oching.');
         }
         return;
       }
 
-      // 3. Perform /api/auth/sync with 4s timeout signal
+      // 3. Verify identity server-side using the signed initData.
       const res = await fetch('/api/auth/sync', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ telegramId, fullName, username }),
+        body: JSON.stringify({ initData }),
         signal: controller.signal,
       });
 

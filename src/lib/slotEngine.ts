@@ -1,34 +1,58 @@
 import { WorkingHours, TimeSlot, BookingType } from '@/types';
 
+// Uzbekistan (Asia/Tashkent) is a fixed UTC+5 offset with no daylight saving.
+// We treat all barber working hours as Tashkent wall-clock time and convert
+// to correct UTC instants explicitly, so behaviour is identical no matter
+// what timezone the server (e.g. Vercel = UTC) runs in.
+const TASHKENT_OFFSET_MIN = 300;
+const TASHKENT_OFFSET_MS = TASHKENT_OFFSET_MIN * 60 * 1000;
+
+/** Convert a Tashkent wall-clock time on a given calendar date to a UTC instant. */
+function tashkentLocalToInstant(
+  year: number,
+  month: number, // 1-12
+  day: number,
+  hours: number,
+  minutes: number
+): Date {
+  return new Date(Date.UTC(year, month - 1, day, hours, minutes) - TASHKENT_OFFSET_MS);
+}
+
+/** Read the Tashkent wall-clock "HH:MM" label of a UTC instant. */
+function instantToTashkentLabel(instantMs: number): string {
+  const local = new Date(instantMs + TASHKENT_OFFSET_MS);
+  const hh = String(local.getUTCHours()).padStart(2, '0');
+  const mm = String(local.getUTCMinutes()).padStart(2, '0');
+  return `${hh}:${mm}`;
+}
+
 export function calculateTimeSlots(
-  dateStr: string, // YYYY-MM-DD
+  dateStr: string, // YYYY-MM-DD (Tashkent calendar date)
   workingHours: WorkingHours,
   totalDurationMinutes: number,
   existingBookings: BookingType[]
 ): TimeSlot[] {
   const slots: TimeSlot[] = [];
 
-  const dateObj = new Date(dateStr);
-  if (isNaN(dateObj.getTime())) {
-    return [];
-  }
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dateStr);
+  if (!m) return slots;
+  const year = Number(m[1]);
+  const month = Number(m[2]);
+  const day = Number(m[3]);
 
-  // Day of week: 0 = Sun, 1 = Mon, ..., 6 = Sat
-  const dayOfWeek = dateObj.getDay();
+  // Day of week for the Tashkent calendar date (0 = Sun .. 6 = Sat),
+  // independent of the server timezone.
+  const dayOfWeek = new Date(Date.UTC(year, month - 1, day)).getUTCDay();
 
-  // 1. Check if barber works on this day
-  if (!workingHours.workDays.includes(dayOfWeek)) {
+  if (!workingHours.workDays?.includes(dayOfWeek)) {
     return slots;
   }
 
   const [startH, startM] = (workingHours.startTime || '09:00').split(':').map(Number);
   const [endH, endM] = (workingHours.endTime || '20:00').split(':').map(Number);
 
-  const workStart = new Date(dateStr);
-  workStart.setHours(startH, startM, 0, 0);
-
-  const workEnd = new Date(dateStr);
-  workEnd.setHours(endH, endM, 0, 0);
+  const workStart = tashkentLocalToInstant(year, month, day, startH, startM);
+  const workEnd = tashkentLocalToInstant(year, month, day, endH, endM);
 
   // Lunch break
   let breakStart: Date | null = null;
@@ -36,45 +60,40 @@ export function calculateTimeSlots(
   if (workingHours.breakStart && workingHours.breakEnd) {
     const [bStartH, bStartM] = workingHours.breakStart.split(':').map(Number);
     const [bEndH, bEndM] = workingHours.breakEnd.split(':').map(Number);
-    breakStart = new Date(dateStr);
-    breakStart.setHours(bStartH, bStartM, 0, 0);
-    breakEnd = new Date(dateStr);
-    breakEnd.setHours(bEndH, bEndM, 0, 0);
+    breakStart = tashkentLocalToInstant(year, month, day, bStartH, bStartM);
+    breakEnd = tashkentLocalToInstant(year, month, day, bEndH, bEndM);
   }
 
-  // Filter out cancelled bookings
+  // Only confirmed / pending bookings block a slot.
   const activeBookings = existingBookings.filter(
     (b) => b.status === 'CONFIRMED' || b.status === 'PENDING'
   );
 
   const now = new Date();
-  const stepMinutes = workingHours.slotDurationMinutes || 30;
-  let currentPointer = new Date(workStart);
+  const stepMs = (workingHours.slotDurationMinutes || 30) * 60 * 1000;
+  const durationMs = totalDurationMinutes * 60 * 1000;
 
-  while (currentPointer < workEnd) {
-    const slotStart = new Date(currentPointer);
-    const slotEnd = new Date(slotStart.getTime() + totalDurationMinutes * 60 * 1000);
-
-    const hours = slotStart.getHours().toString().padStart(2, '0');
-    const minutes = slotStart.getMinutes().toString().padStart(2, '0');
-    const timeLabel = `${hours}:${minutes}`;
+  for (let cur = workStart.getTime(); cur < workEnd.getTime(); cur += stepMs) {
+    const slotStart = new Date(cur);
+    const slotEnd = new Date(cur + durationMs);
+    const timeLabel = instantToTashkentLabel(cur);
 
     let isAvailable = true;
     let unavailableReason: string | undefined = undefined;
 
-    // Check if slot extends beyond working hours
-    if (slotEnd > workEnd) {
+    // Slot must finish within working hours.
+    if (slotEnd.getTime() > workEnd.getTime()) {
       isAvailable = false;
       unavailableReason = 'After work hours';
     }
 
-    // Check past time
+    // No booking in the past.
     if (isAvailable && slotStart <= now) {
       isAvailable = false;
       unavailableReason = 'Past time';
     }
 
-    // Check lunch break overlap
+    // Lunch break overlap.
     if (isAvailable && breakStart && breakEnd) {
       if (slotStart < breakEnd && slotEnd > breakStart) {
         isAvailable = false;
@@ -82,12 +101,11 @@ export function calculateTimeSlots(
       }
     }
 
-    // Check existing booking overlap
+    // Existing booking overlap.
     if (isAvailable) {
       for (const booking of activeBookings) {
         const bStart = new Date(booking.startTime);
         const bEnd = new Date(booking.endTime);
-
         if (slotStart < bEnd && slotEnd > bStart) {
           isAvailable = false;
           unavailableReason = 'Booked';
@@ -102,9 +120,6 @@ export function calculateTimeSlots(
       available: isAvailable,
       reason: unavailableReason,
     });
-
-    // Advance by step
-    currentPointer = new Date(currentPointer.getTime() + stepMinutes * 60 * 1000);
   }
 
   return slots;

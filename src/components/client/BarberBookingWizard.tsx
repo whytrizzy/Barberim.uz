@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { BarberProfileType, ServiceType, TimeSlot, BookingType } from '@/types';
 import { useAuth } from '@/lib/AuthContext';
+import { apiFetch } from '@/lib/apiClient';
 import { useLanguage } from '@/lib/i18n/LanguageContext';
 import { TimeSlotPicker } from './TimeSlotPicker';
 import { MapPin, Phone, Clock, CheckCircle2, Scissors, ArrowRight, AlertCircle } from 'lucide-react';
@@ -107,12 +108,11 @@ export function BarberBookingWizard({ barber, onBookingComplete }: BarberBooking
 
     setSubmitting(true);
     try {
-      const res = await fetch('/api/bookings', {
+      const res = await apiFetch('/api/bookings', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           barberId: barber.id,
-          clientId: user.id,
           serviceIds: selectedServiceIds,
           startTime: selectedSlot.isoString,
         }),

@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { BookingType } from '@/types';
 import { useAuth } from '@/lib/AuthContext';
+import { apiFetch } from '@/lib/apiClient';
 import { useLanguage } from '@/lib/i18n/LanguageContext';
 import { BarberDiscovery } from './BarberDiscovery';
 import { MyBookings } from './MyBookings';
@@ -17,7 +18,7 @@ export function ClientDashboard() {
   const loadClientBookings = useCallback(async () => {
     if (!user?.id) return;
     try {
-      const res = await fetch(`/api/client/bookings?clientId=${user.id}`);
+      const res = await apiFetch(`/api/client/bookings?clientId=${user.id}`);
       const data = await res.json();
       if (data.success) {
         setClientBookings(data.bookings || []);
@@ -36,7 +37,7 @@ export function ClientDashboard() {
   };
 
   const handleCancelBooking = async (bookingId: string) => {
-    const res = await fetch(`/api/client/bookings/${bookingId}/cancel`, {
+    const res = await apiFetch(`/api/client/bookings/${bookingId}/cancel`, {
       method: 'PATCH',
     });
     const result = await res.json();

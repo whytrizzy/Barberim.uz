@@ -31,6 +31,15 @@ function getFormattedDatabaseUrl(url?: string): string {
       formatted += `${sep}sslmode=require`;
     }
 
+    // Supabase transaction pooler (port 6543 / *.pooler.supabase.com) requires
+    // pgbouncer=true so Prisma disables prepared statements — otherwise queries
+    // intermittently fail on Vercel serverless ("prepared statement already exists").
+    const usesPooler = formatted.includes(':6543') || formatted.includes('pooler.supabase.com');
+    if (usesPooler && !formatted.includes('pgbouncer=')) {
+      const sep = formatted.includes('?') ? '&' : '?';
+      formatted += `${sep}pgbouncer=true`;
+    }
+
     return formatted;
   } catch {
     return url;

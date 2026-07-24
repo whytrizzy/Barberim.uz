@@ -41,6 +41,12 @@ export function getTelegramUser() {
   return null;
 }
 
+/** Raw, cryptographically signed initData string. Must be verified server-side. */
+export function getInitData(): string {
+  const tg = getTelegramWebApp();
+  return tg?.initData || '';
+}
+
 export function getTelegramStartParam(): string | null {
   const tg = getTelegramWebApp();
   if (tg?.initDataUnsafe?.start_param) {

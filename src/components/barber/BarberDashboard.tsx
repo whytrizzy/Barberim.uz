@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { BarberProfileType, ServiceType, BookingType, WorkingHours, BookingStatus } from '@/types';
 import { useAuth } from '@/lib/AuthContext';
+import { apiFetch } from '@/lib/apiClient';
 import { useLanguage } from '@/lib/i18n/LanguageContext';
 import { ProfileSettings } from './ProfileSettings';
 import { ServiceManager } from './ServiceManager';
@@ -28,9 +29,9 @@ export function BarberDashboard() {
     setLoading(true);
     try {
       const [profRes, servRes, bookRes] = await Promise.all([
-        fetch(`/api/barber/profile?userId=${userId}`),
-        fetch(`/api/barber/services?barberId=${barberId}`),
-        fetch(`/api/barber/bookings?barberId=${barberId}`),
+        apiFetch(`/api/barber/profile?userId=${userId}`),
+        apiFetch(`/api/barber/services?barberId=${barberId}`),
+        apiFetch(`/api/barber/bookings?barberId=${barberId}`),
       ]);
 
       const profData = await profRes.json();
@@ -61,7 +62,7 @@ export function BarberDashboard() {
     fullName?: string;
     phone?: string;
   }) => {
-    const res = await fetch('/api/barber/profile', {
+    const res = await apiFetch('/api/barber/profile', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ userId, ...data }),
@@ -73,7 +74,7 @@ export function BarberDashboard() {
   };
 
   const handleAddService = async (newService: { name: string; durationMinutes: number; price: number }) => {
-    const res = await fetch('/api/barber/services', {
+    const res = await apiFetch('/api/barber/services', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ ...newService, barberId }),
@@ -85,7 +86,7 @@ export function BarberDashboard() {
   };
 
   const handleEditService = async (serviceId: string, data: { name: string; durationMinutes: number; price: number }) => {
-    const res = await fetch(`/api/barber/services/${serviceId}`, {
+    const res = await apiFetch(`/api/barber/services/${serviceId}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
@@ -97,7 +98,7 @@ export function BarberDashboard() {
   };
 
   const handleDeleteService = async (serviceId: string) => {
-    const res = await fetch(`/api/barber/services/${serviceId}`, {
+    const res = await apiFetch(`/api/barber/services/${serviceId}`, {
       method: 'DELETE',
     });
     const result = await res.json();
@@ -107,7 +108,7 @@ export function BarberDashboard() {
   };
 
   const handleUpdateSchedule = async (schedule: WorkingHours) => {
-    const res = await fetch('/api/barber/profile', {
+    const res = await apiFetch('/api/barber/profile', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ userId, workingHours: schedule }),
@@ -119,7 +120,7 @@ export function BarberDashboard() {
   };
 
   const handleUpdateBookingStatus = async (bookingId: string, status: BookingStatus) => {
-    const res = await fetch(`/api/barber/bookings/${bookingId}`, {
+    const res = await apiFetch(`/api/barber/bookings/${bookingId}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ status }),

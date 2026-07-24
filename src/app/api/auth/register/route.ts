@@ -2,52 +2,95 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma, withDbRetry } from '@/lib/prisma';
 import { Role, DEFAULT_WORKING_HOURS } from '@/types';
 import { Prisma } from '@prisma/client';
+import { validateTelegramWebAppData } from '@/lib/telegramAuth';
 
 export const dynamic = 'force-dynamic';
+
+const isDev = process.env.NODE_ENV !== 'production';
+
+/**
+ * Verified identity for registration.
+ * Production: derived only from signed Telegram initData.
+ * Development: accepts unsigned body fields for local testing.
+ */
+function resolveIdentity(body: any):
+  | { telegramId: bigint; fullName: string; username: string | null }
+  | { error: string } {
+  const botToken = process.env.TELEGRAM_BOT_TOKEN || '';
+
+  if (body?.initData) {
+    const tgUser = validateTelegramWebAppData(body.initData, botToken);
+    if (!tgUser) return { error: 'INVALID_INITDATA' };
+    const fullName = `${tgUser.first_name} ${tgUser.last_name || ''}`.trim();
+    return {
+      telegramId: BigInt(tgUser.id),
+      fullName: fullName || 'Telegram User',
+      username: tgUser.username || null,
+    };
+  }
+
+  if (isDev && body?.telegramId) {
+    return {
+      telegramId: BigInt(body.telegramId),
+      fullName: body.fullName || 'Dev User',
+      username: body.username ?? null,
+    };
+  }
+
+  return { error: 'UNAUTHENTICATED' };
+}
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { telegramId, fullName, username, phone, role } = body as {
-      telegramId: string | number;
-      fullName: string;
-      username?: string;
-      phone?: string;
-      role: Role;
-    };
+    const { role, phone } = body as { role: Role; phone?: string };
 
-    if (!telegramId || !fullName || !role) {
+    if (role !== 'CLIENT' && role !== 'BARBER') {
       return NextResponse.json(
-        { success: false, error: 'Missing required registration parameters' },
+        { success: false, error: 'A valid role (CLIENT or BARBER) is required' },
         { status: 400 }
       );
     }
 
-    const tId = BigInt(telegramId);
+    let identity;
+    try {
+      identity = resolveIdentity(body);
+    } catch {
+      return NextResponse.json(
+        { success: false, error: 'Invalid identity data' },
+        { status: 400 }
+      );
+    }
 
-    // Upsert User in PostgreSQL with DB connection retry
+    if ('error' in identity) {
+      return NextResponse.json(
+        { success: false, error: 'Iltimos, ilovani Telegram orqali oching.' },
+        { status: 401 }
+      );
+    }
+
+    const { telegramId: tId, fullName, username } = identity;
+
+    // Upsert user from the VERIFIED identity (name/username from Telegram, role from client).
     const user = await withDbRetry(() =>
       prisma.user.upsert({
         where: { telegramId: tId },
-        update: { role: role as any, fullName, phone, username },
+        update: { role, fullName, ...(phone !== undefined && { phone }), username },
         create: {
           telegramId: tId,
           fullName,
-          username: username || null,
+          username,
           phone: phone || null,
-          role: role as any,
+          role,
         },
       })
     );
 
     let barberProfileId: string | null = null;
 
-    // If role is BARBER, ensure a BarberProfile exists in DB
     if (role === 'BARBER') {
       const existingProfile = await withDbRetry(() =>
-        prisma.barberProfile.findUnique({
-          where: { userId: user.id },
-        })
+        prisma.barberProfile.findUnique({ where: { userId: user.id } })
       );
 
       if (!existingProfile) {
@@ -55,7 +98,7 @@ export async function POST(req: NextRequest) {
           prisma.barberProfile.create({
             data: {
               userId: user.id,
-              shopName: `${fullName}`,
+              shopName: fullName,
               bio: null,
               address: null,
               workingHours: DEFAULT_WORKING_HOURS as any,

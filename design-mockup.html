@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Barberim.uz — Redesign mockup</title>
+<style>
+  :root{
+    --bg:#0e1116;
+    --panel:#151a21;
+    --card:#1c222b;
+    --card-2:#232b36;
+    --line:#2a3340;
+    --text:#eef2f7;
+    --muted:#8a97a8;
+    --accent:#e8b04b;      /* warm barber gold */
+    --accent-ink:#1a1206;
+    --tg:#3390ec;          /* telegram blue for links/actions */
+    --ok:#3ddc84;
+    --danger:#ff5a5f;
+    --radius:18px;
+    --font:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{
+    font-family:var(--font);
+    background:radial-gradient(1200px 700px at 20% -10%, #1a2230 0%, #0b0e13 55%, #090b0f 100%);
+    color:var(--text);
+    padding:40px 20px 70px;
+    -webkit-font-smoothing:antialiased;
+  }
+  .head{max-width:1200px;margin:0 auto 34px;text-align:center}
+  .head h1{font-size:30px;letter-spacing:-.5px}
+  .head h1 span{color:var(--accent)}
+  .head p{color:var(--muted);margin-top:8px;font-size:15px}
+  .tag{display:inline-block;margin-top:14px;padding:6px 14px;border:1px solid var(--line);border-radius:999px;color:var(--muted);font-size:12px}
+
+  .grid{
+    max-width:1200px;margin:0 auto;
+    display:flex;gap:26px;flex-wrap:wrap;justify-content:center;align-items:flex-start;
+  }
+  .col{display:flex;flex-direction:column;align-items:center;gap:12px}
+  .caption{color:var(--muted);font-size:12.5px;font-weight:600;letter-spacing:.3px;text-transform:uppercase}
+
+  /* phone */
+  .phone{
+    width:300px;height:640px;background:var(--bg);border-radius:38px;
+    border:1px solid #2b333f;
+    box-shadow:0 30px 60px rgba(0,0,0,.5), inset 0 0 0 6px #05070a;
+    overflow:hidden;position:relative;display:flex;flex-direction:column;
+  }
+  .tgbar{
+    height:44px;background:var(--panel);display:flex;align-items:center;gap:10px;
+    padding:0 14px;border-bottom:1px solid var(--line);flex-shrink:0;
+  }
+  .tgbar .back{color:var(--tg);font-size:20px;width:20px}
+  .tgbar .title{font-size:14px;font-weight:600}
+  .tgbar .title small{display:block;color:var(--muted);font-weight:400;font-size:11px}
+  .tgbar .dots{margin-left:auto;color:var(--muted);letter-spacing:2px}
+
+  .screen{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:12px}
+  .screen::-webkit-scrollbar{display:none}
+
+  /* generic */
+  .row{display:flex;align-items:center;gap:12px}
+  .between{justify-content:space-between}
+  .muted{color:var(--muted)}
+  .sm{font-size:12px}
+  .xs{font-size:11px}
+  .b{font-weight:700}
+  .price{color:var(--accent);font-weight:700}
+
+  .hero{
+    height:150px;border-radius:16px;position:relative;overflow:hidden;flex-shrink:0;
+    background:linear-gradient(135deg,#2a3342,#171d26);
+    display:flex;align-items:flex-end;padding:14px;
+  }
+  .hero::after{content:"✂";position:absolute;right:14px;top:10px;font-size:60px;opacity:.08}
+  .avatar{width:56px;height:56px;border-radius:14px;background:linear-gradient(135deg,var(--accent),#b9822a);
+    display:flex;align-items:center;justify-content:center;font-size:24px;color:var(--accent-ink);font-weight:800;
+    border:2px solid rgba(255,255,255,.15)}
+  .badge{background:rgba(61,220,132,.15);color:var(--ok);padding:3px 8px;border-radius:6px;font-size:10px;font-weight:700}
+  .star{color:var(--accent)}
+
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:13px}
+  .svc{display:flex;align-items:center;gap:11px;background:var(--card);border:1px solid var(--line);
+    border-radius:13px;padding:11px 13px}
+  .svc.sel{border-color:var(--accent);background:linear-gradient(0deg,rgba(232,176,75,.08),rgba(232,176,75,.08)),var(--card)}
+  .check{width:22px;height:22px;border-radius:7px;border:2px solid var(--line);flex-shrink:0;
+    display:flex;align-items:center;justify-content:center;font-size:13px;color:transparent}
+  .svc.sel .check{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+  .svc .name{font-size:13.5px;font-weight:600}
+  .svc .meta{font-size:11px;color:var(--muted)}
+
+  .chips{display:flex;gap:8px;overflow-x:auto;padding-bottom:2px}
+  .chip{flex-shrink:0;width:52px;border:1px solid var(--line);border-radius:12px;padding:9px 0;text-align:center;background:var(--card)}
+  .chip.on{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+  .chip b{display:block;font-size:16px}
+  .chip small{font-size:10px;opacity:.8}
+
+  .slots{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+  .slot{border:1px solid var(--line);border-radius:10px;padding:9px 0;text-align:center;font-size:12.5px;font-weight:600;background:var(--card)}
+  .slot.on{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+  .slot.off{color:#4a5462;text-decoration:line-through;background:transparent}
+
+  /* telegram main button */
+  .mainbtn{
+    margin-top:auto;background:var(--tg);color:#fff;border:none;border-radius:12px;
+    padding:14px;font-size:15px;font-weight:600;font-family:var(--font);
+    display:flex;align-items:center;justify-content:center;gap:8px;flex-shrink:0;
+  }
+  .mainbtn.gold{background:var(--accent);color:var(--accent-ink)}
+  .summary{position:sticky;bottom:0;background:var(--card-2);border:1px solid var(--line);border-radius:12px;padding:11px 13px}
+
+  .book{display:flex;gap:11px;background:var(--card);border:1px solid var(--line);border-radius:13px;padding:12px}
+  .time{width:52px;text-align:center;flex-shrink:0}
+  .time b{font-size:15px;color:var(--accent)}
+  .time small{display:block;font-size:10px;color:var(--muted)}
+  .vline{width:1px;background:var(--line)}
+  .pill{padding:3px 9px;border-radius:999px;font-size:10px;font-weight:700}
+  .pill.confirmed{background:rgba(51,144,236,.15);color:var(--tg)}
+  .pill.done{background:rgba(61,220,132,.15);color:var(--ok)}
+  .stat{flex:1;background:var(--card);border:1px solid var(--line);border-radius:13px;padding:12px}
+  .stat b{font-size:22px;display:block}
+  .stat small{color:var(--muted);font-size:11px}
+
+  .ok-circle{width:64px;height:64px;border-radius:50%;background:rgba(61,220,132,.15);color:var(--ok);
+    display:flex;align-items:center;justify-content:center;font-size:34px;margin:20px auto 4px}
+  .center{text-align:center}
+  .divider{height:1px;background:var(--line);margin:2px 0}
+  .note{background:rgba(51,144,236,.08);border:1px solid rgba(51,144,236,.25);border-radius:11px;padding:10px 12px;font-size:11.5px;color:#bcd6f5;display:flex;gap:8px}
+</style>
+</head>
+<body>
+  <div class="head">
+    <h1>Barberim<span>.uz</span> — redesign</h1>
+    <p>Telegram-native mini app · toza, tez, ishonchli · UZS narxlar, UTC+5 vaqt</p>
+    <div class="tag">Mockup · yo'nalishni tasdiqlagach kodga o'taman</div>
+  </div>
+
+  <div class="grid">
+
+    <!-- 1. BARBER PROFILE -->
+    <div class="col">
+      <div class="phone">
+        <div class="tgbar"><span class="back">‹</span><div class="title">Barber profili<small>@BarberimBot</small></div><span class="dots">⋮</span></div>
+        <div class="screen">
+          <div class="hero">
+            <div class="row">
+              <div class="avatar">A</div>
+              <div>
+                <div class="b" style="font-size:16px">Akmal Barber</div>
+                <div class="sm muted">Chilonzor, Bunyodkor 12</div>
+                <div class="row" style="gap:6px;margin-top:5px">
+                  <span class="star">★ 4.9</span><span class="sm muted">· 320 booking</span>
+                  <span class="badge">Ochiq</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="caption" style="align-self:flex-start">Xizmatlar</div>
+          <div class="svc"><div class="check">✓</div><div style="flex:1"><div class="name">Soch olish</div><div class="meta">40 daq</div></div><div class="price">70 000</div></div>
+          <div class="svc"><div class="check">✓</div><div style="flex:1"><div class="name">Soqol</div><div class="meta">20 daq</div></div><div class="price">40 000</div></div>
+          <div class="svc"><div class="check">✓</div><div style="flex:1"><div class="name">Soch + soqol</div><div class="meta">55 daq</div></div><div class="price">100 000</div></div>
+          <button class="mainbtn gold">Vaqt tanlash →</button>
+        </div>
+      </div>
+      <div class="caption">1 · Barber profili (referral link)</div>
+    </div>
+
+    <!-- 2. SERVICE SELECT -->
+    <div class="col">
+      <div class="phone">
+        <div class="tgbar"><span class="back">‹</span><div class="title">Xizmat tanlang</div><span class="dots">⋮</span></div>
+        <div class="screen">
+          <div class="svc sel"><div class="check">✓</div><div style="flex:1"><div class="name">Soch olish</div><div class="meta">40 daq</div></div><div class="price">70 000</div></div>
+          <div class="svc sel"><div class="check">✓</div><div style="flex:1"><div class="name">Soqol</div><div class="meta">20 daq</div></div><div class="price">40 000</div></div>
+          <div class="svc"><div class="check">✓</div><div style="flex:1"><div class="name">Soch + soqol</div><div class="meta">55 daq</div></div><div class="price">100 000</div></div>
+          <div class="svc"><div class="check">✓</div><div style="flex:1"><div class="name">Bolalar soch olish</div><div class="meta">30 daq</div></div><div class="price">50 000</div></div>
+          <div class="summary row between">
+            <div><div class="xs muted">2 xizmat · 60 daq</div><div class="b">Jami</div></div>
+            <div class="price" style="font-size:18px">110 000</div>
+          </div>
+          <button class="mainbtn gold">Davom etish →</button>
+        </div>
+      </div>
+      <div class="caption">2 · Xizmat + jonli hisob</div>
+    </div>
+
+    <!-- 3. DATE + TIME -->
+    <div class="col">
+      <div class="phone">
+        <div class="tgbar"><span class="back">‹</span><div class="title">Sana va vaqt</div><span class="dots">⋮</span></div>
+        <div class="screen">
+          <div class="caption" style="align-self:flex-start">Sana</div>
+          <div class="chips">
+            <div class="chip"><small>Pay</small><b>24</b></div>
+            <div class="chip on"><small>Sha</small><b>25</b></div>
+            <div class="chip"><small>Yak</small><b>26</b></div>
+            <div class="chip"><small>Du</small><b>27</b></div>
+            <div class="chip"><small>Se</small><b>28</b></div>
+          </div>
+          <div class="caption" style="align-self:flex-start;margin-top:4px">Bo'sh vaqtlar · 60 daq</div>
+          <div class="slots">
+            <div class="slot off">09:00</div><div class="slot">10:00</div><div class="slot on">11:00</div>
+            <div class="slot off">12:00</div><div class="slot">14:00</div><div class="slot">15:00</div>
+            <div class="slot">16:00</div><div class="slot off">17:00</div><div class="slot">18:00</div>
+          </div>
+          <div class="note">🕐 Vaqtlar Toshkent (UTC+5) bo'yicha · tushlik 13:00–14:00 yopiq</div>
+          <button class="mainbtn gold">11:00 ni tasdiqlash →</button>
+        </div>
+      </div>
+      <div class="caption">3 · Sana + slot (timezone to'g'ri)</div>
+    </div>
+
+    <!-- 4. CONFIRM -->
+    <div class="col">
+      <div class="phone">
+        <div class="tgbar"><span class="back">‹</span><div class="title">Tasdiqlash</div><span class="dots">⋮</span></div>
+        <div class="screen">
+          <div class="ok-circle">✓</div>
+          <div class="center"><div class="b" style="font-size:17px">Band qilindi!</div><div class="sm muted">Akmal Barber sizni kutadi</div></div>
+          <div class="card">
+            <div class="row between"><span class="muted sm">Sana</span><span class="b sm">25-iyul, Shanba</span></div>
+            <div class="divider" style="margin:9px 0"></div>
+            <div class="row between"><span class="muted sm">Vaqt</span><span class="b sm">11:00 – 12:00</span></div>
+            <div class="divider" style="margin:9px 0"></div>
+            <div class="row between"><span class="muted sm">Xizmat</span><span class="b sm">Soch + soqol</span></div>
+            <div class="divider" style="margin:9px 0"></div>
+            <div class="row between"><span class="muted sm">Jami</span><span class="price" style="font-size:16px">110 000</span></div>
+          </div>
+          <div class="note">🔔 1 soat oldin Telegram'da eslatma yuboramiz</div>
+          <button class="mainbtn">Kalendarga qo'shish</button>
+        </div>
+      </div>
+      <div class="caption">4 · Tasdiq + reminder</div>
+    </div>
+
+    <!-- 5. BARBER DASHBOARD -->
+    <div class="col">
+      <div class="phone">
+        <div class="tgbar"><div class="title" style="margin-left:2px">Bugun · 25-iyul</div><span class="dots">⋮</span></div>
+        <div class="screen">
+          <div class="row" style="gap:10px">
+            <div class="stat"><b>8</b><small>Booking</small></div>
+            <div class="stat"><b style="color:var(--accent)">640k</b><small>Bugungi daromad</small></div>
+          </div>
+          <div class="caption" style="align-self:flex-start">Navbat</div>
+          <div class="book">
+            <div class="time"><b>10:00</b><small>40 daq</small></div><div class="vline"></div>
+            <div style="flex:1"><div class="b sm">Jasur K.</div><div class="xs muted">Soch olish · 70 000</div></div>
+            <span class="pill done">Bo'ldi</span>
+          </div>
+          <div class="book" style="border-color:var(--accent)">
+            <div class="time"><b>11:00</b><small>60 daq</small></div><div class="vline"></div>
+            <div style="flex:1"><div class="b sm">Sardor T.</div><div class="xs muted">Soch + soqol · 110 000</div></div>
+            <span class="pill confirmed">Keyingi</span>
+          </div>
+          <div class="book">
+            <div class="time"><b>14:00</b><small>20 daq</small></div><div class="vline"></div>
+            <div style="flex:1"><div class="b sm">Bekzod M.</div><div class="xs muted">Soqol · 40 000</div></div>
+            <span class="pill confirmed">Kutilmoqda</span>
+          </div>
+          <button class="mainbtn gold">🔗 Booking linkni ulashish</button>
+        </div>
+      </div>
+      <div class="caption">5 · Barber panel + link</div>
+    </div>
+
+  </div>
+</body>
+</html>

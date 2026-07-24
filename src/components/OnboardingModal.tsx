@@ -5,7 +5,7 @@ import { Role } from '@/types';
 import { useAuth } from '@/lib/AuthContext';
 import { useLanguage } from '@/lib/i18n/LanguageContext';
 import { Language } from '@/lib/i18n/translations';
-import { getTelegramUser } from '@/lib/telegramWebApp';
+import { getTelegramUser, getInitData } from '@/lib/telegramWebApp';
 import { Scissors, User, ShieldCheck, Check, Globe } from 'lucide-react';
 import { Button } from './ui/Button';
 
@@ -31,7 +31,8 @@ export function OnboardingModal() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          telegramId,
+          initData: getInitData(), // verified server-side in production
+          telegramId, // dev fallback only
           fullName,
           username,
           role: selectedRole,

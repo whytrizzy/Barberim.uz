@@ -132,7 +132,7 @@ export async function createService(serviceData: Omit<ServiceType, 'id'>): Promi
 
 export async function updateService(
   serviceId: string,
-  data: { name?: string; durationMinutes?: number; price?: number }
+  data: { name?: string; durationMinutes?: number; price?: number; isActive?: boolean }
 ): Promise<ServiceType> {
   const updated = await prisma.service.update({
     where: { id: serviceId },
@@ -140,6 +140,7 @@ export async function updateService(
       ...(data.name !== undefined && { name: data.name }),
       ...(data.durationMinutes !== undefined && { durationMinutes: Number(data.durationMinutes) }),
       ...(data.price !== undefined && { price: Number(data.price) }),
+      ...(data.isActive !== undefined && { isActive: data.isActive }),
     },
   });
 
@@ -243,23 +244,45 @@ export async function createBooking(data: {
   const startDate = new Date(data.startTime);
   const endDate = new Date(startDate.getTime() + totalDuration * 60 * 1000);
 
-  const booking = await prisma.booking.create({
-    data: {
-      clientId: data.clientId,
-      barberId: data.barberId,
-      startTime: startDate,
-      endTime: endDate,
-      totalPrice,
-      status: 'CONFIRMED',
-      services: {
-        create: data.serviceIds.map((sid) => ({ serviceId: sid })),
+  if (services.length === 0) {
+    throw new Error('NO_VALID_SERVICES');
+  }
+
+  // Re-check availability inside a transaction to prevent double-booking:
+  // two clients racing for the same slot cannot both pass the overlap check.
+  const booking = await prisma.$transaction(async (tx) => {
+    const overlap = await tx.booking.findFirst({
+      where: {
+        barberId: data.barberId,
+        status: { in: ['CONFIRMED', 'PENDING'] },
+        startTime: { lt: endDate },
+        endTime: { gt: startDate },
       },
-    },
-    include: {
-      client: true,
-      barber: { include: { user: true } },
-      services: { include: { service: true } },
-    },
+      select: { id: true },
+    });
+
+    if (overlap) {
+      throw new Error('SLOT_TAKEN');
+    }
+
+    return tx.booking.create({
+      data: {
+        clientId: data.clientId,
+        barberId: data.barberId,
+        startTime: startDate,
+        endTime: endDate,
+        totalPrice,
+        status: 'CONFIRMED',
+        services: {
+          create: data.serviceIds.map((sid) => ({ serviceId: sid })),
+        },
+      },
+      include: {
+        client: true,
+        barber: { include: { user: true } },
+        services: { include: { service: true } },
+      },
+    });
   });
 
   return {
