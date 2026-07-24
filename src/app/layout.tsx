@@ -33,21 +33,6 @@ export default function RootLayout({
         <LanguageProvider>
           <AuthProvider>{children}</AuthProvider>
         </LanguageProvider>
-        <div
-          style={{
-            position: 'fixed',
-            bottom: 2,
-            left: 0,
-            right: 0,
-            textAlign: 'center',
-            fontSize: 9,
-            color: '#64748b',
-            pointerEvents: 'none',
-            zIndex: 9999,
-          }}
-        >
-          build: fix5
-        </div>
       </body>
     </html>
   );

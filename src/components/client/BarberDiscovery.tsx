@@ -2,17 +2,36 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { BarberProfileType, BookingType } from '@/types';
+import { useAuth } from '@/lib/AuthContext';
 import { useLanguage } from '@/lib/i18n/LanguageContext';
-import { Search, MapPin, Phone, Scissors, Star, RefreshCw } from 'lucide-react';
+import { Search, MapPin, Scissors, RefreshCw } from 'lucide-react';
 import { BarberBookingWizard } from './BarberBookingWizard';
-import { Button } from '../ui/Button';
 
-interface BarberDiscoveryProps {
-  onBookingComplete: (booking: BookingType) => void;
+const CARD_GRADIENTS = [
+  'linear-gradient(135deg,#2b333f,#171d26)',
+  'linear-gradient(135deg,#33313f,#181620)',
+  'linear-gradient(135deg,#2b3a36,#141d1a)',
+  'linear-gradient(135deg,#3a3129,#1d1712)',
+];
+
+const AVATAR_GRADIENTS = [
+  'linear-gradient(135deg,#e8c079,#c9973f)',
+  'linear-gradient(135deg,#b98adf,#7c5ac0)',
+  'linear-gradient(135deg,#79c9e8,#3f8fc9)',
+  'linear-gradient(135deg,#e89a79,#c95e3f)',
+];
+
+function formatUZS(v: number) {
+  return new Intl.NumberFormat('ru-RU').format(v);
 }
 
-export function BarberDiscovery({ onBookingComplete }: BarberDiscoveryProps) {
+export function BarberDiscovery({
+  onBookingComplete,
+}: {
+  onBookingComplete: (booking: BookingType) => void;
+}) {
   const { t } = useLanguage();
+  const { user } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedQuery, setDebouncedQuery] = useState('');
   const [barbers, setBarbers] = useState<BarberProfileType[]>([]);
@@ -20,12 +39,9 @@ export function BarberDiscovery({ onBookingComplete }: BarberDiscoveryProps) {
   const [selectedBarber, setSelectedBarber] = useState<BarberProfileType | null>(null);
   const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Debounce search input
   useEffect(() => {
     if (debounceTimer.current) clearTimeout(debounceTimer.current);
-    debounceTimer.current = setTimeout(() => {
-      setDebouncedQuery(searchQuery);
-    }, 300);
+    debounceTimer.current = setTimeout(() => setDebouncedQuery(searchQuery), 300);
     return () => {
       if (debounceTimer.current) clearTimeout(debounceTimer.current);
     };
@@ -33,6 +49,7 @@ export function BarberDiscovery({ onBookingComplete }: BarberDiscoveryProps) {
 
   useEffect(() => {
     fetchBarbers();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [debouncedQuery]);
 
   const fetchBarbers = async () => {
@@ -40,9 +57,7 @@ export function BarberDiscovery({ onBookingComplete }: BarberDiscoveryProps) {
     try {
       const res = await fetch(`/api/barbers/search?query=${encodeURIComponent(debouncedQuery)}`);
       const data = await res.json();
-      if (data.success) {
-        setBarbers(data.barbers || []);
-      }
+      if (data.success) setBarbers(data.barbers || []);
     } catch (err) {
       console.error(err);
     } finally {
@@ -52,12 +67,12 @@ export function BarberDiscovery({ onBookingComplete }: BarberDiscoveryProps) {
 
   if (selectedBarber) {
     return (
-      <div className="space-y-3">
+      <div className="px-4 pt-3">
         <button
           onClick={() => setSelectedBarber(null)}
-          className="text-xs font-bold text-amber-400 hover:underline flex items-center gap-1 mb-2"
+          className="text-sm font-bold text-gold mb-3 flex items-center gap-1"
         >
-          ← {t('back')}
+          ‹ {t('back')}
         </button>
         <BarberBookingWizard
           barber={selectedBarber}
@@ -70,104 +85,117 @@ export function BarberDiscovery({ onBookingComplete }: BarberDiscoveryProps) {
     );
   }
 
-  return (
-    <div className="space-y-4">
-      {/* Real-time Search Box */}
-      <div className="glass-card-gold rounded-2xl p-4 space-y-3">
-        <h3 className="text-sm font-bold text-white flex items-center gap-2">
-          <Search className="w-4 h-4 text-amber-400" /> {t('searchBarbers')}
-        </h3>
+  const firstName = user?.fullName?.split(' ')[0] || '';
 
-        <div className="relative">
-          <Search className="w-4 h-4 text-slate-500 absolute left-3 top-3" />
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-slate-900/90 border border-slate-700/80 rounded-xl pl-9 pr-3 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-500"
-            placeholder={t('searchPlaceholder')}
-          />
+  return (
+    <div className="px-4 pt-4">
+      {/* Greeting */}
+      <div className="mb-4">
+        {firstName && <div className="cap">Salom, {firstName} 👋</div>}
+        <div className="text-xl font-extrabold tracking-tight text-white mt-0.5">
+          {t('searchBarbers')}
         </div>
       </div>
 
-      {/* Barbers List */}
-      <div className="space-y-3">
-        {loading ? (
-          <div className="py-8 text-center space-y-2">
-            <div className="w-6 h-6 border-2 border-amber-400 border-t-transparent rounded-full animate-spin mx-auto" />
-            <p className="text-xs text-slate-400">{t('loading')}</p>
-          </div>
-        ) : barbers.length === 0 ? (
-          <div className="text-center py-8 bg-slate-900/40 rounded-xl border border-slate-800 space-y-3">
-            <Scissors className="w-8 h-8 text-slate-600 mx-auto" />
-            <p className="text-xs text-slate-400">{t('noBarbersFound')}</p>
-            <button
-              onClick={fetchBarbers}
-              className="inline-flex items-center gap-1.5 text-xs font-semibold text-amber-400 hover:text-amber-300 bg-amber-500/10 hover:bg-amber-500/20 px-3 py-1.5 rounded-xl border border-amber-500/20 transition-all"
+      {/* Search */}
+      <div className="flex items-center gap-2.5 card-2 px-4 py-3">
+        <Search className="w-4 h-4 text-dim shrink-0" />
+        <input
+          type="text"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="bg-transparent flex-1 text-sm text-white placeholder-dim outline-none"
+          placeholder={t('searchPlaceholder')}
+        />
+      </div>
+
+      {/* List */}
+      {loading ? (
+        <div className="py-12 text-center space-y-2">
+          <div className="w-6 h-6 border-2 border-gold border-t-transparent rounded-full animate-spin mx-auto" />
+          <p className="text-xs text-muted">{t('loading')}</p>
+        </div>
+      ) : barbers.length === 0 ? (
+        <div className="text-center py-12 card mt-4 space-y-3">
+          <Scissors className="w-8 h-8 text-dim mx-auto" />
+          <p className="text-xs text-muted">{t('noBarbersFound')}</p>
+          <button
+            onClick={fetchBarbers}
+            className="inline-flex items-center gap-1.5 text-xs font-bold text-gold"
+          >
+            <RefreshCw className="w-3.5 h-3.5" /> {t('refresh') || 'Yangilash'}
+          </button>
+        </div>
+      ) : (
+        barbers.map((barber, i) => {
+          const displayName = barber.shopName || barber.user?.fullName || t('roleBarber');
+          const initial = displayName.trim().charAt(0).toUpperCase();
+          const services = barber.services || [];
+          const minPrice = services.length
+            ? Math.min(...services.map((s) => s.price))
+            : null;
+
+          return (
+            <div
+              key={barber.id}
+              onClick={() => setSelectedBarber(barber)}
+              className="card overflow-hidden mt-3.5 cursor-pointer active:scale-[0.99] transition-transform"
             >
-              <RefreshCw className="w-3.5 h-3.5" /> {t('refresh') || 'Yangilash'}
-            </button>
-          </div>
-        ) : (
-          barbers.map((barber) => {
-            const displayName = barber.shopName || barber.user?.fullName || t('roleBarber');
-            const serviceCount = barber.services?.length || 0;
-
-            return (
+              {/* Photo header */}
               <div
-                key={barber.id}
-                className="bg-slate-900/80 border border-slate-800 hover:border-slate-700 rounded-2xl p-4 space-y-3 transition-all"
+                className="h-[104px] relative flex items-end p-3"
+                style={{ background: CARD_GRADIENTS[i % CARD_GRADIENTS.length] }}
               >
-                <div className="flex items-start justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-11 h-11 rounded-2xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center text-amber-400 font-extrabold text-lg shrink-0">
-                      ✂️
-                    </div>
-                    <div>
-                      <h4 className="text-sm font-bold text-white">
-                        {displayName}
-                      </h4>
-                      {barber.address && (
-                        <p className="text-xs text-slate-400 flex items-center gap-1 mt-0.5">
-                          <MapPin className="w-3.5 h-3.5 text-amber-400 shrink-0" /> {barber.address}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                  {serviceCount > 0 && (
-                    <span className="flex items-center gap-1 text-xs font-bold text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20">
-                      <Scissors className="w-3 h-3" /> {serviceCount}
-                    </span>
-                  )}
-                </div>
-
-                {barber.bio && (
-                  <p className="text-xs text-slate-300 line-clamp-2 bg-slate-950/40 p-2 rounded-xl border border-slate-800/60">
-                    {barber.bio}
-                  </p>
-                )}
-
-                <div className="flex items-center justify-between pt-1">
-                  {barber.user?.phone ? (
-                    <span className="text-[11px] text-slate-400 flex items-center gap-1">
-                      <Phone className="w-3.5 h-3.5 text-sky-400" /> {barber.user.phone}
-                    </span>
-                  ) : (
-                    <span />
-                  )}
-                  <Button
-                    variant="primary"
-                    size="sm"
-                    onClick={() => setSelectedBarber(barber)}
-                  >
-                    {t('bookCut')}
-                  </Button>
+                <span className="absolute right-3.5 top-1.5 text-[52px] opacity-[0.07] select-none">✂</span>
+                <div
+                  className="w-[50px] h-[50px] rounded-2xl flex items-center justify-center text-xl font-black text-gold-ink border-2 border-white/15"
+                  style={{ background: AVATAR_GRADIENTS[i % AVATAR_GRADIENTS.length] }}
+                >
+                  {initial}
                 </div>
               </div>
-            );
-          })
-        )}
-      </div>
+
+              {/* Body */}
+              <div className="px-3.5 py-3">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <div className="text-[15px] font-bold text-white truncate">{displayName}</div>
+                    {barber.address && (
+                      <div className="text-xs text-muted flex items-center gap-1 mt-0.5 truncate">
+                        <MapPin className="w-3 h-3 text-gold shrink-0" /> {barber.address}
+                      </div>
+                    )}
+                  </div>
+                  {minPrice !== null && (
+                    <div className="text-right shrink-0">
+                      <div className="text-[10px] text-dim">dan</div>
+                      <div className="text-sm font-extrabold text-gold">{formatUZS(minPrice)}</div>
+                    </div>
+                  )}
+                </div>
+
+                {services.length > 0 && (
+                  <div className="flex gap-1.5 flex-wrap mt-2.5">
+                    {services.slice(0, 3).map((s) => (
+                      <span
+                        key={s.id}
+                        className="card-2 text-[11px] font-semibold text-muted px-2 py-1 !rounded-lg"
+                      >
+                        {s.name}
+                      </span>
+                    ))}
+                    {services.length > 3 && (
+                      <span className="card-2 text-[11px] font-semibold text-muted px-2 py-1 !rounded-lg">
+                        +{services.length - 3}
+                      </span>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+          );
+        })
+      )}
     </div>
   );
 }

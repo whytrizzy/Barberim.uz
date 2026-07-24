@@ -9,26 +9,39 @@ module.exports = {
   theme: {
     extend: {
       colors: {
+        // Design system v2
+        bg: '#0b0e12',
+        surface: { DEFAULT: '#14181f', 2: '#1b212b' },
+        line: '#262e3a',
+        muted: '#8b95a7',
+        dim: '#5a6474',
         gold: {
-          400: '#FACC15',
-          500: '#EAB308',
-          600: '#CA8A04',
-          700: '#A16207',
+          DEFAULT: '#e8c079',
+          400: '#e8c079',
+          500: '#e8c079',
+          600: '#c9973f',
+          700: '#a17a30',
+          ink: '#1a1206',
         },
-        tg: {
-          bg: 'var(--tg-theme-bg-color, #0f172a)',
-          secondaryBg: 'var(--tg-theme-secondary-bg-color, #1e293b)',
-          text: 'var(--tg-theme-text-color, #f8fafc)',
-          hint: 'var(--tg-theme-hint-color, #94a3b8)',
-          link: 'var(--tg-theme-link-color, #38bdf8)',
-          button: 'var(--tg-theme-button-color, #0284c7)',
-          buttonText: 'var(--tg-theme-button-text-color, #ffffff)',
-        }
+        ok: '#52d98a',
+        danger: '#ff6b6b',
+        blue: '#4aa3ff',
+      },
+      borderRadius: {
+        card: '20px',
       },
       fontFamily: {
-        sans: ['Inter', 'sans-serif'],
+        sans: [
+          '-apple-system',
+          'BlinkMacSystemFont',
+          'SF Pro Display',
+          'Inter',
+          'Segoe UI',
+          'Roboto',
+          'sans-serif',
+        ],
       },
     },
   },
   plugins: [],
-}
+};

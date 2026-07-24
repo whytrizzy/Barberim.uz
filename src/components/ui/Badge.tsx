@@ -9,17 +9,17 @@ interface BadgeProps {
 
 export function Badge({ variant = 'info', children, className }: BadgeProps) {
   const styles = {
-    success: 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30',
-    warning: 'bg-amber-500/15 text-amber-400 border border-amber-500/30',
-    danger: 'bg-red-500/15 text-red-400 border border-red-500/30',
-    info: 'bg-sky-500/15 text-sky-400 border border-sky-500/30',
-    gold: 'bg-yellow-500/20 text-yellow-300 border border-yellow-500/40 shadow-sm',
+    success: 'bg-ok/15 text-ok',
+    warning: 'bg-gold/15 text-gold',
+    danger: 'bg-danger/15 text-danger',
+    info: 'bg-blue/15 text-blue',
+    gold: 'bg-gold/15 text-gold',
   };
 
   return (
     <span
       className={clsx(
-        'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold tracking-wide',
+        'inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-extrabold tracking-wide',
         styles[variant],
         className
       )}

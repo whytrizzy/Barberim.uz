@@ -9,7 +9,8 @@ import { ProfileSettings } from './ProfileSettings';
 import { ServiceManager } from './ServiceManager';
 import { ScheduleManager } from './ScheduleManager';
 import { BookingManager } from './BookingManager';
-import { Calendar, Scissors, Settings, Clock } from 'lucide-react';
+import { Link2, Check } from 'lucide-react';
+import { formatTashkentDate, formatUZS, tashkentDateOption } from '@/lib/dateUtils';
 
 export function BarberDashboard() {
   const { t } = useLanguage();
@@ -20,6 +21,7 @@ export function BarberDashboard() {
   const [services, setServices] = useState<ServiceType[]>([]);
   const [bookings, setBookings] = useState<BookingType[]>([]);
   const [loading, setLoading] = useState(true);
+  const [copied, setCopied] = useState(false);
 
   const barberId = user?.barberProfileId;
   const userId = user?.id;
@@ -59,7 +61,7 @@ export function BarberDashboard() {
     loadData();
   }, [loadData]);
 
-  // ─── Handler Actions ─────────────────────────────────────────────
+  // ─── Handlers (unchanged logic) ───────────────────────────────────
 
   const handleUpdateProfile = async (data: {
     shopName?: string;
@@ -137,95 +139,139 @@ export function BarberDashboard() {
     }
   };
 
-  // ─── Loading State ────────────────────────────────────────────────
+  const copyReferralLink = async () => {
+    const botUsername = process.env.NEXT_PUBLIC_BOT_USERNAME || 'barberim_uz_bot';
+    const link = `https://t.me/${botUsername}?start=barber_${barberId}`;
+    try {
+      await navigator.clipboard.writeText(link);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // Clipboard API unavailable — show the link via prompt as fallback
+      window.prompt('Havolani nusxalang:', link);
+    }
+  };
+
+  // ─── Loading ──────────────────────────────────────────────────────
 
   if (loading || !profile) {
     return (
       <div className="py-12 text-center space-y-2">
-        <div className="w-6 h-6 border-2 border-amber-400 border-t-transparent rounded-full animate-spin mx-auto" />
-        <p className="text-xs text-slate-400">{t('loading')}</p>
+        <div className="w-6 h-6 border-2 border-gold border-t-transparent rounded-full animate-spin mx-auto" />
+        <p className="text-xs text-muted">{t('loading')}</p>
       </div>
     );
   }
 
+  // Today's stats (Tashkent calendar day)
+  const todayISO = tashkentDateOption(0).isoDate;
+  const todayBookings = bookings.filter((b) => {
+    const d = new Date(new Date(b.startTime).getTime() + 5 * 3600 * 1000);
+    const iso = `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}-${String(d.getUTCDate()).padStart(2, '0')}`;
+    return iso === todayISO && (b.status === 'CONFIRMED' || b.status === 'COMPLETED');
+  });
+  const todayRevenue = todayBookings.reduce((sum, b) => sum + b.totalPrice, 0);
   const activeBookingsCount = bookings.filter((b) => b.status === 'CONFIRMED').length;
 
+  const firstName = (user?.fullName || '').split(' ')[0];
+
   return (
-    <div className="space-y-4">
-      {/* Navigation Tabs */}
-      <div className="grid grid-cols-4 gap-1 bg-slate-900/90 p-1.5 rounded-2xl border border-slate-800">
-        <button
-          onClick={() => setActiveTab('BOOKINGS')}
-          className={`flex flex-col items-center justify-center py-2.5 rounded-xl text-xs font-semibold transition-all relative ${
-            activeTab === 'BOOKINGS'
-              ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20'
-              : 'text-slate-400 hover:text-slate-200'
-          }`}
-        >
-          <Calendar className="w-4 h-4 mb-1" />
-          <span>{t('tabBookings')}</span>
+    <div className="px-4 pt-4 pb-24">
+      {activeTab === 'BOOKINGS' && (
+        <div className="view-fade">
+          {/* Greeting */}
+          <div className="mb-3.5">
+            <div className="cap">{formatTashkentDate(new Date(), true)}</div>
+            <div className="text-xl font-extrabold tracking-tight text-white mt-0.5">
+              {firstName ? `Xayrli kun, ${firstName}` : t('barberDashboard')}
+            </div>
+          </div>
+
+          {/* Stats */}
+          <div className="flex gap-2.5">
+            <div className="flex-1 card p-3.5">
+              <b className="text-2xl font-extrabold text-white block tracking-tight">{todayBookings.length}</b>
+              <span className="text-[11px] text-muted">Bugungi booking</span>
+            </div>
+            <div className="flex-1 card p-3.5">
+              <b className="text-2xl font-extrabold text-gold block tracking-tight">
+                {todayRevenue >= 1000000
+                  ? `${(todayRevenue / 1000000).toFixed(1)}M`
+                  : todayRevenue >= 1000
+                  ? `${Math.round(todayRevenue / 1000)}k`
+                  : todayRevenue}
+              </b>
+              <span className="text-[11px] text-muted">Kutilayotgan daromad</span>
+            </div>
+          </div>
+
+          {/* Referral link card */}
+          <div className="card-gold p-4 mt-3 flex items-center justify-between gap-3">
+            <div className="min-w-0">
+              <div className="text-sm font-bold text-white flex items-center gap-1.5">
+                <Link2 className="w-4 h-4 text-gold" /> Booking havolangiz
+              </div>
+              <div className="text-[11px] text-muted mt-0.5">Instagram bio va Telegram uchun</div>
+            </div>
+            <button
+              onClick={copyReferralLink}
+              className="shrink-0 bg-gradient-to-br from-gold to-gold-600 text-gold-ink text-xs font-extrabold px-3.5 py-2.5 rounded-xl active:scale-95 transition-transform flex items-center gap-1"
+            >
+              {copied ? (<><Check className="w-3.5 h-3.5" /> Nusxalandi</>) : 'Nusxa olish'}
+            </button>
+          </div>
+
+          {/* Queue */}
+          <div className="cap mt-5 mb-1">{t('bookingManagement')}</div>
+          <BookingManager bookings={bookings} onUpdateStatus={handleUpdateBookingStatus} />
+        </div>
+      )}
+
+      {activeTab === 'SERVICES' && (
+        <div className="view-fade">
+          <ServiceManager
+            services={services}
+            onAddService={handleAddService}
+            onEditService={handleEditService}
+            onDeleteService={handleDeleteService}
+          />
+        </div>
+      )}
+      {activeTab === 'SCHEDULE' && (
+        <div className="view-fade">
+          <ScheduleManager workingHours={profile.workingHours} onSaveSchedule={handleUpdateSchedule} />
+        </div>
+      )}
+      {activeTab === 'PROFILE' && (
+        <div className="view-fade">
+          <ProfileSettings profile={profile} onSave={handleUpdateProfile} />
+        </div>
+      )}
+
+      {/* Bottom navigation */}
+      <nav className="bottom-nav">
+        <a className={activeTab === 'BOOKINGS' ? 'on' : ''} onClick={() => setActiveTab('BOOKINGS')}>
+          <span className="ic">📅</span>
+          {t('tabBookings')}
           {activeBookingsCount > 0 && activeTab !== 'BOOKINGS' && (
-            <span className="absolute -top-1 -right-1 w-4 h-4 bg-amber-500 text-slate-950 rounded-full text-[10px] font-bold flex items-center justify-center border border-slate-900">
+            <span className="inline-flex items-center justify-center ml-1 w-4 h-4 bg-gold text-gold-ink rounded-full text-[9px] font-extrabold align-middle">
               {activeBookingsCount}
             </span>
           )}
-        </button>
-
-        <button
-          onClick={() => setActiveTab('SERVICES')}
-          className={`flex flex-col items-center justify-center py-2.5 rounded-xl text-xs font-semibold transition-all ${
-            activeTab === 'SERVICES'
-              ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20'
-              : 'text-slate-400 hover:text-slate-200'
-          }`}
-        >
-          <Scissors className="w-4 h-4 mb-1" />
-          <span>{t('tabServices')}</span>
-        </button>
-
-        <button
-          onClick={() => setActiveTab('SCHEDULE')}
-          className={`flex flex-col items-center justify-center py-2.5 rounded-xl text-xs font-semibold transition-all ${
-            activeTab === 'SCHEDULE'
-              ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20'
-              : 'text-slate-400 hover:text-slate-200'
-          }`}
-        >
-          <Clock className="w-4 h-4 mb-1" />
-          <span>{t('tabSchedule')}</span>
-        </button>
-
-        <button
-          onClick={() => setActiveTab('PROFILE')}
-          className={`flex flex-col items-center justify-center py-2.5 rounded-xl text-xs font-semibold transition-all ${
-            activeTab === 'PROFILE'
-              ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20'
-              : 'text-slate-400 hover:text-slate-200'
-          }`}
-        >
-          <Settings className="w-4 h-4 mb-1" />
-          <span>{t('tabProfile')}</span>
-        </button>
-      </div>
-
-      {/* Tab Content */}
-      {activeTab === 'BOOKINGS' && (
-        <BookingManager bookings={bookings} onUpdateStatus={handleUpdateBookingStatus} />
-      )}
-      {activeTab === 'SERVICES' && (
-        <ServiceManager
-          services={services}
-          onAddService={handleAddService}
-          onEditService={handleEditService}
-          onDeleteService={handleDeleteService}
-        />
-      )}
-      {activeTab === 'SCHEDULE' && (
-        <ScheduleManager workingHours={profile.workingHours} onSaveSchedule={handleUpdateSchedule} />
-      )}
-      {activeTab === 'PROFILE' && (
-        <ProfileSettings profile={profile} onSave={handleUpdateProfile} />
-      )}
+        </a>
+        <a className={activeTab === 'SERVICES' ? 'on' : ''} onClick={() => setActiveTab('SERVICES')}>
+          <span className="ic">✂️</span>
+          {t('tabServices')}
+        </a>
+        <a className={activeTab === 'SCHEDULE' ? 'on' : ''} onClick={() => setActiveTab('SCHEDULE')}>
+          <span className="ic">🕐</span>
+          {t('tabSchedule')}
+        </a>
+        <a className={activeTab === 'PROFILE' ? 'on' : ''} onClick={() => setActiveTab('PROFILE')}>
+          <span className="ic">👤</span>
+          {t('tabProfile')}
+        </a>
+      </nav>
     </div>
   );
 }

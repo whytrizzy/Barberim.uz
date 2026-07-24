@@ -42,3 +42,31 @@ export function formatTashkentDateTime(isoOrDate: string | Date): { dateStr: str
     timeStr: formatTashkentTime(isoOrDate),
   };
 }
+
+const DAYS_UZ = ['Yak', 'Du', 'Se', 'Chor', 'Pay', 'Ju', 'Shan'];
+const MONTHS_UZ = ['Yan', 'Fev', 'Mar', 'Apr', 'May', 'Iyun', 'Iyul', 'Avg', 'Sen', 'Okt', 'Noy', 'Dek'];
+
+/** Date option for pickers: today + offsetDays by the Tashkent calendar. */
+export function tashkentDateOption(offsetDays: number): {
+  isoDate: string; // YYYY-MM-DD
+  dayName: string;
+  dayNum: number;
+  monthName: string;
+} {
+  const t = getTashkentDate(new Date());
+  t.setUTCDate(t.getUTCDate() + offsetDays);
+  const isoDate = `${t.getUTCFullYear()}-${String(t.getUTCMonth() + 1).padStart(2, '0')}-${String(
+    t.getUTCDate()
+  ).padStart(2, '0')}`;
+  return {
+    isoDate,
+    dayName: DAYS_UZ[t.getUTCDay()],
+    dayNum: t.getUTCDate(),
+    monthName: MONTHS_UZ[t.getUTCMonth()],
+  };
+}
+
+/** "110 000" — UZS money formatting with thin spaces. */
+export function formatUZS(v: number): string {
+  return new Intl.NumberFormat('ru-RU').format(v);
+}

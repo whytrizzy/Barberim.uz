@@ -3,10 +3,9 @@
 import React, { useState } from 'react';
 import { BookingType } from '@/types';
 import { useLanguage } from '@/lib/i18n/LanguageContext';
-import { formatTashkentDateTime, formatTashkentDate } from '@/lib/dateUtils';
-import { Calendar, MapPin, XCircle, AlertCircle } from 'lucide-react';
-import { Badge } from '../ui/Badge';
+import { AlertCircle, XCircle } from 'lucide-react';
 import { Button } from '../ui/Button';
+import { formatTashkentDate, formatTashkentTime, formatUZS } from '@/lib/dateUtils';
 
 interface MyBookingsProps {
   bookings: BookingType[];
@@ -16,10 +15,6 @@ interface MyBookingsProps {
 export function MyBookings({ bookings, onCancelBooking }: MyBookingsProps) {
   const { t } = useLanguage();
   const [cancellingId, setCancellingId] = useState<string | null>(null);
-
-  const formatPrice = (val: number) => {
-    return new Intl.NumberFormat('uz-UZ').format(val) + ' UZS';
-  };
 
   const handleCancel = async (id: string) => {
     setCancellingId(id);
@@ -36,89 +31,99 @@ export function MyBookings({ bookings, onCancelBooking }: MyBookingsProps) {
   const pastBookings = bookings.filter((b) => b.status === 'COMPLETED' || b.status === 'CANCELLED');
 
   return (
-    <div className="space-y-4">
-      <div className="glass-card rounded-2xl p-5 space-y-4">
-        <div className="border-b border-slate-800 pb-2.5">
-          <h3 className="text-sm font-bold text-white flex items-center gap-2">
-            <Calendar className="w-4 h-4 text-amber-400" /> {t('upcomingAppts')}
-          </h3>
+    <div className="px-4 pt-4">
+      <div className="text-xl font-extrabold tracking-tight text-white mb-3">{t('myBookings')}</div>
+
+      <div className="cap mb-1">{t('upcomingAppts')}</div>
+
+      {upcomingBookings.length === 0 ? (
+        <div className="card text-center py-8 mt-1.5">
+          <AlertCircle className="w-6 h-6 text-dim mx-auto mb-1.5" />
+          <p className="text-xs text-muted font-medium">{t('noUpcoming')}</p>
         </div>
+      ) : (
+        upcomingBookings.map((b) => {
+          const barberName = b.barber?.shopName || b.barber?.user?.fullName || '-';
+          const initial = barberName.trim().charAt(0).toUpperCase();
+          const serviceNames = b.services?.map((s) => s.service?.name).join(', ') || '-';
+          const durMin = Math.round(
+            (new Date(b.endTime).getTime() - new Date(b.startTime).getTime()) / 60000
+          );
 
-        {upcomingBookings.length === 0 ? (
-          <div className="text-center py-6 bg-slate-900/40 rounded-xl border border-slate-800">
-            <AlertCircle className="w-6 h-6 text-slate-500 mx-auto mb-1.5" />
-            <p className="text-xs text-slate-400 font-medium">{t('noUpcoming')}</p>
-          </div>
-        ) : (
-          upcomingBookings.map((b) => {
-            const { dateStr, timeStr } = formatTashkentDateTime(b.startTime);
-            const serviceNames = b.services?.map((s) => s.service?.name).join(', ') || '-';
-            const barberName = b.barber?.shopName || b.barber?.user?.fullName || '-';
-
-            return (
-              <div
-                key={b.id}
-                className="bg-slate-900/80 border border-slate-800 hover:border-slate-700/80 rounded-2xl p-4 space-y-3"
-              >
-                <div className="flex items-center justify-between">
-                  <span className="bg-amber-500/20 text-amber-300 font-bold px-3 py-1 rounded-lg text-xs border border-amber-500/30">
-                    {dateStr} @ {timeStr}
-                  </span>
-                  <Badge variant="success">{t('confirmed')}</Badge>
-                </div>
-
-                <div className="space-y-1">
-                  <h4 className="text-sm font-bold text-white">{barberName}</h4>
-                  {b.barber?.address && (
-                    <p className="text-xs text-slate-300 flex items-center gap-1">
-                      <MapPin className="w-3.5 h-3.5 text-amber-400" /> {b.barber.address}
-                    </p>
-                  )}
-                  <p className="text-xs text-slate-400 mt-1 font-medium">{t('tabServices')}: {serviceNames}</p>
-                  <p className="text-xs font-extrabold text-emerald-400 mt-1">{t('total')}: {formatPrice(b.totalPrice)}</p>
-                </div>
-
-                <div className="pt-2 border-t border-slate-800/80">
-                  <Button
-                    variant="danger"
-                    size="sm"
-                    fullWidth
-                    disabled={cancellingId === b.id}
-                    onClick={() => handleCancel(b.id)}
-                    className="text-xs"
-                  >
-                    <XCircle className="w-3.5 h-3.5 mr-1" />
-                    {cancellingId === b.id ? t('saving') : t('cancelAction')}
-                  </Button>
-                </div>
+          return (
+            <div key={b.id} className="card p-4 mt-2.5 border-gold/30">
+              <div className="flex items-center justify-between">
+                <span className="bg-gold/15 text-gold px-2.5 py-1 rounded-full text-[10px] font-extrabold">
+                  {t('confirmed')}
+                </span>
+                <span className="text-xs text-muted">
+                  {formatTashkentDate(b.startTime)} · {formatTashkentTime(b.startTime)}
+                </span>
               </div>
-            );
-          })
-        )}
-      </div>
+
+              <div className="flex items-center gap-3 mt-3">
+                <div className="w-[42px] h-[42px] rounded-xl bg-gradient-to-br from-gold to-gold-600 flex items-center justify-center text-[17px] font-black text-gold-ink shrink-0">
+                  {initial}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm font-bold text-white truncate">{barberName}</div>
+                  <div className="text-[11px] text-muted truncate">
+                    {serviceNames} · {durMin} daq
+                  </div>
+                  {b.barber?.address && (
+                    <div className="text-[11px] text-dim truncate">📍 {b.barber.address}</div>
+                  )}
+                </div>
+                <div className="text-sm font-extrabold text-gold shrink-0">{formatUZS(b.totalPrice)}</div>
+              </div>
+
+              <div className="h-px bg-line my-3" />
+              <Button
+                variant="danger"
+                size="sm"
+                fullWidth
+                disabled={cancellingId === b.id}
+                onClick={() => handleCancel(b.id)}
+              >
+                <XCircle className="w-3.5 h-3.5 mr-1" />
+                {cancellingId === b.id ? t('saving') : t('cancelAction')}
+              </Button>
+            </div>
+          );
+        })
+      )}
 
       {pastBookings.length > 0 && (
-        <div className="glass-card rounded-2xl p-5 space-y-3">
-          <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">{t('pastAppts')}</h3>
-          <div className="space-y-2">
-            {pastBookings.map((b) => {
-              const { dateStr, timeStr } = formatTashkentDateTime(b.startTime);
-              return (
-                <div key={b.id} className="flex items-center justify-between bg-slate-900/60 p-3 rounded-xl border border-slate-800 text-xs">
-                  <div>
-                    <span className="font-semibold text-white">{dateStr} @ {timeStr}</span>
-                    <span className="text-slate-400 block text-[11px]">{b.services?.map(s => s.service?.name).join(', ')}</span>
+        <>
+          <div className="cap mt-6 mb-1">{t('pastAppts')}</div>
+          {pastBookings.map((b) => {
+            const barberName = b.barber?.shopName || b.barber?.user?.fullName || '-';
+            const serviceNames = b.services?.map((s) => s.service?.name).join(', ') || '-';
+            const isDone = b.status === 'COMPLETED';
+            return (
+              <div key={b.id} className="flex gap-3 card p-3.5 mt-2 opacity-75">
+                <div className="w-[54px] text-center shrink-0">
+                  <div className="text-base font-extrabold text-muted">
+                    {formatTashkentTime(b.startTime)}
                   </div>
-                  {b.status === 'COMPLETED' ? (
-                    <Badge variant="gold">{t('completed')}</Badge>
-                  ) : (
-                    <Badge variant="danger">{t('cancelled')}</Badge>
-                  )}
+                  <div className="text-[10px] text-dim">{formatTashkentDate(b.startTime)}</div>
                 </div>
-              );
-            })}
-          </div>
-        </div>
+                <div className="w-px bg-line" />
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm font-bold text-white truncate">{barberName}</div>
+                  <div className="text-[11px] text-muted truncate">{serviceNames}</div>
+                </div>
+                <span
+                  className={`self-start px-2.5 py-1 rounded-full text-[10px] font-extrabold ${
+                    isDone ? 'bg-ok/15 text-ok' : 'bg-danger/15 text-danger'
+                  }`}
+                >
+                  {isDone ? t('completed') : t('cancelled')}
+                </span>
+              </div>
+            );
+          })}
+        </>
       )}
     </div>
   );

@@ -2,62 +2,117 @@
 @import 'tailwindcss/components';
 @import 'tailwindcss/utilities';
 
+/* ─── Barberim design system v2 ─────────────────────────────────
+   Deep charcoal base + warm premium gold accent.
+   Inspired by premium booking apps (Squire, Booksy) + Telegram-native. */
 :root {
-  --foreground-rgb: 255, 255, 255;
-  --background-start-rgb: 15, 23, 42;
-  --background-end-rgb: 30, 41, 59;
+  --bg: #0b0e12;
+  --surface: #14181f;
+  --surface-2: #1b212b;
+  --line: #262e3a;
+  --text: #eaeef3;
+  --muted: #8b95a7;
+  --dim: #5a6474;
+  --gold: #e8c079;
+  --gold-2: #c9973f;
+  --gold-ink: #1a1206;
+  --ok: #52d98a;
+  --danger: #ff6b6b;
+  --blue: #4aa3ff;
+}
+
+html {
+  background: var(--bg);
 }
 
 body {
-  color: rgb(var(--foreground-rgb));
-  background: linear-gradient(
-      to bottom,
-      transparent,
-      rgb(var(--background-end-rgb))
-    )
-    rgb(var(--background-start-rgb));
+  color: var(--text);
+  background: var(--bg);
+  background-image: radial-gradient(900px 500px at 30% -5%, #161d28 0%, var(--bg) 60%);
   min-height: 100vh;
-  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Inter', 'Segoe UI', Roboto, sans-serif;
   user-select: none;
   -webkit-user-select: none;
   touch-action: manipulation;
+  -webkit-font-smoothing: antialiased;
 }
 
-/* Custom Scrollbar */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+/* Scrollbar */
+::-webkit-scrollbar { width: 0; height: 0; }
+
+/* Cards */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 20px;
+}
+.card-2 {
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+}
+.card-gold {
+  background: linear-gradient(135deg, rgba(232, 192, 121, 0.12), rgba(201, 151, 63, 0.05));
+  border: 1px solid rgba(232, 192, 121, 0.3);
+  border-radius: 20px;
 }
 
-::-webkit-scrollbar-track {
-  background: rgba(30, 41, 59, 0.5);
+/* Legacy aliases (old components still reference these) */
+.glass-card { background: var(--surface); border: 1px solid var(--line); }
+.glass-card-gold {
+  background: linear-gradient(135deg, rgba(232, 192, 121, 0.1), rgba(201, 151, 63, 0.04));
+  border: 1px solid rgba(232, 192, 121, 0.28);
+}
+.gold-glow { box-shadow: 0 10px 24px -8px rgba(232, 192, 121, 0.45); }
+
+/* Typography helpers */
+.cap {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  color: var(--dim);
 }
 
-::-webkit-scrollbar-thumb {
-  background: rgba(234, 179, 8, 0.4);
-  border-radius: 4px;
+/* Sticky main CTA area (Telegram MainButton style) */
+.mainbtn-wrap {
+  position: sticky;
+  bottom: 0;
+  padding: 12px 0 calc(12px + env(safe-area-inset-bottom));
+  background: linear-gradient(0deg, var(--bg) 70%, transparent);
+  z-index: 30;
 }
 
-::-webkit-scrollbar-thumb:hover {
-  background: rgba(234, 179, 8, 0.8);
-}
-
-/* Glassmorphism Card */
-.glass-card {
-  background: rgba(30, 41, 59, 0.7);
+/* Bottom navigation */
+.bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  background: rgba(11, 14, 18, 0.92);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-top: 1px solid var(--line);
+  z-index: 40;
+  padding-bottom: env(safe-area-inset-bottom);
 }
-
-.glass-card-gold {
-  background: rgba(30, 41, 59, 0.8);
-  backdrop-filter: blur(12px);
-  border: 1px solid rgba(234, 179, 8, 0.25);
-  box-shadow: 0 4px 20px -2px rgba(234, 179, 8, 0.12);
+.bottom-nav a {
+  flex: 1;
+  padding: 9px 0 12px;
+  text-align: center;
+  color: var(--dim);
+  font-size: 10px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: color 0.15s;
 }
+.bottom-nav a .ic { font-size: 19px; display: block; margin-bottom: 2px; }
+.bottom-nav a.on { color: var(--gold); }
 
-/* Pulse Glow */
-.gold-glow {
-  box-shadow: 0 0 15px rgba(234, 179, 8, 0.3);
+/* View transition */
+.view-fade { animation: viewFade 0.25s ease; }
+@keyframes viewFade {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: none; }
 }

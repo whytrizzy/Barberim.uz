@@ -7,7 +7,6 @@ import { apiFetch } from '@/lib/apiClient';
 import { useLanguage } from '@/lib/i18n/LanguageContext';
 import { BarberDiscovery } from './BarberDiscovery';
 import { MyBookings } from './MyBookings';
-import { Search, Calendar } from 'lucide-react';
 
 export function ClientDashboard() {
   const { t } = useLanguage();
@@ -33,8 +32,7 @@ export function ClientDashboard() {
   }, [loadClientBookings]);
 
   const handleBookingComplete = (booking: BookingType) => {
-    setClientBookings((prev) => [booking, ...prev.filter((b) => b.id !== booking.id)]);
-    loadClientBookings();
+    setClientBookings([booking, ...clientBookings]);
   };
 
   const handleCancelBooking = async (bookingId: string) => {
@@ -56,51 +54,47 @@ export function ClientDashboard() {
   ).length;
 
   return (
-    <div className="space-y-4">
-      {/* Top Navigation Pills */}
-      <div className="grid grid-cols-2 gap-2 bg-slate-900/90 p-1.5 rounded-2xl border border-slate-800">
-        <button
-          onClick={() => setActiveTab('DISCOVERY')}
-          className={`flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-bold transition-all ${
-            activeTab === 'DISCOVERY'
-              ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20'
-              : 'text-slate-400 hover:text-slate-200'
-          }`}
-        >
-          <Search className="w-4 h-4" /> {t('searchBarbers')}
-        </button>
+    <div className="pb-20">
+      {activeTab === 'DISCOVERY' ? (
+        <div className="view-fade">
+          <BarberDiscovery
+            onBookingComplete={(booking) => {
+              handleBookingComplete(booking);
+              setActiveTab('MY_BOOKINGS');
+            }}
+          />
+        </div>
+      ) : (
+        <div className="view-fade">
+          <MyBookings bookings={clientBookings} onCancelBooking={handleCancelBooking} />
+        </div>
+      )}
 
-        <button
+      {/* Bottom navigation */}
+      <nav className="bottom-nav">
+        <a
+          className={activeTab === 'DISCOVERY' ? 'on' : ''}
+          onClick={() => setActiveTab('DISCOVERY')}
+        >
+          <span className="ic">🏠</span>
+          {t('searchBarbers')}
+        </a>
+        <a
+          className={activeTab === 'MY_BOOKINGS' ? 'on' : ''}
           onClick={() => {
             setActiveTab('MY_BOOKINGS');
-            loadClientBookings(); // Refresh when switching
+            loadClientBookings();
           }}
-          className={`flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-bold transition-all relative ${
-            activeTab === 'MY_BOOKINGS'
-              ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20'
-              : 'text-slate-400 hover:text-slate-200'
-          }`}
         >
-          <Calendar className="w-4 h-4" /> {t('myBookings')}
-          {upcomingCount > 0 && activeTab !== 'MY_BOOKINGS' && (
-            <span className="w-4 h-4 bg-amber-500 text-slate-950 rounded-full text-[10px] font-extrabold flex items-center justify-center">
+          <span className="ic">📅</span>
+          {t('myBookings')}
+          {upcomingCount > 0 && (
+            <span className="inline-flex items-center justify-center ml-1 w-4 h-4 bg-gold text-gold-ink rounded-full text-[9px] font-extrabold align-middle">
               {upcomingCount}
             </span>
           )}
-        </button>
-      </div>
-
-      {/* View Tabs */}
-      {activeTab === 'DISCOVERY' ? (
-        <BarberDiscovery
-          onBookingComplete={(booking) => {
-            handleBookingComplete(booking);
-            setActiveTab('MY_BOOKINGS');
-          }}
-        />
-      ) : (
-        <MyBookings bookings={clientBookings} onCancelBooking={handleCancelBooking} />
-      )}
+        </a>
+      </nav>
     </div>
   );
 }
