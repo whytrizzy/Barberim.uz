@@ -107,7 +107,7 @@ export function BarberBookingWizard({ barber, onBookingComplete }: BarberBooking
 
   const handleCreateBooking = async () => {
     // TEMP diagnostic: proves the button handler actually fired (fixed banner, always visible).
-    setErrorMsg('▶ Tugma bosildi — booking boshlandi...');
+    setErrorMsg('2) FINAL Tasdiqlash bosildi — booking yaratilmoqda...');
 
     if (!user?.id) { setErrorMsg('DIAG: foydalanuvchi aniqlanmadi (user.id yoʻq)'); return; }
     if (selectedServiceIds.length === 0) { setErrorMsg('DIAG: xizmat tanlanmagan'); return; }
@@ -153,8 +153,8 @@ export function BarberBookingWizard({ barber, onBookingComplete }: BarberBooking
       {errorMsg && (
         <div
           onClick={() => setErrorMsg(null)}
-          style={{ position: 'fixed', top: 8, left: 8, right: 8, zIndex: 99999 }}
-          className="bg-red-950 border border-red-600 text-red-100 text-xs rounded-xl p-3 shadow-2xl flex items-start gap-2"
+          style={{ position: 'fixed', top: '45%', left: 12, right: 12, zIndex: 99999 }}
+          className="bg-red-600 border-2 border-red-300 text-white text-sm font-bold rounded-2xl p-4 shadow-2xl flex items-start gap-2"
         >
           <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
           <span className="break-words">{errorMsg} (yopish uchun bosing)</span>
@@ -311,7 +311,7 @@ export function BarberBookingWizard({ barber, onBookingComplete }: BarberBooking
               variant="primary"
               size="md"
               fullWidth
-              onClick={() => setStep('CONFIRM')}
+              onClick={() => { setErrorMsg("1) Vaqt tasdiqlash bosildi — keyingi ekranga o'tildi"); setStep('CONFIRM'); }}
               className="mt-4 gap-1.5"
             >
               {t('confirmBooking')} <ArrowRight className="w-4 h-4" />
