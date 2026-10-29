@@ -14,7 +14,7 @@ export function BrowserBackBar() {
   const { t } = useI18n();
   if (mode !== 'browser' || !browserBack) return null;
   return (
-    <div className="sticky top-0 z-10 px-2 pt-2">
+    <div className="sticky top-0 z-10 bg-tile px-2 pt-2 pb-1">
       <Button variant="ghost" onClick={browserBack} className="gap-1.5 px-2">
         <ArrowLeft className="size-5" aria-hidden />
         {t.common.back}
@@ -27,7 +27,7 @@ export function BrowserMainBar() {
   const { mode, browserMain } = useTelegram();
   if (mode !== 'browser' || !browserMain) return null;
   return (
-    <div className="sticky bottom-0 z-10 px-4 pt-3 pb-[max(12px,env(safe-area-inset-bottom))]">
+    <div className="sticky bottom-0 z-10 bg-tile px-4 pt-3 pb-[max(12px,env(safe-area-inset-bottom))]">
       <Button
         size="lg"
         block

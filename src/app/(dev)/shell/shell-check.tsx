@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { formatUzPhone } from '@/domain/phone';
 import { fromTashkent } from '@/domain/time';
 import { useSession } from '@/features/auth/use-session';
+import { PhoneCapture } from '@/features/profile/phone-capture';
 import { LanguagePicker } from '@/features/settings/language-picker';
 import {
   formatDayMonth,
@@ -97,6 +98,17 @@ export function ShellCheck() {
           />
         ))}
       </TileList>
+
+      <SectionLabel>{t.profile.phoneTitle}</SectionLabel>
+      {session.data ? (
+        <PhoneCapture
+          key={session.data.user.phone ?? 'none'}
+          phone={session.data.user.phone}
+          phoneVerified={session.data.user.phoneVerified}
+        />
+      ) : (
+        <p className="text-sm text-ink-muted">{t.common.loading}</p>
+      )}
 
       <SectionLabel>Holat</SectionLabel>
       <TileList>

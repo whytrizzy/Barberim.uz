@@ -14,6 +14,7 @@ import { spawn } from 'node:child_process';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { createBot } from '@/bot/bot';
 import { serverEnv } from '@/env/server';
+import { savePhoneFromBotContact } from '@/server/services/profile';
 
 const ENV_FILE = '.env.local';
 const LOCAL_URL = 'http://localhost:3000';
@@ -70,7 +71,7 @@ async function main() {
   writeAppUrl(tunnel.url);
   console.log(`Tunnel: ${tunnel.url} -> ${LOCAL_URL} (written to ${ENV_FILE})`);
 
-  const bot = createBot({ token, appUrl: tunnel.url });
+  const bot = createBot({ token, appUrl: tunnel.url, savePhone: savePhoneFromBotContact });
   await bot.api.deleteWebhook();
   await bot.api.setChatMenuButton({
     menu_button: { type: 'web_app', text: 'Barberim', web_app: { url: tunnel.url } },

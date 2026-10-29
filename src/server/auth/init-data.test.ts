@@ -1,6 +1,12 @@
 import { createHmac } from 'node:crypto';
 import { describe, expect, it } from 'vitest';
-import { InitDataInvalid, signInitData, verifyInitData } from './init-data';
+import {
+  InitDataInvalid,
+  signInitData,
+  signParams,
+  verifyInitData,
+  verifySharedContact,
+} from './init-data';
 
 const token = '123456789:AAHdqTcvCH1vGWJxfSeofSAs0K5PALDsaw';
 const user = { id: 42, first_name: 'Aziz', language_code: 'uz' };
@@ -70,5 +76,34 @@ describe('verifyInitData', () => {
     expect(reason(() => verifyInitData(null, token, { now }))).toBe('missing');
     expect(reason(() => verifyInitData('user=x&auth_date=1', token, { now }))).toBe('malformed');
     expect(reason(() => verifyInitData('hash=zz', token, { now }))).toBe('malformed');
+  });
+});
+
+describe('verifySharedContact', () => {
+  const contact = { user_id: 42, phone_number: '998901234567', first_name: 'Aziz' };
+  const signedContact = (fields: object, authDateSeconds = authDate) =>
+    signParams(
+      new URLSearchParams({ contact: JSON.stringify(fields), auth_date: String(authDateSeconds) }),
+      token,
+    );
+
+  it('accepts a contact signed with the bot token', () => {
+    expect(verifySharedContact(signedContact(contact), token, { now })).toEqual(contact);
+  });
+
+  it('rejects a contact whose phone was swapped after signing', () => {
+    const forged = signedContact(contact).replace('998901234567', '998909999999');
+    expect(reason(() => verifySharedContact(forged, token, { now }))).toBe('bad_signature');
+  });
+
+  it('only accepts fresh contacts (10 minutes)', () => {
+    const stale = signedContact(contact, authDate - 15 * 60);
+    expect(reason(() => verifySharedContact(stale, token, { now }))).toBe('expired');
+  });
+
+  it('rejects signed data without a usable contact', () => {
+    expect(
+      reason(() => verifySharedContact(signedContact({ phone_number: '1' }), token, { now })),
+    ).toBe('malformed');
   });
 });

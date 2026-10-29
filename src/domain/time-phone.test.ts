@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { formatUzPhone, isUzPhone, normalizeUzPhone } from './phone';
+import {
+  formatNationalDigits,
+  formatUzPhone,
+  isUzPhone,
+  nationalDigits,
+  normalizeUzPhone,
+} from './phone';
 import {
   formatMinuteOfDay,
   fromTashkent,
@@ -68,5 +74,22 @@ describe('UZ phone numbers', () => {
     expect(formatUzPhone('+998901234567')).toBe('+998 90 123 45 67');
     expect(formatUzPhone('not a phone')).toBe('not a phone');
     expect(isUzPhone('+998901234567')).toBe(true);
+  });
+});
+
+describe('phone input mask', () => {
+  it('keeps the 9 national digits from typing or pasting', () => {
+    expect(nationalDigits('90 123')).toBe('90123');
+    expect(nationalDigits('+998 90 123-45-67')).toBe('901234567');
+    expect(nationalDigits('998901234567')).toBe('901234567');
+    expect(nationalDigits('90123456789')).toBe('901234567');
+  });
+
+  it('formats progressively as people type', () => {
+    expect(formatNationalDigits('')).toBe('');
+    expect(formatNationalDigits('9')).toBe('9');
+    expect(formatNationalDigits('901')).toBe('90 1');
+    expect(formatNationalDigits('9012345')).toBe('90 123 45');
+    expect(formatNationalDigits('901234567')).toBe('90 123 45 67');
   });
 });

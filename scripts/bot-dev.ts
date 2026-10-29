@@ -7,6 +7,7 @@
 import { createBot } from '@/bot/bot';
 import { clientEnv } from '@/env/client';
 import { serverEnv } from '@/env/server';
+import { savePhoneFromBotContact } from '@/server/services/profile';
 
 async function main() {
   if (serverEnv.APP_ENV !== 'development') {
@@ -15,7 +16,11 @@ async function main() {
   const token = serverEnv.TELEGRAM_BOT_TOKEN;
   if (!token) throw new Error('Set TELEGRAM_BOT_TOKEN (the dev bot) in .env.local');
 
-  const bot = createBot({ token, appUrl: clientEnv.NEXT_PUBLIC_APP_URL });
+  const bot = createBot({
+    token,
+    appUrl: clientEnv.NEXT_PUBLIC_APP_URL,
+    savePhone: savePhoneFromBotContact,
+  });
   // Polling and a webhook can't coexist; the dev bot never needs its webhook.
   await bot.api.deleteWebhook();
   await bot.start({

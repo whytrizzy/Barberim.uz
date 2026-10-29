@@ -3,6 +3,7 @@ import { createBot } from '@/bot/bot';
 import { summarizeBotError } from '@/bot/errors';
 import { clientEnv } from '@/env/client';
 import { serverEnv } from '@/env/server';
+import { savePhoneFromBotContact } from '@/server/services/profile';
 
 export const dynamic = 'force-dynamic';
 
@@ -14,7 +15,11 @@ function getHandler(): Handler | null {
   if (handler) return handler;
   const token = serverEnv.TELEGRAM_BOT_TOKEN;
   if (!token) return null;
-  const bot = createBot({ token, appUrl: clientEnv.NEXT_PUBLIC_APP_URL });
+  const bot = createBot({
+    token,
+    appUrl: clientEnv.NEXT_PUBLIC_APP_URL,
+    savePhone: savePhoneFromBotContact,
+  });
   // With secretToken set, grammY answers 401 when X-Telegram-Bot-Api-Secret-Token differs.
   handler = webhookCallback(bot, 'std/http', {
     secretToken: serverEnv.TELEGRAM_WEBHOOK_SECRET,

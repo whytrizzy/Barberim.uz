@@ -56,11 +56,17 @@ function sign(params: URLSearchParams, botToken: string): string {
   return createHmac('sha256', secretKey(botToken)).update(dataCheckString(params)).digest('hex');
 }
 
-export function verifyInitData(
+type VerifyOptions = { now?: Date; maxAgeSeconds?: number };
+
+/**
+ * Checks the hash and freshness of any query string Telegram signs with the bot token
+ * (launch data, shared contacts). Returns the params and their auth date.
+ */
+export function verifySignedParams(
   raw: string | null | undefined,
   botToken: string,
-  { now = new Date(), maxAgeSeconds = INIT_DATA_MAX_AGE_SECONDS } = {},
-): VerifiedInitData {
+  { now = new Date(), maxAgeSeconds = INIT_DATA_MAX_AGE_SECONDS }: VerifyOptions = {},
+): { params: URLSearchParams; authDateSeconds: number } {
   if (!raw) throw new InitDataInvalid('missing');
   const params = new URLSearchParams(raw);
   const hash = params.get('hash');
@@ -78,6 +84,15 @@ export function verifyInitData(
   const ageSeconds = now.getTime() / 1000 - authDateSeconds;
   // A little tolerance for clocks running ahead; anything older than the limit is stale.
   if (ageSeconds > maxAgeSeconds || ageSeconds < -300) throw new InitDataInvalid('expired');
+  return { params, authDateSeconds };
+}
+
+export function verifyInitData(
+  raw: string | null | undefined,
+  botToken: string,
+  options: VerifyOptions = {},
+): VerifiedInitData {
+  const { params, authDateSeconds } = verifySignedParams(raw, botToken, options);
 
   let user: InitDataUser;
   try {
@@ -94,6 +109,42 @@ export function verifyInitData(
     authDate: new Date(authDateSeconds * 1000),
     startParam: params.get('start_param'),
   };
+}
+
+export type SharedContact = {
+  user_id: number;
+  phone_number: string;
+  first_name: string;
+  last_name?: string;
+};
+
+/**
+ * Verifies the `response` Telegram returns from WebApp.requestContact(): a query string with a
+ * `contact` JSON field, signed exactly like launch data. Contacts are fresh, so 10 minutes max.
+ */
+export function verifySharedContact(
+  raw: string | null | undefined,
+  botToken: string,
+  { now = new Date() }: { now?: Date } = {},
+): SharedContact {
+  const { params } = verifySignedParams(raw, botToken, { now, maxAgeSeconds: 10 * 60 });
+  let contact: SharedContact;
+  try {
+    contact = JSON.parse(params.get('contact') ?? '') as SharedContact;
+  } catch {
+    throw new InitDataInvalid('malformed');
+  }
+  if (!Number.isSafeInteger(contact?.user_id) || typeof contact.phone_number !== 'string') {
+    throw new InitDataInvalid('malformed');
+  }
+  return contact;
+}
+
+/** Signs any Telegram-style params (tests and the dev login only). */
+export function signParams(params: URLSearchParams, botToken: string): string {
+  params.delete('hash');
+  params.set('hash', sign(params, botToken));
+  return params.toString();
 }
 
 /**
