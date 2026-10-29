@@ -12,5 +12,7 @@ export default defineConfig({
   test: {
     environment: 'node',
     include: ['src/**/*.test.ts', 'src/**/*.test.tsx'],
+    // Database tests need a real Postgres: `npm run test:db` (vitest.db.config.mts).
+    exclude: ['**/node_modules/**', 'src/**/*.db.test.ts'],
   },
 });

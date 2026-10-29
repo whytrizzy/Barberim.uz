@@ -1,0 +1,379 @@
+// Barberim v2 data model — see docs/IMPLEMENTATION_PLAN.md (section 1).
+// Conventions: UUIDv7 ids, snake_case tables/columns, timestamps in UTC (timestamptz),
+// money in integer UZS, schedule times as minutes since Tashkent midnight (0–1440).
+// Constraints Prisma can't express (no double booking, value checks) live in the SQL migrations.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ───────────────────────────── People ─────────────────────────────
+
+enum Locale {
+  uz_Latn
+  uz_Cyrl
+  ru
+}
+
+/// Anyone who opened Barberim in Telegram: clients, masters and owners alike.
+model User {
+  id            String    @id @default(uuid(7)) @db.Uuid
+  telegramId    BigInt    @unique @map("telegram_id")
+  firstName     String    @map("first_name")
+  lastName      String?   @map("last_name")
+  username      String?
+  /// E.164, e.g. +998901234567
+  phone         String?
+  /// True when the phone came from Telegram's contact sharing, not typed in.
+  phoneVerified Boolean   @default(false) @map("phone_verified")
+  locale        Locale    @default(uz_Latn)
+  photoUrl      String?   @map("photo_url")
+  lastSeenAt    DateTime? @map("last_seen_at") @db.Timestamptz(3)
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt     DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  staff       Staff[]
+  shopClients ShopClient[]
+  invites     StaffInvite[] @relation("InviteCreatedBy")
+
+  @@map("users")
+}
+
+// ───────────────────────────── Shops & staff ─────────────────────────────
+
+enum ShopStatus {
+  DRAFT
+  ACTIVE
+  SUSPENDED
+}
+
+enum Plan {
+  FREE
+  PRO
+}
+
+model Shop {
+  id       String     @id @default(uuid(7)) @db.Uuid
+  /// Used in links: t.me/<bot>?start=shop_<slug>
+  slug     String     @unique
+  name     String
+  about    String?
+  address  String
+  /// "Chorsu bozori yonida" — how people actually find places.
+  landmark String?
+  district String?
+  region   String     @default("Toshkent")
+  lat      Float?
+  lng      Float?
+  photos   String[]   @default([])
+  status   ShopStatus @default(DRAFT)
+  plan     Plan       @default(FREE)
+  /// Booking rules: { slotStepMin, minNoticeMin, horizonDays, bufferMin }
+  settings Json       @default("{}")
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  staff     Staff[]
+  services  Service[]
+  clients   ShopClient[]
+  bookings  Booking[]
+  auditLogs AuditLog[]
+
+  @@index([status, district])
+  @@map("shops")
+}
+
+enum StaffRole {
+  OWNER
+  ADMIN
+  MASTER
+}
+
+/// A person working at a shop. `userId` stays null until the invite is accepted.
+model Staff {
+  id            String    @id @default(uuid(7)) @db.Uuid
+  shopId        String    @map("shop_id") @db.Uuid
+  userId        String?   @map("user_id") @db.Uuid
+  displayName   String    @map("display_name")
+  photoUrl      String?   @map("photo_url")
+  bio           String?
+  role          StaffRole @default(MASTER)
+  /// False for an owner/admin who doesn't take clients.
+  isBookable    Boolean   @default(true) @map("is_bookable")
+  /// Master's share of revenue, 0–100 (Phase 3).
+  commissionPct Int?      @map("commission_pct")
+  isActive      Boolean   @default(true) @map("is_active")
+  sortOrder     Int       @default(0) @map("sort_order")
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt     DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  shop      Shop               @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  user      User?              @relation(fields: [userId], references: [id], onDelete: SetNull)
+  services  StaffService[]
+  hours     WeeklyHours[]
+  overrides ScheduleOverride[]
+  bookings  Booking[]
+  invites   StaffInvite[]
+
+  @@unique([shopId, userId])
+  @@index([shopId, isActive])
+  @@map("staff")
+}
+
+/// One-time link for a master to join a shop. Only a hash of the token is stored.
+model StaffInvite {
+  id          String    @id @default(uuid(7)) @db.Uuid
+  staffId     String    @map("staff_id") @db.Uuid
+  tokenHash   String    @unique @map("token_hash")
+  expiresAt   DateTime  @map("expires_at") @db.Timestamptz(3)
+  usedAt      DateTime? @map("used_at") @db.Timestamptz(3)
+  createdById String?   @map("created_by_id") @db.Uuid
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  staff     Staff @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  createdBy User? @relation("InviteCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@map("staff_invites")
+}
+
+// ───────────────────────────── Services ─────────────────────────────
+
+enum ServiceCategory {
+  ADULT
+  KIDS
+  BEARD
+  WEDDING
+  OTHER
+}
+
+model Service {
+  id          String          @id @default(uuid(7)) @db.Uuid
+  shopId      String          @map("shop_id") @db.Uuid
+  /// As the barber typed it; Cyrillic readers see it transliterated.
+  name        String
+  category    ServiceCategory @default(ADULT)
+  durationMin Int             @map("duration_min")
+  /// Integer UZS.
+  price       Int
+  /// Shown as "from 60 000 soʻm".
+  priceIsFrom Boolean         @default(false) @map("price_is_from")
+  isActive    Boolean         @default(true) @map("is_active")
+  sortOrder   Int             @default(0) @map("sort_order")
+  createdAt   DateTime        @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt   DateTime        @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  shop         Shop           @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  staff        StaffService[]
+  bookingItems BookingItem[]
+
+  @@index([shopId, isActive])
+  @@map("services")
+}
+
+/// Which masters do which service, optionally at their own price/duration.
+model StaffService {
+  staffId          String @map("staff_id") @db.Uuid
+  serviceId        String @map("service_id") @db.Uuid
+  priceOverride    Int?   @map("price_override")
+  durationOverride Int?   @map("duration_override")
+
+  staff   Staff   @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  service Service @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+
+  @@id([staffId, serviceId])
+  @@map("staff_services")
+}
+
+// ───────────────────────────── Schedules ─────────────────────────────
+
+/// A working interval on a weekday. Several rows on one day = breaks between them
+/// (e.g. 10:00–13:20 and 14:00–20:00 for a lunch break).
+model WeeklyHours {
+  id       String @id @default(uuid(7)) @db.Uuid
+  staffId  String @map("staff_id") @db.Uuid
+  /// 1 = Monday … 7 = Sunday
+  weekday  Int
+  startMin Int    @map("start_min")
+  endMin   Int    @map("end_min")
+
+  staff Staff @relation(fields: [staffId], references: [id], onDelete: Cascade)
+
+  @@index([staffId, weekday])
+  @@map("weekly_hours")
+}
+
+enum OverrideType {
+  DAY_OFF
+  CUSTOM_HOURS
+}
+
+/// A one-off change for a date: day off, vacation day, or different hours ("today until 16:00").
+model ScheduleOverride {
+  id       String       @id @default(uuid(7)) @db.Uuid
+  staffId  String       @map("staff_id") @db.Uuid
+  /// Tashkent calendar date.
+  date     DateTime     @db.Date
+  type     OverrideType
+  startMin Int?         @map("start_min")
+  endMin   Int?         @map("end_min")
+  reason   String?
+
+  staff Staff @relation(fields: [staffId], references: [id], onDelete: Cascade)
+
+  @@index([staffId, date])
+  @@map("schedule_overrides")
+}
+
+// ───────────────────────────── Clients & bookings ─────────────────────────────
+
+/// A client as one shop knows them (CRM). Walk-ins and phone clients have no `userId`.
+model ShopClient {
+  id          String   @id @default(uuid(7)) @db.Uuid
+  shopId      String   @map("shop_id") @db.Uuid
+  userId      String?  @map("user_id") @db.Uuid
+  name        String
+  phone       String?
+  notes       String?
+  visitCount  Int      @default(0) @map("visit_count")
+  noShowCount Int      @default(0) @map("no_show_count")
+  isBlocked   Boolean  @default(false) @map("is_blocked")
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  shop     Shop      @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  user     User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+  bookings Booking[]
+
+  @@unique([shopId, userId])
+  @@index([shopId, phone])
+  @@map("shop_clients")
+}
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  COMPLETED
+  NO_SHOW
+  CANCELLED_CLIENT
+  CANCELLED_SHOP
+}
+
+enum BookingSource {
+  APP
+  WALK_IN
+  PHONE
+}
+
+/// One client in one master's chair for one time range. Two non-cancelled bookings of the same
+/// master can never overlap — enforced by the `bookings_no_overlap` exclusion constraint.
+model Booking {
+  id           String        @id @default(uuid(7)) @db.Uuid
+  shopId       String        @map("shop_id") @db.Uuid
+  staffId      String        @map("staff_id") @db.Uuid
+  shopClientId String        @map("shop_client_id") @db.Uuid
+  startAt      DateTime      @map("start_at") @db.Timestamptz(3)
+  endAt        DateTime      @map("end_at") @db.Timestamptz(3)
+  status       BookingStatus @default(CONFIRMED)
+  source       BookingSource @default(APP)
+  /// Shared by bookings made together: a father and his sons, a groom and friends.
+  groupId      String?       @map("group_id") @db.Uuid
+  /// Integer UZS, sum of the items' price snapshots.
+  totalPrice   Int           @map("total_price")
+  note         String?
+  cancelledAt  DateTime?     @map("cancelled_at") @db.Timestamptz(3)
+  cancelReason String?       @map("cancel_reason")
+  createdById  String?       @map("created_by_id") @db.Uuid
+  createdAt    DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt    DateTime      @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  shop          Shop           @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  staff         Staff          @relation(fields: [staffId], references: [id], onDelete: NoAction)
+  client        ShopClient     @relation(fields: [shopClientId], references: [id], onDelete: NoAction)
+  items         BookingItem[]
+  notifications Notification[]
+
+  @@index([staffId, startAt])
+  @@index([shopId, startAt])
+  @@index([shopClientId])
+  @@index([groupId])
+  @@map("bookings")
+}
+
+/// A service in a booking, frozen at booking time so later price changes don't rewrite history.
+model BookingItem {
+  id               String  @id @default(uuid(7)) @db.Uuid
+  bookingId        String  @map("booking_id") @db.Uuid
+  serviceId        String? @map("service_id") @db.Uuid
+  nameSnapshot     String  @map("name_snapshot")
+  priceSnapshot    Int     @map("price_snapshot")
+  durationSnapshot Int     @map("duration_snapshot")
+  sortOrder        Int     @default(0) @map("sort_order")
+
+  booking Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  service Service? @relation(fields: [serviceId], references: [id], onDelete: SetNull)
+
+  @@index([bookingId])
+  @@map("booking_items")
+}
+
+// ───────────────────────────── Platform ─────────────────────────────
+
+enum NotificationChannel {
+  TELEGRAM
+  SMS
+}
+
+enum NotificationStatus {
+  PENDING
+  SENT
+  FAILED
+  CANCELLED
+}
+
+/// Outbox: rows are written with the change that causes them and sent by the cron dispatcher.
+model Notification {
+  id        String              @id @default(uuid(7)) @db.Uuid
+  channel   NotificationChannel @default(TELEGRAM)
+  chatId    BigInt?             @map("chat_id")
+  phone     String?
+  /// Message template key, e.g. "booking.reminder24h".
+  template  String
+  payload   Json                @default("{}")
+  sendAt    DateTime            @map("send_at") @db.Timestamptz(3)
+  status    NotificationStatus  @default(PENDING)
+  attempts  Int                 @default(0)
+  lastError String?             @map("last_error")
+  sentAt    DateTime?           @map("sent_at") @db.Timestamptz(3)
+  /// Lets reminders be cancelled together with their booking.
+  bookingId String?             @map("booking_id") @db.Uuid
+  createdAt DateTime            @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  booking Booking? @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+
+  @@index([status, sendAt])
+  @@index([bookingId])
+  @@map("notifications")
+}
+
+model AuditLog {
+  id          String   @id @default(uuid(7)) @db.Uuid
+  shopId      String?  @map("shop_id") @db.Uuid
+  actorUserId String?  @map("actor_user_id") @db.Uuid
+  /// e.g. "booking.cancel", "staff.invite"
+  action      String
+  entity      String
+  entityId    String?  @map("entity_id")
+  data        Json?
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  shop Shop? @relation(fields: [shopId], references: [id], onDelete: Cascade)
+
+  @@index([shopId, createdAt])
+  @@map("audit_logs")
+}

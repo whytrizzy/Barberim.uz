@@ -12,6 +12,10 @@ on branch `rebuild/v2`.
 - `npm run dev` — local dev server (http://localhost:3000)
 - `npm run dev:telegram` — (with `dev` running) HTTPS tunnel + dev bot, to open the app in Telegram
 - `npm run bot:dev` / `npm run bot:setup` — dev bot polling only / configure a bot's profile
+- `npm run db:migrate` — create/apply a migration on the Neon **dev** branch (`prisma migrate dev`).
+  Constraints Prisma can't express go into the migration SQL by hand (see the init migration).
+- `npm run db:seed` — demo shop `ustoz-demo` (dev only) · `npm run test:db` — tests against the DB
+- Never run `prisma migrate reset` or anything destructive without asking; prefer a new migration.
 - `npm run check` — typecheck + lint + format check + tests (run before every commit)
 - `npm run build` — production build (fails on type errors and invalid env)
 - `npm run format` — apply Prettier

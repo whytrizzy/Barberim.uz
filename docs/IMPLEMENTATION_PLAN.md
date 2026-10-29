@@ -99,7 +99,7 @@ AuditLog        actorId, action, entity, entityId, data, createdAt
 
 ### 1A. Data + auth
 
-- [ ] **P1.1 Schema + migrations** for User, Shop, Staff, StaffInvite, Service, StaffService, WeeklyHours, ScheduleOverride, ShopClient, Booking, BookingItem, Notification, AuditLog. Raw SQL migration for the exclusion constraint. Seed script with a realistic Tashkent shop. (#1, #4)
+- [x] **P1.1 Schema + migrations** for User, Shop, Staff, StaffInvite, Service, StaffService, WeeklyHours, ScheduleOverride, ShopClient, Booking, BookingItem, Notification, AuditLog. Raw SQL migration for the exclusion constraint. Seed script with a realistic Tashkent shop. (#1, #4) — Done: Prisma 7.10 + @prisma/adapter-pg on the Neon dev branch; `bookings_no_overlap` exclusion constraint + value checks in SQL; `npm run test:db` proves overlaps (incl. a simultaneous race) are rejected.
 - [ ] **P1.2 Auth.** Verify Telegram initData (HMAC) server-side → session (signed cookie/JWT). Role guard helpers: `requireUser`, `requireStaff(shopId, roles)`. Rate limiting on write endpoints. (#36 basics)
 - [ ] **P1.3 Phone capture.** Telegram `requestContact` for verified phone; manual input with `+998` mask as fallback. (#8)
 

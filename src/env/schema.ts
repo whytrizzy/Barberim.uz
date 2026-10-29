@@ -9,8 +9,10 @@ const botToken = z.string().regex(/^\d+:[\w-]{30,}$/, 'must look like a BotFathe
 export const serverEnvSchema = z
   .object({
     APP_ENV: z.enum(['development', 'staging', 'production']).default('development'),
-    // Required from P1.1 (database) on.
+    // Neon pooled URL (…-pooler…), used by the app.
     DATABASE_URL: optional(z.url()),
+    // Neon direct URL, used only by `prisma migrate` (see prisma.config.ts).
+    DIRECT_URL: optional(z.url()),
     // In development this is the dev bot's token.
     TELEGRAM_BOT_TOKEN: optional(botToken),
     // Telegram sends it in X-Telegram-Bot-Api-Secret-Token so only Telegram can call /api/bot.
