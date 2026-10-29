@@ -1,0 +1,490 @@
+<!doctype html>
+<html lang="uz">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Barberim — visual directions</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Golos+Text:wght@400;500;600;700;800&family=Onest:wght@400;500;600;700&family=Unbounded:wght@500;600;700&family=Fira+Sans+Extra+Condensed:wght@600;700&display=swap&subset=cyrillic" rel="stylesheet">
+<style>
+  :root { --page:#f4f4f2; --ink:#18181a; --muted:#5d5d63; --rule:#dcdcd8; }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { background:var(--page); color:var(--ink); font:15px/1.55 system-ui, -apple-system, "Segoe UI", sans-serif; padding:40px 16px 80px; }
+  .wrap { max-width:1180px; margin:0 auto; }
+  header.top { max-width:720px; margin-bottom:48px; }
+  header.top h1 { font-size:28px; line-height:1.2; letter-spacing:-0.02em; margin-bottom:12px; }
+  header.top p { color:var(--muted); margin-bottom:8px; }
+  section.dir { display:grid; grid-template-columns: minmax(260px, 360px) 1fr; gap:40px; padding:40px 0; border-top:1px solid var(--rule); }
+  .about h2 { font-size:22px; letter-spacing:-0.01em; margin-bottom:4px; display:flex; gap:10px; align-items:baseline; flex-wrap:wrap; }
+  .tag { font-size:12px; font-weight:600; padding:3px 8px; border-radius:999px; background:#18181a; color:#fff; letter-spacing:0; }
+  .tag.quiet { background:transparent; color:var(--muted); border:1px solid var(--rule); }
+  .about .from { color:var(--muted); margin-bottom:16px; }
+  .about dl { display:grid; gap:12px; }
+  .about dt { font-size:12px; font-weight:600; color:var(--muted); }
+  .about dd { margin-top:2px; }
+  .chips { display:flex; gap:6px; flex-wrap:wrap; margin-top:6px; }
+  .chip { width:34px; height:34px; border-radius:8px; border:1px solid rgba(0,0,0,.08); }
+  .phones { display:flex; gap:28px; flex-wrap:wrap; align-items:flex-start; }
+  .cap { font-size:12px; color:var(--muted); margin-top:10px; text-align:center; }
+  .declined { padding:32px 0; border-top:1px solid var(--rule); color:var(--muted); max-width:720px; }
+  .declined b { color:var(--ink); }
+
+  /* ---------- phone frame + fake Telegram chrome ---------- */
+  .phone { width:340px; height:700px; border-radius:38px; overflow:hidden; position:relative; box-shadow:0 1px 2px rgba(0,0,0,.08), 0 18px 40px -12px rgba(0,0,0,.25); border:8px solid #111; display:flex; flex-direction:column; }
+  .tg { height:44px; flex:none; display:flex; align-items:center; gap:10px; padding:0 14px; font:600 15px/1 system-ui, sans-serif; }
+  .tg svg { width:18px; height:18px; }
+  .tg .t { flex:1; text-align:center; }
+  .scr { flex:1; overflow:hidden; padding:4px 18px 0; }
+  .mainbtn { flex:none; margin:10px 12px 14px; height:50px; border-radius:12px; display:flex; align-items:center; justify-content:center; font-weight:600; font-size:16px; }
+  .demo { position:absolute; right:46px; top:15px; font:600 10px/1 system-ui; padding:4px 6px; border-radius:6px; background:rgba(0,0,0,.55); color:#fff; }
+  .num { font-variant-numeric: tabular-nums; }
+
+  /* =========== A. METRO =========== */
+  .metro { --bg:#eceeee; --ink:#14202b; --muted:#5b6670; --rule:#d3d8da; --panel:#f7f8f8; font-family:"Golos Text", sans-serif; background:var(--bg); color:var(--ink); }
+  .metro .tg { background:var(--bg); color:var(--ink); }
+  .metro h1 { font-weight:800; font-size:26px; line-height:1.1; letter-spacing:-0.02em; margin-top:6px; }
+  .metro .addr { display:flex; align-items:center; gap:8px; margin-top:8px; color:var(--muted); font-size:14px; }
+  .mline { width:22px; height:22px; border-radius:50%; display:grid; place-items:center; color:#fff; font-weight:800; font-size:12px; background:var(--c); flex:none; }
+  .metro .lbl { font-size:13px; font-weight:600; color:var(--muted); margin:20px 0 8px; }
+  .metro .masters { display:flex; gap:8px; }
+  .metro .master { flex:1; background:var(--panel); border-radius:12px; padding:10px 8px; display:flex; flex-direction:column; align-items:center; gap:6px; font-weight:600; font-size:14px; border:2px solid transparent; }
+  .metro .master.sel { border-color:var(--c); }
+  .metro .master .mline { width:30px; height:30px; font-size:14px; }
+  .metro .days { display:flex; gap:6px; }
+  .metro .day { flex:1; text-align:center; padding:7px 0; border-radius:10px; font-size:12px; color:var(--muted); background:var(--panel); }
+  .metro .day b { display:block; font-size:16px; color:var(--ink); font-weight:700; }
+  .metro .day.sel { background:var(--ink); color:#c9d1d6; }
+  .metro .day.sel b { color:#fff; }
+  .line { position:relative; height:58px; margin:4px 4px 0; }
+  .line::before { content:""; position:absolute; left:0; right:0; top:12px; height:6px; border-radius:3px; background:var(--c); }
+  .line.dash::before { background:repeating-linear-gradient(90deg, var(--c) 0 10px, transparent 10px 16px); opacity:.5; }
+  .st { position:absolute; top:3px; transform:translateX(-50%); display:flex; flex-direction:column; align-items:center; gap:6px; }
+  .st i { width:24px; height:24px; border-radius:50%; background:#fff; border:5px solid var(--c); display:block; }
+  .st.taken i { width:12px; height:12px; border:none; background:#b9c1c6; margin:6px 0; }
+  .st.sel i { width:30px; height:30px; margin-top:-3px; background:var(--c); border:6px solid #fff; box-shadow:0 0 0 2px var(--c); }
+  .st span { font-size:13px; font-weight:600; font-variant-numeric:tabular-nums; }
+  .st.taken span { color:#9aa3a9; text-decoration:line-through; font-weight:500; }
+  .metro .svc { margin-top:14px; background:var(--panel); border-radius:12px; padding:12px 14px; display:flex; justify-content:space-between; font-size:14px; }
+  .metro .svc b { font-weight:700; }
+  .metro .mainbtn { background:var(--c, #1f5ba8); color:#fff; }
+  /* barber timeline */
+  .metro .today { display:flex; justify-content:space-between; align-items:baseline; margin-top:6px; }
+  .metro .today h1 { font-size:28px; }
+  .metro .sub { color:var(--muted); font-size:14px; }
+  .tabs { display:flex; gap:6px; margin:14px 0 6px; }
+  .tab { display:flex; align-items:center; gap:6px; padding:6px 10px 6px 6px; border-radius:999px; background:var(--panel); font-size:13px; font-weight:600; }
+  .tab .mline { width:20px; height:20px; font-size:11px; }
+  .tab.sel { background:var(--ink); color:#fff; }
+  .vt { position:relative; margin-top:10px; }
+  .vt::before { content:""; position:absolute; left:58px; top:10px; bottom:10px; width:6px; border-radius:3px; background:var(--c); }
+  .row { display:grid; grid-template-columns:44px 40px 1fr; align-items:start; min-height:62px; position:relative; }
+  .row .tm { font-size:14px; font-weight:700; font-variant-numeric:tabular-nums; padding-top:2px; }
+  .row .dot { width:20px; height:20px; border-radius:50%; background:#fff; border:5px solid var(--c); margin:1px 0 0 9px; position:relative; z-index:1; }
+  .row.done .dot { background:var(--c); }
+  .row.free .dot { border-color:#b9c1c6; width:14px; height:14px; border-width:4px; margin:4px 0 0 12px; }
+  .row .who { font-weight:600; font-size:15px; line-height:1.25; }
+  .row .what { font-size:13px; color:var(--muted); }
+  .row.free .who { color:var(--muted); font-weight:500; }
+  .row .add { display:inline-block; margin-top:2px; font-size:13px; font-weight:600; color:var(--c); }
+  .row.now .tm { color:var(--c); }
+  .now-pill { display:inline-block; font-size:11px; font-weight:700; color:#fff; background:var(--c); border-radius:6px; padding:2px 6px; margin-left:6px; vertical-align:2px; }
+  .walk { display:inline-block; font-size:11px; font-weight:600; color:var(--muted); border:1px solid var(--rule); border-radius:6px; padding:1px 5px; margin-left:6px; vertical-align:2px; }
+  .row.lunch { min-height:44px; }
+  .row.lunch .dot { visibility:hidden; }
+  .row.lunch .who { color:var(--muted); font-weight:500; font-size:14px; }
+  .vt .gap { position:absolute; left:58px; width:6px; height:44px; background:repeating-linear-gradient(180deg, var(--bg) 0 6px, transparent 6px 12px); z-index:0; }
+
+  /* =========== B. TASHKENT MODERNISM =========== */
+  .modern { --bg:#e2dfd9; --panel:#efede9; --ink:#1d1c1a; --muted:#625f59; --cobalt:#2348a0; --saffron:#e0a526; --brick:#a9472b; --teal:#21817b; font-family:"Onest", sans-serif; background:var(--bg); color:var(--ink); }
+  .modern .tg { background:var(--bg); }
+  .modern h1 { font-family:"Unbounded", sans-serif; font-weight:700; font-size:21px; line-height:1.15; letter-spacing:-0.01em; text-transform:uppercase; margin-top:8px; }
+  .mosaic { display:flex; gap:3px; margin:12px 0 0; }
+  .mosaic i { height:8px; flex:1; border-radius:2px; }
+  .modern .addr { margin-top:10px; color:var(--muted); font-size:14px; }
+  .modern .lbl { font-family:"Unbounded", sans-serif; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:.04em; color:var(--muted); margin:20px 0 8px; }
+  .modern .masters { display:grid; grid-template-columns:repeat(3,1fr); gap:6px; }
+  .modern .master { background:var(--panel); border-radius:6px; padding:8px; display:flex; align-items:center; gap:8px; font-weight:600; font-size:14px; outline:2px solid transparent; }
+  .modern .master.sel { outline-color:var(--ink); }
+  .sq { width:28px; height:28px; border-radius:4px; display:grid; place-items:center; color:#fff; font:700 12px "Unbounded", sans-serif; background:var(--c); flex:none; }
+  .modern .days { display:flex; gap:4px; }
+  .modern .day { flex:1; text-align:center; padding:6px 0; border-radius:4px; font-size:11px; color:var(--muted); background:var(--panel); }
+  .modern .day b { display:block; font-family:"Unbounded", sans-serif; font-size:15px; color:var(--ink); }
+  .modern .day.sel { background:var(--ink); color:#cfcac2; }
+  .modern .day.sel b { color:#fff; }
+  .panjara { background-color:#d5d1ca; background-image:radial-gradient(circle at center, rgba(0,0,0,.06) 0 3px, transparent 3.5px); background-size:14px 14px; border-radius:8px; padding:8px; display:grid; grid-template-columns:repeat(4,1fr); gap:6px; }
+  .cell { height:46px; border-radius:4px; background:var(--panel); display:grid; place-items:center; font-weight:600; font-size:15px; font-variant-numeric:tabular-nums; box-shadow: inset 0 -2px 0 rgba(0,0,0,.08); }
+  .cell.taken { background:transparent; color:#8c877f; box-shadow:inset 0 1px 3px rgba(0,0,0,.15); font-weight:500; }
+  .cell.sel { background:var(--cobalt); color:#fff; box-shadow:inset 0 -3px 0 rgba(0,0,0,.25); }
+  .modern .svc { margin-top:12px; display:flex; justify-content:space-between; font-size:14px; padding:12px 14px; background:var(--panel); border-radius:6px; }
+  .modern .mainbtn { background:var(--ink); color:#fff; border-radius:6px; }
+  /* barber grid */
+  .modern .sub { color:var(--muted); font-size:13px; margin-top:4px; }
+  .grid { display:grid; grid-template-columns:40px repeat(3,1fr); gap:4px; margin-top:14px; }
+  .grid .hd { font:600 10px "Unbounded", sans-serif; text-transform:uppercase; color:var(--muted); display:flex; align-items:center; gap:5px; padding-bottom:2px; }
+  .grid .hd .sq { width:18px; height:18px; font-size:9px; }
+  .grid .h { font-size:12px; font-weight:600; color:var(--muted); font-variant-numeric:tabular-nums; padding-top:3px; }
+  .slot { height:38px; border-radius:3px; background-color:#d5d1ca; background-image:radial-gradient(circle at center, rgba(0,0,0,.06) 0 2.5px, transparent 3px); background-size:12px 12px; }
+  .bk { border-radius:3px; background:var(--c); color:#fff; padding:5px 7px; font-size:11px; line-height:1.25; font-weight:600; overflow:hidden; }
+  .bk small { display:block; font-weight:500; opacity:.85; }
+  .bk.light { color:var(--ink); }
+
+  /* =========== C. SARTAROSHXONA =========== */
+  .sart { --bg:#d9e8e1; --ink:#0f332b; --muted:#4b6a62; --red:#ae1730; --white:#fbfdfc; --chrome:#a9b7b2; font-family:"Onest", sans-serif; color:var(--ink); background-color:var(--bg); background-image:linear-gradient(rgba(255,255,255,.55) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.55) 1px, transparent 1px); background-size:24px 24px; }
+  .sart .tg { background:var(--bg); }
+  .sign { background:var(--red); color:#fff; border-radius:6px; padding:12px 14px 10px; margin-top:4px; box-shadow:0 1px 0 rgba(255,255,255,.4) inset, 0 6px 14px -8px rgba(80,0,10,.6); position:relative; }
+  .sign::after { content:""; position:absolute; inset:4px; border:1px solid rgba(255,255,255,.55); border-radius:3px; pointer-events:none; }
+  .sign small { display:block; font:700 11px "Fira Sans Extra Condensed", sans-serif; letter-spacing:.14em; opacity:.85; }
+  .sign h1 { font:700 30px/1 "Fira Sans Extra Condensed", sans-serif; text-transform:uppercase; letter-spacing:.02em; margin-top:2px; }
+  .sart .addr { margin-top:10px; font-size:14px; color:var(--muted); }
+  .sart .lbl { font:700 13px "Fira Sans Extra Condensed", sans-serif; text-transform:uppercase; letter-spacing:.08em; color:var(--muted); margin:18px 0 8px; }
+  .sart .masters { display:grid; grid-template-columns:repeat(3,1fr); gap:1px; background:var(--chrome); border:1px solid var(--chrome); border-radius:8px; overflow:hidden; }
+  .sart .master { background:var(--white); padding:10px 6px; text-align:center; font-weight:600; font-size:14px; }
+  .sart .master.sel { background:var(--ink); color:#fff; }
+  .face { width:34px; height:34px; border-radius:50%; margin:0 auto 6px; background:linear-gradient(160deg,#c9d6d1,#93a6a0); display:grid; place-items:center; color:#fff; font-weight:700; font-size:14px; }
+  .sart .master.sel .face { background:linear-gradient(160deg,#ffffff33,#ffffff11); }
+  .sart .days { display:flex; gap:1px; background:var(--chrome); border:1px solid var(--chrome); border-radius:8px; overflow:hidden; }
+  .sart .day { flex:1; text-align:center; padding:6px 0; font-size:11px; color:var(--muted); background:var(--white); }
+  .sart .day b { display:block; font-size:16px; color:var(--ink); }
+  .sart .day.sel { background:var(--ink); color:#b9d0c8; }
+  .sart .day.sel b { color:#fff; }
+  .tiles { display:grid; grid-template-columns:repeat(4,1fr); gap:1px; background:var(--chrome); border:1px solid var(--chrome); border-radius:8px; overflow:hidden; }
+  .tile { background:var(--white); height:46px; display:grid; place-items:center; font-weight:600; font-variant-numeric:tabular-nums; }
+  .tile.taken { background:#eef3f1; color:#9fb1ab; font-weight:500; text-decoration:line-through; }
+  .tile.sel { background:var(--red); color:#fff; }
+  .sart .svc { margin-top:12px; display:flex; justify-content:space-between; font-size:14px; padding:12px 14px; background:var(--white); border:1px solid var(--chrome); border-radius:8px; }
+  .sart .mainbtn { background:var(--red); color:#fff; border-radius:8px; }
+  .sart .today { display:flex; justify-content:space-between; align-items:flex-end; margin-top:4px; }
+  .sart .today h1 { font:700 34px/1 "Fira Sans Extra Condensed", sans-serif; text-transform:uppercase; }
+  .sart .sub { font-size:13px; color:var(--muted); text-align:right; }
+  .list { margin-top:14px; display:grid; gap:1px; background:var(--chrome); border:1px solid var(--chrome); border-radius:8px; overflow:hidden; }
+  .li { background:var(--white); display:grid; grid-template-columns:54px 1fr auto; gap:10px; padding:11px 12px; align-items:center; }
+  .li .tm { font-weight:700; font-variant-numeric:tabular-nums; }
+  .li .who { font-weight:600; font-size:15px; line-height:1.2; }
+  .li .what { font-size:12px; color:var(--muted); }
+  .li .sum { font-size:13px; font-weight:600; font-variant-numeric:tabular-nums; }
+  .li.now .tm { background:var(--red); color:#fff; border-radius:5px; padding:2px 0; text-align:center; }
+  .li.free { background:#eef3f1; }
+  .li.free .who { color:var(--muted); font-weight:500; }
+  .li.free .sum { color:var(--red); }
+  .li.lunch { background:repeating-linear-gradient(135deg,#eef3f1 0 8px,#e3ebe8 8px 16px); }
+  .li.lunch .who { color:var(--muted); font-weight:500; font-size:14px; }
+
+  /* =========== D. CANON =========== */
+  .canon { --ink:#111827; --muted:#6b7280; --blue:#2563eb; font-family:system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; background:#fff; color:var(--ink); }
+  .canon .tg { background:#fff; }
+  .canon .cover { height:120px; border-radius:16px; background:linear-gradient(135deg,#dbe4f0,#c3cfdf); margin-top:4px; }
+  .canon h1 { font-size:22px; font-weight:700; margin-top:12px; }
+  .canon .addr { color:var(--muted); font-size:14px; margin-top:2px; }
+  .canon .lbl { font-weight:600; font-size:15px; margin:18px 0 8px; }
+  .canon .masters { display:flex; gap:8px; }
+  .canon .master { flex:1; border:1px solid #e5e7eb; border-radius:14px; padding:10px; text-align:center; font-size:14px; font-weight:500; }
+  .canon .master.sel { border-color:var(--blue); background:#eff6ff; }
+  .canon .face { background:#e5e7eb; color:#6b7280; }
+  .pills { display:flex; flex-wrap:wrap; gap:8px; }
+  .pill { padding:9px 14px; border-radius:999px; border:1px solid #e5e7eb; font-size:14px; font-weight:500; font-variant-numeric:tabular-nums; }
+  .pill.taken { color:#c0c4cc; text-decoration:line-through; }
+  .pill.sel { background:var(--blue); border-color:var(--blue); color:#fff; }
+  .canon .mainbtn { background:var(--blue); color:#fff; border-radius:14px; }
+
+  @media (max-width: 860px) {
+    section.dir { grid-template-columns:1fr; gap:24px; }
+    .phones { justify-content:center; }
+  }
+  @media (max-width: 380px) {
+    .phone { width:100%; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="top">
+  <h1>Barberim — choose a visual direction</h1>
+  <p>Three directions taken from places everyone in Uzbekistan knows, plus one deliberately standard option for comparison. Each shows the client booking screen and the barber's "today" screen.</p>
+  <p>Only the look changes between them; the layout, buttons and flow stay familiar. All names, prices and times are demo content.</p>
+</header>
+
+<!-- ================= A. METRO ================= -->
+<section class="dir">
+  <div class="about">
+    <h2>A · Metro <span class="tag">My pick</span></h2>
+    <p class="from">From the Tashkent Metro: line colors, station markers, clean signage.</p>
+    <dl>
+      <dt>Idea</dt>
+      <dd>A barber's day is a metro line, and every free time is a station you can get off at. Each master has their own line color, so in a shop with three masters you instantly know whose calendar you're looking at.</dd>
+      <dt>Signature move</dt>
+      <dd>Free times drawn as stations on the master's line, and the barber's day as a vertical line with the current client as the station you're at now.</dd>
+      <dt>Palette</dt>
+      <dd>Cool marble grey, deep navy ink, and the metro's line colors for masters.
+        <div class="chips"><span class="chip" style="background:#eceeee"></span><span class="chip" style="background:#14202b"></span><span class="chip" style="background:#d12a2f"></span><span class="chip" style="background:#1f5ba8"></span><span class="chip" style="background:#2e8b57"></span></div></dd>
+      <dt>Type</dt>
+      <dd>Golos Text, a sign-like face built for Latin and Cyrillic.</dd>
+      <dt>Honest risk</dt>
+      <dd>Cities outside Tashkent have no metro. The metaphor has to stay quiet (line, stations, colors) and never turn into a costume with maps or tickets.</dd>
+    </dl>
+  </div>
+  <div class="phones">
+    <div>
+      <div class="phone metro" style="--c:#1f5ba8">
+        <div class="tg"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg><span class="t">Barberim</span><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="19" cy="12" r="1.8"/></svg></div>
+        <div class="scr">
+          <h1>Ustoz Barbershop</h1>
+          <div class="addr"><span class="mline" style="--c:#d12a2f">M</span>Novza · 3 daqiqa piyoda</div>
+          <div class="lbl">Usta</div>
+          <div class="masters">
+            <div class="master" style="--c:#d12a2f"><span class="mline">J</span>Jasur</div>
+            <div class="master sel" style="--c:#1f5ba8"><span class="mline">S</span>Sardor</div>
+            <div class="master" style="--c:#2e8b57"><span class="mline">B</span>Bekzod</div>
+          </div>
+          <div class="lbl">Kun</div>
+          <div class="days">
+            <div class="day">Du<b>2</b></div><div class="day sel">Se<b>3</b></div><div class="day">Ch<b>4</b></div><div class="day">Pa<b>5</b></div><div class="day">Ju<b>6</b></div><div class="day">Sh<b>7</b></div>
+          </div>
+          <div class="lbl">Boʻsh vaqtlar · ertalab</div>
+          <div class="line">
+            <div class="st taken" style="left:4%"><i></i><span>10:00</span></div>
+            <div class="st" style="left:27%"><i></i><span>10:40</span></div>
+            <div class="st sel" style="left:50%"><i></i><span>11:20</span></div>
+            <div class="st taken" style="left:73%"><i></i><span>12:00</span></div>
+            <div class="st" style="left:96%"><i></i><span>12:40</span></div>
+          </div>
+          <div class="lbl">Kunduzi · 13:20–14:00 tushlik</div>
+          <div class="line">
+            <div class="st" style="left:4%"><i></i><span>14:00</span></div>
+            <div class="st" style="left:27%"><i></i><span>14:40</span></div>
+            <div class="st taken" style="left:50%"><i></i><span>15:20</span></div>
+            <div class="st" style="left:73%"><i></i><span>16:00</span></div>
+            <div class="st" style="left:96%"><i></i><span>16:40</span></div>
+          </div>
+          <div class="svc"><span>Soch olish · 40 daq</span><b class="num">60 000 soʻm</b></div>
+        </div>
+        <div class="mainbtn">Yozilish · 11:20</div>
+        <span class="demo">demo</span>
+      </div>
+      <p class="cap">Client · choose a time</p>
+    </div>
+    <div>
+      <div class="phone metro" style="--c:#1f5ba8">
+        <div class="tg"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg><span class="t">Barberim</span><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="19" cy="12" r="1.8"/></svg></div>
+        <div class="scr">
+          <div class="today"><h1>Bugun</h1><span class="sub">Seshanba, 3-noyabr</span></div>
+          <div class="sub num">6 ta mijoz · 420 000 soʻm</div>
+          <div class="tabs">
+            <div class="tab" style="--c:#d12a2f"><span class="mline">J</span>Jasur</div>
+            <div class="tab sel" style="--c:#1f5ba8"><span class="mline">S</span>Sardor</div>
+            <div class="tab" style="--c:#2e8b57"><span class="mline">B</span>Bekzod</div>
+          </div>
+          <div class="vt">
+            <div class="row done"><span class="tm">10:00</span><span class="dot"></span><div><div class="who">Aziz Karimov</div><div class="what">Soch + soqol · 90 000</div></div></div>
+            <div class="row free"><span class="tm">10:40</span><span class="dot"></span><div><div class="who">Boʻsh</div><span class="add">+ Mijoz qoʻshish</span></div></div>
+            <div class="row now"><span class="tm">11:20</span><span class="dot"></span><div><div class="who">Timur <span class="now-pill">Hozir</span></div><div class="what">Soch olish · 60 000 <span class="walk">navbatsiz</span></div></div></div>
+            <div class="row"><span class="tm">12:00</span><span class="dot"></span><div><div class="who">Diyor Rahimov</div><div class="what">Bolalar soch olishi · 40 000</div></div></div>
+            <div class="row lunch"><span class="tm">13:20</span><span class="dot"></span><div class="who">Tushlik</div></div>
+            <div class="row"><span class="tm">14:00</span><span class="dot"></span><div><div class="who">Otabek Yusupov</div><div class="what">Kuyov paketi · 250 000</div></div></div>
+          </div>
+        </div>
+        <div class="mainbtn">+ Navbatsiz mijoz</div>
+        <span class="demo">demo</span>
+      </div>
+      <p class="cap">Barber · today</p>
+    </div>
+  </div>
+</section>
+
+<!-- ================= B. MODERNISM ================= -->
+<section class="dir">
+  <div class="about">
+    <h2>B · Tashkent Modernism</h2>
+    <p class="from">From Tashkent's modernist buildings: concrete sun-screen grilles (panjara) and the mosaic panels on them.</p>
+    <dl>
+      <dt>Idea</dt>
+      <dd>The schedule is a panjara grille: a calm concrete grid where every booked hour is filled with a mosaic color.</dd>
+      <dt>Signature move</dt>
+      <dd>Time slots and the barber's calendar as perforated grid cells. Booked cells take the master's mosaic color.</dd>
+      <dt>Palette</dt>
+      <dd>Concrete grey with mosaic cobalt, saffron, brick and teal.
+        <div class="chips"><span class="chip" style="background:#e2dfd9"></span><span class="chip" style="background:#1d1c1a"></span><span class="chip" style="background:#2348a0"></span><span class="chip" style="background:#e0a526"></span><span class="chip" style="background:#a9472b"></span><span class="chip" style="background:#21817b"></span></div></dd>
+      <dt>Type</dt>
+      <dd>Unbounded (wide, architectural) for headings; Onest for everything else.</dd>
+      <dt>Honest risk</dt>
+      <dd>The wide heading face struggles with long Uzbek words on small phones. Grey concrete can feel cold to clients if photos don't warm it up.</dd>
+    </dl>
+  </div>
+  <div class="phones">
+    <div>
+      <div class="phone modern">
+        <div class="tg"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg><span class="t">Barberim</span><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="19" cy="12" r="1.8"/></svg></div>
+        <div class="scr">
+          <h1>Ustoz<br>Barbershop</h1>
+          <div class="mosaic"><i style="background:#2348a0"></i><i style="background:#e0a526"></i><i style="background:#a9472b"></i><i style="background:#21817b"></i><i style="background:#2348a0"></i><i style="background:#e0a526"></i></div>
+          <div class="addr">Chilonzor, 9-kvartal · Novza metrosi yonida</div>
+          <div class="lbl">Usta</div>
+          <div class="masters">
+            <div class="master"><span class="sq" style="--c:#a9472b">J</span>Jasur</div>
+            <div class="master sel"><span class="sq" style="--c:#2348a0">S</span>Sardor</div>
+            <div class="master"><span class="sq" style="--c:#21817b">B</span>Bekzod</div>
+          </div>
+          <div class="lbl">Kun</div>
+          <div class="days">
+            <div class="day">Du<b>2</b></div><div class="day sel">Se<b>3</b></div><div class="day">Ch<b>4</b></div><div class="day">Pa<b>5</b></div><div class="day">Ju<b>6</b></div><div class="day">Sh<b>7</b></div>
+          </div>
+          <div class="lbl">Boʻsh vaqtlar</div>
+          <div class="panjara">
+            <div class="cell taken">10:00</div><div class="cell">10:40</div><div class="cell sel">11:20</div><div class="cell taken">12:00</div>
+            <div class="cell">12:40</div><div class="cell">14:00</div><div class="cell">14:40</div><div class="cell taken">15:20</div>
+            <div class="cell">16:00</div><div class="cell">16:40</div><div class="cell taken">17:20</div><div class="cell">18:00</div>
+          </div>
+          <div class="svc"><span>Soch olish · 40 daq</span><b class="num">60 000 soʻm</b></div>
+        </div>
+        <div class="mainbtn">Yozilish · 11:20</div>
+        <span class="demo">demo</span>
+      </div>
+      <p class="cap">Client · choose a time</p>
+    </div>
+    <div>
+      <div class="phone modern">
+        <div class="tg"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg><span class="t">Barberim</span><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="19" cy="12" r="1.8"/></svg></div>
+        <div class="scr">
+          <h1>Bugun</h1>
+          <div class="sub">Seshanba, 3-noyabr · <span class="num">14 ta mijoz</span></div>
+          <div class="grid">
+            <span></span>
+            <span class="hd"><span class="sq" style="--c:#a9472b">J</span>Jasur</span>
+            <span class="hd"><span class="sq" style="--c:#2348a0">S</span>Sardor</span>
+            <span class="hd"><span class="sq" style="--c:#21817b">B</span>Bekzod</span>
+            <span class="h">10:00</span><div class="bk" style="--c:#a9472b">Aziz K.<small>Soch+soqol</small></div><div class="bk" style="--c:#2348a0">Sherzod<small>Soch</small></div><div class="slot"></div>
+            <span class="h">11:00</span><div class="slot"></div><div class="bk" style="--c:#2348a0">Timur<small>Navbatsiz</small></div><div class="bk" style="--c:#21817b">Ali V.<small>Soqol</small></div>
+            <span class="h">12:00</span><div class="bk" style="--c:#a9472b">Javlon<small>Soch</small></div><div class="bk" style="--c:#2348a0">Diyor R.<small>Bolalar</small></div><div class="slot"></div>
+            <span class="h">13:00</span><div class="slot"></div><div class="slot"></div><div class="bk light" style="--c:#e0a526">Tushlik</div>
+            <span class="h">14:00</span><div class="bk" style="--c:#a9472b">Akmal<small>Soch</small></div><div class="bk" style="--c:#2348a0">Otabek Y.<small>Kuyov paketi</small></div><div class="slot"></div>
+            <span class="h">15:00</span><div class="slot"></div><div class="bk" style="--c:#2348a0">Otabek Y.<small>davomi</small></div><div class="bk" style="--c:#21817b">Rustam<small>Soch</small></div>
+            <span class="h">16:00</span><div class="bk" style="--c:#a9472b">Bobur<small>Soch</small></div><div class="slot"></div><div class="slot"></div>
+            <span class="h">17:00</span><div class="slot"></div><div class="slot"></div><div class="bk" style="--c:#21817b">Kamol<small>Soch+soqol</small></div>
+          </div>
+        </div>
+        <div class="mainbtn">+ Navbatsiz mijoz</div>
+        <span class="demo">demo</span>
+      </div>
+      <p class="cap">Owner · whole shop today</p>
+    </div>
+  </div>
+</section>
+
+<!-- ================= C. SARTAROSHXONA ================= -->
+<section class="dir">
+  <div class="about">
+    <h2>C · Sartaroshxona</h2>
+    <p class="from">From the neighborhood barbershop found in every mahalla: mint tiled walls, chrome, the red enamel sign over the door.</p>
+    <dl>
+      <dt>Idea</dt>
+      <dd>The app feels like your own barbershop: tiled, clean, with the shop's name on a proper enamel sign.</dd>
+      <dt>Signature move</dt>
+      <dd>The shop's name as an enamel sign at the top. Times and bookings laid out as tiles on the wall, with the chosen one in sign red.</dd>
+      <dt>Palette</dt>
+      <dd>Mint tile, bottle-green ink, chrome grey, enamel red.
+        <div class="chips"><span class="chip" style="background:#d9e8e1"></span><span class="chip" style="background:#0f332b"></span><span class="chip" style="background:#a9b7b2"></span><span class="chip" style="background:#ae1730"></span><span class="chip" style="background:#fbfdfc"></span></div></dd>
+      <dt>Type</dt>
+      <dd>Fira Sans Extra Condensed (sign lettering) for names; Onest for everything else.</dd>
+      <dt>Honest risk</dt>
+      <dd>It's the most literal reading of "barbershop" and can feel nostalgic or old-fashioned to young clients. The tile background must stay subtle on cheap screens.</dd>
+    </dl>
+  </div>
+  <div class="phones">
+    <div>
+      <div class="phone sart">
+        <div class="tg"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg><span class="t">Barberim</span><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="19" cy="12" r="1.8"/></svg></div>
+        <div class="scr">
+          <div class="sign"><small>SARTAROSHXONA</small><h1>Ustoz Barbershop</h1></div>
+          <div class="addr">Chilonzor, 9-kvartal · Novza metrosi yonida</div>
+          <div class="lbl">Usta</div>
+          <div class="masters">
+            <div class="master"><div class="face">J</div>Jasur</div>
+            <div class="master sel"><div class="face">S</div>Sardor</div>
+            <div class="master"><div class="face">B</div>Bekzod</div>
+          </div>
+          <div class="lbl">Kun</div>
+          <div class="days">
+            <div class="day">Du<b>2</b></div><div class="day sel">Se<b>3</b></div><div class="day">Ch<b>4</b></div><div class="day">Pa<b>5</b></div><div class="day">Ju<b>6</b></div><div class="day">Sh<b>7</b></div>
+          </div>
+          <div class="lbl">Boʻsh vaqtlar</div>
+          <div class="tiles">
+            <div class="tile taken">10:00</div><div class="tile">10:40</div><div class="tile sel">11:20</div><div class="tile taken">12:00</div>
+            <div class="tile">12:40</div><div class="tile">14:00</div><div class="tile">14:40</div><div class="tile taken">15:20</div>
+          </div>
+          <div class="svc"><span>Soch olish · 40 daq</span><b class="num">60 000 soʻm</b></div>
+        </div>
+        <div class="mainbtn">Yozilish · 11:20</div>
+        <span class="demo">demo</span>
+      </div>
+      <p class="cap">Client · choose a time</p>
+    </div>
+    <div>
+      <div class="phone sart">
+        <div class="tg"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg><span class="t">Barberim</span><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="19" cy="12" r="1.8"/></svg></div>
+        <div class="scr">
+          <div class="today"><h1>Bugun</h1><div class="sub">Seshanba, 3-noyabr<br><span class="num">6 ta mijoz · 420 000 soʻm</span></div></div>
+          <div class="list">
+            <div class="li"><span class="tm">10:00</span><div><div class="who">Aziz Karimov</div><div class="what">Soch + soqol</div></div><span class="sum">90 000</span></div>
+            <div class="li free"><span class="tm">10:40</span><div class="who">Boʻsh</div><span class="sum">+ Qoʻshish</span></div>
+            <div class="li now"><span class="tm">11:20</span><div><div class="who">Timur</div><div class="what">Soch olish · navbatsiz · hozir</div></div><span class="sum">60 000</span></div>
+            <div class="li"><span class="tm">12:00</span><div><div class="who">Diyor Rahimov</div><div class="what">Bolalar soch olishi</div></div><span class="sum">40 000</span></div>
+            <div class="li lunch"><span class="tm">13:20</span><div class="who">Tushlik</div><span></span></div>
+            <div class="li"><span class="tm">14:00</span><div><div class="who">Otabek Yusupov</div><div class="what">Kuyov paketi</div></div><span class="sum">250 000</span></div>
+            <div class="li"><span class="tm">16:00</span><div><div class="who">Rustam A.</div><div class="what">Soch olish</div></div><span class="sum">60 000</span></div>
+          </div>
+        </div>
+        <div class="mainbtn">+ Navbatsiz mijoz</div>
+        <span class="demo">demo</span>
+      </div>
+      <p class="cap">Barber · today</p>
+    </div>
+  </div>
+</section>
+
+<!-- ================= D. CANON ================= -->
+<section class="dir">
+  <div class="about">
+    <h2>D · Standard booking app <span class="tag quiet">for comparison</span></h2>
+    <p class="from">What most booking apps look like: white, one blue, rounded cards, system font.</p>
+    <dl>
+      <dt>Idea</dt>
+      <dd>Familiar and safe. Everyone instantly knows how to use it.</dd>
+      <dt>Honest risk</dt>
+      <dd>This is exactly the "generic app" look you said you don't want. It has nothing that says Uzbekistan or Barberim. It's here so you can see what the other three are moving away from.</dd>
+    </dl>
+  </div>
+  <div class="phones">
+    <div>
+      <div class="phone canon">
+        <div class="tg"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg><span class="t">Barberim</span><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="19" cy="12" r="1.8"/></svg></div>
+        <div class="scr">
+          <div class="cover"></div>
+          <h1>Ustoz Barbershop</h1>
+          <div class="addr">Chilonzor, 9-kvartal</div>
+          <div class="lbl">Usta tanlang</div>
+          <div class="masters">
+            <div class="master"><div class="face">J</div>Jasur</div>
+            <div class="master sel"><div class="face">S</div>Sardor</div>
+            <div class="master"><div class="face">B</div>Bekzod</div>
+          </div>
+          <div class="lbl">Vaqt tanlang</div>
+          <div class="pills">
+            <span class="pill taken">10:00</span><span class="pill">10:40</span><span class="pill sel">11:20</span><span class="pill taken">12:00</span><span class="pill">12:40</span><span class="pill">14:00</span><span class="pill">14:40</span><span class="pill">16:00</span>
+          </div>
+        </div>
+        <div class="mainbtn">Yozilish</div>
+        <span class="demo">demo</span>
+      </div>
+      <p class="cap">Client · choose a time</p>
+    </div>
+  </div>
+</section>
+
+<div class="declined">
+  <p><b>Considered and dropped:</b> Rishtan ceramics (turquoise and cobalt glaze). It's beautiful, but on a phone it quickly looks like a souvenir shop. Its one useful lesson, keeping to a few strong colors with confidence, is already in A and C. Black-and-gold "luxury barbershop" with barber poles is the cliché every barber app uses, so it was never an option.</p>
+</div>
+
+</div>
+</body>
+</html>
