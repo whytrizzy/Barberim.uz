@@ -10,37 +10,39 @@ Feature numbers like `(#15)` refer to the agreed feature list (section "Feature 
 
 ## 0. Key decisions
 
-| Area | Decision | Why |
-|---|---|---|
-| Where | Same repo, branch `rebuild/v2`. Old code tagged `v1-legacy`. | Keeps history; nothing is lost. |
-| Platform | Telegram Mini App + bot only (public website is Phase 3). | Telegram is where users in Uzbekistan are. |
-| Framework | Next.js 15 (App Router), TypeScript **strict**, no `ignoreBuildErrors`. | Same family as v1, but with real routes. |
-| UI | Tailwind v4, shadcn/ui, Magic UI, `motion` (framer-motion), lucide icons. | Skills installed: impeccable, emil-design-eng, magic-ui, gsap-react. |
-| Design system | `DESIGN.md` at repo root (google design.md format), written before screens. | One visual source of truth. |
-| Data fetching | TanStack Query on the client, Route Handlers + Zod validation on the server. | Caching for slow mobile internet. |
-| Hosting | AWS `eu-central-1` (Frankfurt): Next.js on Lambda via SST (OpenNext), EventBridge Scheduler for cron. Billing alarm at $1. | Lambda stays in the always-free tier; closest good region to Uzbekistan. |
-| Database | New PostgreSQL on **Neon** free tier (from zero, no v1 data migration) + Prisma, **`prisma migrate`** (no more `db push`). Separate dev and prod branches/databases. | Free after the AWS 6-month plan ends; migrations allow raw SQL constraints. Move to RDS later when revenue exists. |
-| Brand | Keep the name **Barberim**. Visual direction chosen in P0.4 — must look crafted and premium, not like a generic AI template. | |
-| Bots | Existing bot = **production**. New separate **dev bot** for testing (created by the user in @BotFather). | Never test on real users. |
-| Double booking | Postgres `EXCLUDE USING gist` on `(staff_id, tstzrange(start,end))` for active bookings. | Impossible to double-book, even under races. |
-| Time | All timestamps stored UTC; business logic in `Asia/Tashkent` (UTC+5, no DST). | Correct slots regardless of server location. |
-| Money | Integer UZS, formatted `50 000 so'm`. | No float errors. |
-| i18n | 3 locales: `uz-Latn` (default), `uz-Cyrl`, `ru`. Typed dictionaries. | Covers young, older and Russian-speaking users. |
-| Bot | grammY, **webhook** at `/api/bot` (no long-polling process). | Runs on serverless hosting. |
-| Background jobs | `Notification` outbox table + cron endpoint every 5 min (`/api/cron/dispatch`). | Reminders without extra infrastructure. |
-| Maps | Yandex Maps (static map + deep links to Yandex Navigator / Yandex Go). | Most accurate in Uzbekistan. |
-| Payments | Phase 3: Click, Payme, Uzum. Booking always works with cash. | Cash is still the norm. |
-| SMS | Phase 3: Eskiz.uz. | Fallback for walk-in clients without the bot. |
-| Tests | Vitest (slot engine, booking rules, API), Playwright smoke tests later. | Booking logic must never regress. |
-| Monitoring | Sentry + structured logs (Phase 3, basic logging from Phase 0). | |
+| Area            | Decision                                                                                                                                                             | Why                                                                                                                |
+| --------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| Where           | Same repo, branch `rebuild/v2`. Old code tagged `v1-legacy`.                                                                                                         | Keeps history; nothing is lost.                                                                                    |
+| Platform        | Telegram Mini App + bot only (public website is Phase 3).                                                                                                            | Telegram is where users in Uzbekistan are.                                                                         |
+| Framework       | Next.js 16 (App Router), TypeScript **strict**, no `ignoreBuildErrors`.                                                                                              | Same family as v1, but with real routes.                                                                           |
+| UI              | Tailwind v4, shadcn/ui, Magic UI, `motion` (framer-motion), lucide icons.                                                                                            | Skills installed: impeccable, emil-design-eng, magic-ui, gsap-react.                                               |
+| Design system   | `DESIGN.md` at repo root (google design.md format), written before screens.                                                                                          | One visual source of truth.                                                                                        |
+| Data fetching   | TanStack Query on the client, Route Handlers + Zod validation on the server.                                                                                         | Caching for slow mobile internet.                                                                                  |
+| Hosting         | AWS `eu-central-1` (Frankfurt): Next.js on Lambda via SST (OpenNext), EventBridge Scheduler for cron. Billing alarm at $1.                                           | Lambda stays in the always-free tier; closest good region to Uzbekistan.                                           |
+| Database        | New PostgreSQL on **Neon** free tier (from zero, no v1 data migration) + Prisma, **`prisma migrate`** (no more `db push`). Separate dev and prod branches/databases. | Free after the AWS 6-month plan ends; migrations allow raw SQL constraints. Move to RDS later when revenue exists. |
+| Brand           | Keep the name **Barberim**. Visual direction chosen in P0.4 — must look crafted and premium, not like a generic AI template.                                         |                                                                                                                    |
+| Bots            | Existing bot = **production**. New separate **dev bot** for testing (created by the user in @BotFather).                                                             | Never test on real users.                                                                                          |
+| Double booking  | Postgres `EXCLUDE USING gist` on `(staff_id, tstzrange(start,end))` for active bookings.                                                                             | Impossible to double-book, even under races.                                                                       |
+| Time            | All timestamps stored UTC; business logic in `Asia/Tashkent` (UTC+5, no DST).                                                                                        | Correct slots regardless of server location.                                                                       |
+| Money           | Integer UZS, formatted `50 000 so'm`.                                                                                                                                | No float errors.                                                                                                   |
+| i18n            | 3 locales: `uz-Latn` (default), `uz-Cyrl`, `ru`. Typed dictionaries.                                                                                                 | Covers young, older and Russian-speaking users.                                                                    |
+| Bot             | grammY, **webhook** at `/api/bot` (no long-polling process).                                                                                                         | Runs on serverless hosting.                                                                                        |
+| Background jobs | `Notification` outbox table + cron endpoint every 5 min (`/api/cron/dispatch`).                                                                                      | Reminders without extra infrastructure.                                                                            |
+| Maps            | Yandex Maps (static map + deep links to Yandex Navigator / Yandex Go).                                                                                               | Most accurate in Uzbekistan.                                                                                       |
+| Payments        | Phase 3: Click, Payme, Uzum. Booking always works with cash.                                                                                                         | Cash is still the norm.                                                                                            |
+| SMS             | Phase 3: Eskiz.uz.                                                                                                                                                   | Fallback for walk-in clients without the bot.                                                                      |
+| Tests           | Vitest (slot engine, booking rules, API), Playwright smoke tests later.                                                                                              | Booking logic must never regress.                                                                                  |
+| Monitoring      | Sentry + structured logs (Phase 3, basic logging from Phase 0).                                                                                                      |                                                                                                                    |
 
 ### Answered questions (2026-10-29)
+
 1. Hosting: AWS, as free as possible → Lambda + external free Postgres (above).
 2. Database: brand-new database, start from zero.
 3. Brand: keep "Barberim"; colors are my call, premium and non-generic for both clients and barbers.
 4. Bot: reuse the current bot for production; separate dev bot for testing.
 
 ### Setup the user does (Claude can't create accounts)
+
 - AWS account (needs a Visa/Mastercard) — before **P0.6** deploy.
 - Neon account — before **P1.1**.
 - Dev bot in @BotFather — before **P0.6**. Put its token in `.env.local`, never in chat or git.
@@ -82,7 +84,7 @@ AuditLog        actorId, action, entity, entityId, data, createdAt
 ## Phase 0 — Foundation (no features yet, everything else builds on it)
 
 - [x] **P0.1 Branch + clean slate.** Tag `v1-legacy`, create `rebuild/v2`, move v1 `src/` aside (`legacy/`, excluded from build), add `agent1/` and secrets to `.gitignore`.
-- [ ] **P0.2 Project setup.** Next.js 15, TS strict, ESLint + Prettier, path aliases, env validation with Zod (`src/env.ts`), Vitest. Build fails on type errors.
+- [x] **P0.2 Project setup.** Next.js 16, TS strict, ESLint + Prettier, path aliases, env validation with Zod (`src/env/`), Vitest. Build fails on type errors.
 - [ ] **P0.3 Folder structure.** `src/app` (routes), `src/features/<domain>` (booking, shop, staff, schedule, clients…), `src/server` (db, auth, services), `src/ui` (design-system components), `src/i18n`, `src/bot`.
 - [ ] **P0.4 Design system.** `/impeccable init` → `DESIGN.md` (colors, type, spacing, radius, motion, tone of voice). Tokens in Tailwind v4 theme, light + dark that follow Telegram's theme. shadcn/ui base components themed.
 - [ ] **P0.5 Telegram shell.** Telegram WebApp SDK wrapper: initData, theme sync, BackButton/MainButton hooks, haptics (guarded), viewport/safe areas. Dev mode that works in a normal browser with a fake user.
@@ -96,16 +98,19 @@ AuditLog        actorId, action, entity, entityId, data, createdAt
 ## Phase 1 — MVP rebuild (feature #1–12, 15–16, 19–20, 26)
 
 ### 1A. Data + auth
+
 - [ ] **P1.1 Schema + migrations** for User, Shop, Staff, StaffInvite, Service, StaffService, WeeklyHours, ScheduleOverride, ShopClient, Booking, BookingItem, Notification, AuditLog. Raw SQL migration for the exclusion constraint. Seed script with a realistic Tashkent shop. (#1, #4)
 - [ ] **P1.2 Auth.** Verify Telegram initData (HMAC) server-side → session (signed cookie/JWT). Role guard helpers: `requireUser`, `requireStaff(shopId, roles)`. Rate limiting on write endpoints. (#36 basics)
 - [ ] **P1.3 Phone capture.** Telegram `requestContact` for verified phone; manual input with `+998` mask as fallback. (#8)
 
 ### 1B. Core booking engine
+
 - [ ] **P1.4 Availability engine** (pure functions + Vitest): weekly hours with breaks, overrides, existing bookings, service duration, buffer, "now + min notice", Tashkent time. Port useful parts of v1 `slotEngine.ts`. (#3)
 - [ ] **P1.5 Booking service.** Create / cancel / reschedule / complete / no-show with transition rules, snapshots, and constraint-violation → friendly "slot just taken" error. Fully unit-tested. (#1, #4)
 - [ ] **P1.6 "Any free master" + family booking** logic (back-to-back slots, `groupId`). (#24 core, #14 core)
 
 ### 1C. Shop & staff management (barber side)
+
 - [ ] **P1.7 Shop onboarding.** Create shop: name, address + landmark, district, Yandex map pin, photos. (#10)
 - [ ] **P1.8 Services.** CRUD, categories (adult / kids / beard), "from" prices, which masters do which service. (#14)
 - [ ] **P1.9 Staff + invites.** Owner adds a master → bot invite link → master accepts and gets their own login. Roles OWNER / ADMIN / MASTER. (#2)
@@ -114,17 +119,20 @@ AuditLog        actorId, action, entity, entityId, data, createdAt
 - [ ] **P1.12 Walk-in / phone bookings** in 2 taps, auto-creates ShopClient. (#26)
 
 ### 1D. Client side
+
 - [ ] **P1.13 Shop profile page** (deep link target): photos, services, masters, today's free slots strip, address + "Route" (Yandex Navigator / Yandex Go). (#10, #20)
 - [ ] **P1.14 Booking flow:** services → master (or "any") → date → slot → confirm with phone. Uses Telegram MainButton. Light skeletons, cached data. (#11, #24)
 - [ ] **P1.15 My bookings:** upcoming / past, cancel, reschedule.
 - [ ] **P1.16 Discovery:** search + filters (district, price, "free today", near me). (#19)
 
 ### 1E. Notifications
+
 - [ ] **P1.17 Outbox + dispatcher.** `Notification` rows + cron endpoint + retries, templates in 3 languages.
 - [ ] **P1.18 Client reminders** 24h and 2h before with inline buttons (Coming / Cancel / Reschedule). (#15)
 - [ ] **P1.19 Staff alerts** on new / cancelled / rescheduled bookings with Accept / Reject buttons. (#16)
 
 ### 1F. Ship
+
 - [ ] **P1.20 Quality pass.** `/impeccable audit` on all screens, performance on a budget Android (bundle size, no heavy animations), error states, empty states. (#11)
 - [ ] **P1.21 Production setup.** Staging + prod envs, prod bot webhook, DB backups, remove debug code, basic logging. (No v1 data migration — fresh start.) (#5, #6)
 
