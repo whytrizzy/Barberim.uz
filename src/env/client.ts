@@ -4,6 +4,7 @@ import { clientEnvSchema, parseEnv, type ClientEnv } from './schema';
 const raw = {
   NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,
   NEXT_PUBLIC_BOT_USERNAME: process.env.NEXT_PUBLIC_BOT_USERNAME,
+  NEXT_PUBLIC_YANDEX_MAPS_KEY: process.env.NEXT_PUBLIC_YANDEX_MAPS_KEY,
 };
 
 const skip = process.env.SKIP_ENV_VALIDATION === '1';

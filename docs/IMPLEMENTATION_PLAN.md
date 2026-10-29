@@ -111,7 +111,8 @@ AuditLog        actorId, action, entity, entityId, data, createdAt
 
 ### 1C. Shop & staff management (barber side)
 
-- [ ] **P1.7 Shop onboarding.** Create shop: name, address + landmark, district, Yandex map pin, photos. (#10)
+- [x] **P1.7 Shop onboarding.** `/staff/new` and `/staff/shop/:id`: name, auto link name (`slugify`, live availability check, reserved words), region (14) + Tashkent district (12) or free text, address, landmark, map pin from device location (Telegram LocationManager / GPS) or a pasted Yandex/Google link; optional Yandex static map preview (`NEXT_PUBLIC_YANDEX_MAPS_KEY`). Shop starts as DRAFT with the user as bookable OWNER; max 3 owned shops. `POST /api/shops`, `GET /api/shops/slug`, `GET/PATCH /api/shops/:id`. (#10)
+- [ ] **P1.7b Shop photos.** Upload, order and delete shop photos. Needs a storage decision first: AWS S3 (+ CloudFront) or Neon Object Storage (S3-compatible, eu-central-1, no CDN).
 - [ ] **P1.8 Services.** CRUD, categories (adult / kids / beard), "from" prices, which masters do which service. (#14)
 - [ ] **P1.9 Staff + invites.** Owner adds a master → bot invite link → master accepts and gets their own login. Roles OWNER / ADMIN / MASTER. (#2)
 - [ ] **P1.10 Schedules.** Weekly hours per master, breaks, days off / vacations, "today I leave at 16:00", presets: Friday prayer break, Ramadan hours. (#3, #12)

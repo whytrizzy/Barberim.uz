@@ -7,7 +7,7 @@
  */
 
 const protectedPattern =
-  /(\{[^}]+\}|\/[a-z_]+|https?:\/\/\S+|\b[A-Z][A-Z0-9]*_[A-Z0-9_]+\b|\b(?:Barberim|Telegram|Mini App|Click|Payme|Uzum|Yandex|Instagram)\b)/g;
+  /(\{[^}]+\}|\/[a-z_]+|https?:\/\/\S+|\b[A-Z][A-Z0-9]*_[A-Z0-9_]+\b|\b(?:Barberim|Telegram|Mini App|Click|Payme|Uzum|Yandex|Google|Instagram)\b)/g;
 
 // Modifier letters: oʻ gʻ use U+02BB (also typed as ‘ ' ’); the tutuq belgisi ʼ is U+02BC (or ’ ').
 const turnedComma = "[ʻ‘'’`]";

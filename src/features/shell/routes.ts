@@ -9,11 +9,17 @@ const rootPaths = new Set([
   '/staff/more',
 ]);
 
+/** Exact pages whose parent isn't derived from the path. */
+const exactParents: Record<string, string> = {
+  '/staff/new': '/',
+};
+
 /** Parents that aren't simply "drop the last segment" (e.g. /booking/123 has no /booking page). */
 const parentOverrides: Record<string, string> = {
   '/booking': '/bookings',
   '/shop': '/discover',
   '/staff': '/staff/today',
+  '/staff/shop': '/',
   '/master': '/',
   '/invite': '/',
 };
@@ -25,6 +31,8 @@ export function isRootPath(pathname: string): boolean {
 /** Where Back goes when there is no in-app history: the logical parent screen. */
 export function parentPath(pathname: string): string {
   const trimmed = pathname.replace(/\/+$/, '');
+  const exact = exactParents[trimmed];
+  if (exact) return exact;
   const parent = trimmed.slice(0, trimmed.lastIndexOf('/')) || '/';
   return parentOverrides[parent] ?? parent;
 }

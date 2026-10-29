@@ -7,7 +7,12 @@ function createClient(): PrismaClient {
   const connectionString = serverEnv.DATABASE_URL;
   if (!connectionString) throw new Error('DATABASE_URL is not set');
   // The pooled (Neon PgBouncer) URL: many short-lived Lambda instances share few connections.
-  return new PrismaClient({ adapter: new PrismaPg({ connectionString }) });
+  return new PrismaClient({
+    adapter: new PrismaPg({ connectionString }),
+    // Neon scales to zero when idle; waking it takes a few seconds. Prisma's defaults (2 s wait,
+    // 5 s run) would fail the first request after a quiet period, so allow for the cold start.
+    transactionOptions: { maxWait: 10_000, timeout: 15_000 },
+  });
 }
 
 // One client per process; in development it survives hot reloads instead of leaking connections.

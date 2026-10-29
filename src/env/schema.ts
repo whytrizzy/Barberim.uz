@@ -35,6 +35,8 @@ export const serverEnvSchema = z
 
 export const clientEnvSchema = z.object({
   NEXT_PUBLIC_APP_URL: z.url().default('http://localhost:3000'),
+  // Optional: Yandex Static Maps API key; without it the app shows a map link instead of a preview.
+  NEXT_PUBLIC_YANDEX_MAPS_KEY: optional(z.string().min(10)),
   NEXT_PUBLIC_BOT_USERNAME: optional(
     z.string().regex(/^[A-Za-z0-9_]{5,32}$/, 'must be a Telegram username without @'),
   ),

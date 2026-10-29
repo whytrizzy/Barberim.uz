@@ -34,5 +34,6 @@ describe('latinToCyrillic', () => {
       'NEXT_PUBLIC_APP_URL https://x.uz билан',
     );
     expect(latinToCyrillic('Telegram ichida')).toBe('Telegram ичида');
+    expect(latinToCyrillic('Yandex yoki Google xarita')).toBe('Yandex ёки Google харита');
   });
 });
