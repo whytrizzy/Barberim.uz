@@ -15,6 +15,10 @@ export const shopSettingsSchema = z.object({
     .catch(defaultBookingRules.minNoticeMin),
   bufferMin: z.number().int().min(0).max(60).catch(defaultBookingRules.bufferMin),
   horizonDays: z.number().int().min(1).max(365).catch(defaultBookingRules.horizonDays),
+  /** Client bookings wait for the shop to accept them (PENDING) instead of confirming at once. */
+  requireApproval: z.boolean().catch(false),
+  /** How many upcoming bookings one client may hold at this shop (abuse protection). */
+  maxActiveBookingsPerClient: z.number().int().min(1).max(20).catch(3),
 });
 export type ShopSettings = z.infer<typeof shopSettingsSchema>;
 

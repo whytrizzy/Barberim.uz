@@ -106,7 +106,7 @@ AuditLog        actorId, action, entity, entityId, data, createdAt
 ### 1B. Core booking engine
 
 - [x] **P1.4 Availability engine** (`src/domain/availability.ts`, pure): working windows from weekly blocks (breaks) + date overrides (day off wins, custom hours replace), a step grid plus "right after a booking" starts (no gaps), buffer, minimum notice, horizon, Tashkent time; day status open/full/closed/day_off/past/beyond_horizon; `checkSlot` for server-side re-checks (clients only offered starts, staff `anyStart`). 500-run randomized invariant test. Server loader `getAvailability` (range of days in one round trip) with shop settings parsed safely. (#3)
-- [ ] **P1.5 Booking service.** Create / cancel / reschedule / complete / no-show with transition rules, snapshots, and constraint-violation → friendly "slot just taken" error. Fully unit-tested. (#1, #4)
+- [x] **P1.5 Booking service.** Pure rules in `src/domain/booking.ts` (who may confirm/cancel/complete/no-show/reschedule, when; price/duration snapshots with per-master overrides). `src/server/services/booking.ts`: client bookings (phone required, offered starts only, blocked clients, max upcoming per client, optional approval), staff walk-in/phone bookings (any time, own calendar for masters), actions with compare-and-set updates, visit/no-show counters, audit log; DB overlap → friendly `slot_taken`. Routes `POST /api/bookings`, `PATCH /api/bookings/:id`. 15 end-to-end DB tests incl. a simultaneous race. (#1, #4)
 - [ ] **P1.6 "Any free master" + family booking** logic (back-to-back slots, `groupId`). (#24 core, #14 core)
 
 ### 1C. Shop & staff management (barber side)
