@@ -9,6 +9,7 @@ import {
   useState,
   type ReactNode,
 } from 'react';
+import { devTelegramUser } from '@/lib/dev-user';
 import type { ColorScheme, TelegramUser, TelegramWebApp } from './types';
 import { getWebApp, readToken, safely, supports } from './webapp';
 
@@ -39,7 +40,7 @@ type TelegramContextValue = {
 
 const TelegramContext = createContext<TelegramContextValue | null>(null);
 
-const devUser: TelegramUser = { id: 100000001, first_name: 'Dev', language_code: 'uz' };
+const devUser: TelegramUser = devTelegramUser;
 
 /** Paints Telegram's header, background and bottom bar in the current theme's tile color. */
 function paintChrome(webApp: TelegramWebApp) {

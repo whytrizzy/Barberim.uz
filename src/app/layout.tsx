@@ -4,6 +4,7 @@ import Script from 'next/script';
 import type { ReactNode } from 'react';
 import { BrowserBackBar, BrowserMainBar } from '@/features/shell/browser-chrome';
 import { LanguageGate } from '@/features/shell/language-gate';
+import { QueryProvider } from '@/features/shell/query-provider';
 import { RouteBackButton } from '@/features/shell/route-back-button';
 import { htmlLang } from '@/i18n/locales';
 import { I18nProvider } from '@/i18n/provider';
@@ -56,18 +57,20 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
       <body>
         <Script src="https://telegram.org/js/telegram-web-app.js" strategy="beforeInteractive" />
         <TelegramProvider>
-          <I18nProvider initialLocale={locale} initialChosen={chosen}>
-            <div className="flex min-h-dvh flex-col">
-              <BrowserBackBar />
-              <div className="flex-1">
-                <LanguageGate>
-                  <RouteBackButton />
-                  {children}
-                </LanguageGate>
+          <QueryProvider>
+            <I18nProvider initialLocale={locale} initialChosen={chosen}>
+              <div className="flex min-h-dvh flex-col">
+                <BrowserBackBar />
+                <div className="flex-1">
+                  <LanguageGate>
+                    <RouteBackButton />
+                    {children}
+                  </LanguageGate>
+                </div>
+                <BrowserMainBar />
               </div>
-              <BrowserMainBar />
-            </div>
-          </I18nProvider>
+            </I18nProvider>
+          </QueryProvider>
         </TelegramProvider>
       </body>
     </html>

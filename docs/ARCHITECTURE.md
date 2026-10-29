@@ -63,6 +63,10 @@ inside one folder.
 ## Conventions
 
 - **Files:** `kebab-case` for everything, components included (`tile-group.tsx`, as shadcn/ui does); exported components are `PascalCase`; tests next to the code as `*.test.ts`.
+- **Auth:** every API call sends `Authorization: tma <Telegram initData>` (`features/api/client.ts`
+  does it). Routes call `requireUser(request)` and, for shop data, `requireStaff(user.id, shopId, roles)`
+  from `server/auth/auth.ts`. No cookies or sessions: Telegram re-signs the data on every launch,
+  which also works inside Telegram Web's iframe. Wrap handlers in `route()` (`server/http/route.ts`).
 - **Validation:** every API input is parsed with a Zod schema from `features/<domain>/schemas.ts`.
 - **Errors:** services throw typed `AppError`s (code + i18n key); `server/http` maps them to HTTP.
 - **Time:** store UTC, compute in `Asia/Tashkent` via `domain/time` helpers only — never `new Date()`

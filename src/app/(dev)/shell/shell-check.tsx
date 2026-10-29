@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useState } from 'react';
 import { formatUzPhone } from '@/domain/phone';
 import { fromTashkent } from '@/domain/time';
+import { useSession } from '@/features/auth/use-session';
 import { LanguagePicker } from '@/features/settings/language-picker';
 import {
   formatDayMonth,
@@ -57,6 +58,18 @@ export function ShellCheck() {
     ['Start param', startParam ?? '—'],
   ];
 
+  const session = useSession();
+  const sessionRows: [string, string][] = session.data
+    ? [
+        ['Account', `${session.data.user.firstName} · ${session.data.user.id.slice(0, 8)}…`],
+        ['Saved locale', session.data.user.locale],
+        [
+          'Works at',
+          session.data.memberships.map((m) => `${m.shop.name} (${m.role})`).join(', ') || '—',
+        ],
+      ]
+    : [['Status', session.isError ? `error: ${String(session.error)}` : 'loading…']];
+
   return (
     <main className="mx-auto max-w-[390px] px-4 pt-4 pb-6">
       <h1 className="font-sign text-[34px] leading-none font-bold uppercase">Shell</h1>
@@ -66,6 +79,17 @@ export function ShellCheck() {
       <LanguagePicker value={locale} onChange={setLocale} label="Til" />
       <TileList className="mt-2">
         {samples.map(([label, value]) => (
+          <TileRow
+            key={label}
+            lead={<span className="text-xs font-normal text-ink-muted">{label}</span>}
+            title={value}
+          />
+        ))}
+      </TileList>
+
+      <SectionLabel>Session · server-verified</SectionLabel>
+      <TileList>
+        {sessionRows.map(([label, value]) => (
           <TileRow
             key={label}
             lead={<span className="text-xs font-normal text-ink-muted">{label}</span>}

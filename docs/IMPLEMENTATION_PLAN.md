@@ -100,7 +100,7 @@ AuditLog        actorId, action, entity, entityId, data, createdAt
 ### 1A. Data + auth
 
 - [x] **P1.1 Schema + migrations** for User, Shop, Staff, StaffInvite, Service, StaffService, WeeklyHours, ScheduleOverride, ShopClient, Booking, BookingItem, Notification, AuditLog. Raw SQL migration for the exclusion constraint. Seed script with a realistic Tashkent shop. (#1, #4) — Done: Prisma 7.10 + @prisma/adapter-pg on the Neon dev branch; `bookings_no_overlap` exclusion constraint + value checks in SQL; `npm run test:db` proves overlaps (incl. a simultaneous race) are rejected.
-- [ ] **P1.2 Auth.** Verify Telegram initData (HMAC) server-side → session (signed cookie/JWT). Role guard helpers: `requireUser`, `requireStaff(shopId, roles)`. Rate limiting on write endpoints. (#36 basics)
+- [x] **P1.2 Auth.** Telegram initData verified server-side (HMAC-SHA256, timing-safe, 24h max age) on every request via `Authorization: tma …` — no cookies, so it also works in Telegram Web's iframe. `POST /api/auth/session` syncs the account (and the chosen language). `requireUser` / `requireStaff(userId, shopId, roles)`, typed API errors, Zod-validated bodies, basic per-instance rate limiting. Dev-only signed login for browser mode, gated on APP_ENV=development **and** a non-production build. (#36 basics)
 - [ ] **P1.3 Phone capture.** Telegram `requestContact` for verified phone; manual input with `+998` mask as fallback. (#8)
 
 ### 1B. Core booking engine
