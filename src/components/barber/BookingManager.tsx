@@ -91,6 +91,12 @@ export function BookingManager({ bookings, onUpdateStatus }: BookingManagerProps
                   <div className="text-[11px] text-muted truncate mt-0.5">
                     {serviceNames} · <span className="text-gold font-bold">{formatUZS(booking.totalPrice)}</span>
                   </div>
+                  {booking.master && (
+                    <div className="text-[11px] text-dim truncate mt-0.5">👤 {booking.master.name}</div>
+                  )}
+                  {booking.notes && (
+                    <div className="text-[11px] text-blue mt-1 break-words">💬 {booking.notes}</div>
+                  )}
                   {booking.client?.phone && (
                     <a
                       href={`tel:${booking.client.phone}`}

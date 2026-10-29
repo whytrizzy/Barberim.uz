@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { BarberProfileType, ServiceType, TimeSlot, BookingType } from '@/types';
+import { BarberProfileType, ServiceType, TimeSlot, BookingType, MasterType } from '@/types';
 import { useAuth } from '@/lib/AuthContext';
 import { apiFetch } from '@/lib/apiClient';
 import { useLanguage } from '@/lib/i18n/LanguageContext';
@@ -42,9 +42,32 @@ export function BarberBookingWizard({ barber, onBookingComplete }: BarberBooking
     fetchServices();
   }, [barber.id, barber.services]);
 
+  // ─── Masters ────────────────────────────────────────────────────
+  const [masters, setMasters] = useState<MasterType[]>(barber.masters || []);
+  const [selectedMasterId, setSelectedMasterId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchMasters = async () => {
+      try {
+        const res = await fetch(`/api/barbers/${barber.id}/masters`);
+        const data = await res.json();
+        if (data.success) {
+          const list: MasterType[] = data.masters || [];
+          setMasters(list);
+          // Auto-select when the shop has a single master — no pointless choice.
+          if (list.length === 1) setSelectedMasterId(list[0].id);
+        }
+      } catch (err) {
+        console.error('Failed to fetch masters:', err);
+      }
+    };
+    fetchMasters();
+  }, [barber.id]);
+
   // ─── Booking state ──────────────────────────────────────────────
   const [selectedServiceIds, setSelectedServiceIds] = useState<string[]>([]);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [notes, setNotes] = useState('');
   const [selectedDate, setSelectedDate] = useState<string>(() => tashkentDateOption(0).isoDate);
   const [availableSlots, setAvailableSlots] = useState<TimeSlot[]>([]);
   const [loadingSlots, setLoadingSlots] = useState(false);
@@ -52,6 +75,8 @@ export function BarberBookingWizard({ barber, onBookingComplete }: BarberBooking
   const [step, setStep] = useState<'SERVICES' | 'SLOT' | 'CONFIRM' | 'SUCCESS'>('SERVICES');
   const [submitting, setSubmitting] = useState(false);
   const [confirmedBooking, setConfirmedBooking] = useState<BookingType | null>(null);
+
+  const selectedMaster = masters.find((m) => m.id === selectedMasterId) || null;
 
   const selectedServices = services.filter((s) => selectedServiceIds.includes(s.id));
   const totalDurationMinutes = selectedServices.reduce((sum, s) => sum + s.durationMinutes, 0) || 30;
@@ -70,18 +95,19 @@ export function BarberBookingWizard({ barber, onBookingComplete }: BarberBooking
   useEffect(() => {
     // Only (re)load slots on the SLOT step. Fetching on CONFIRM used to reset
     // selectedSlot and unmount the confirm screen (booking became impossible).
-    if (step === 'SLOT') {
+    if (step === 'SLOT' && selectedMasterId) {
       fetchSlots();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedDate, totalDurationMinutes, step]);
+  }, [selectedDate, totalDurationMinutes, step, selectedMasterId]);
 
   const fetchSlots = async () => {
+    if (!selectedMasterId) return;
     setLoadingSlots(true);
     setSelectedSlot(null);
     try {
       const res = await fetch(
-        `/api/barbers/${barber.id}/slots?date=${selectedDate}&duration=${totalDurationMinutes}`
+        `/api/barbers/${barber.id}/slots?masterId=${selectedMasterId}&date=${selectedDate}&duration=${totalDurationMinutes}`
       );
       const data = await res.json();
       if (data.success) {
@@ -97,6 +123,7 @@ export function BarberBookingWizard({ barber, onBookingComplete }: BarberBooking
   const handleCreateBooking = async () => {
     if (!user?.id) { setErrorMsg('Xatolik: foydalanuvchi aniqlanmadi'); return; }
     if (selectedServiceIds.length === 0) { setErrorMsg('Xizmat tanlanmagan'); return; }
+    if (!selectedMasterId) { setErrorMsg('Usta tanlanmagan'); return; }
     if (!selectedSlot) { setErrorMsg('Vaqt tanlanmagan'); return; }
 
     setSubmitting(true);
@@ -106,8 +133,10 @@ export function BarberBookingWizard({ barber, onBookingComplete }: BarberBooking
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           barberId: barber.id,
+          masterId: selectedMasterId,
           serviceIds: selectedServiceIds,
           startTime: selectedSlot.isoString,
+          notes: notes.trim() || null,
         }),
       });
 
@@ -243,8 +272,51 @@ export function BarberBookingWizard({ barber, onBookingComplete }: BarberBooking
             </button>
           </div>
 
+          {/* Master picker — only when the shop has more than one */}
+          {masters.length > 1 && (
+            <>
+              <div className="cap mb-2">Usta</div>
+              <div className="flex items-center gap-2 overflow-x-auto pb-2 mb-3">
+                {masters.map((m) => {
+                  const isSelected = selectedMasterId === m.id;
+                  return (
+                    <button
+                      key={m.id}
+                      onClick={() => setSelectedMasterId(m.id)}
+                      className={`flex flex-col items-center gap-1.5 rounded-2xl min-w-[92px] p-3 border transition-all shrink-0 ${
+                        isSelected ? 'border-gold bg-gold/[0.07]' : 'bg-surface border-line'
+                      }`}
+                    >
+                      <div
+                        className={`w-10 h-10 rounded-xl flex items-center justify-center text-base font-black ${
+                          isSelected
+                            ? 'bg-gradient-to-br from-gold to-gold-600 text-gold-ink'
+                            : 'bg-surface-2 text-muted'
+                        }`}
+                      >
+                        {m.name.trim().charAt(0).toUpperCase()}
+                      </div>
+                      <span className={`text-xs font-bold ${isSelected ? 'text-white' : 'text-muted'}`}>
+                        {m.name}
+                      </span>
+                      {m.specialty && (
+                        <span className="text-[10px] text-dim truncate max-w-[80px]">{m.specialty}</span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </>
+          )}
+
+          {!selectedMasterId && masters.length > 1 && (
+            <div className="card p-5 text-center text-xs text-muted">
+              Davom etish uchun ustani tanlang
+            </div>
+          )}
+
           {/* Date strip */}
-          <div className="flex items-center gap-2 overflow-x-auto pb-2">
+          <div className={`flex items-center gap-2 overflow-x-auto pb-2 ${!selectedMasterId ? 'opacity-40 pointer-events-none' : ''}`}>
             {dateOptions.map((item) => {
               const isSelected = selectedDate === item.isoDate;
               return (
@@ -283,6 +355,20 @@ export function BarberBookingWizard({ barber, onBookingComplete }: BarberBooking
             🕐 Vaqtlar Toshkent (UTC+5) bo&apos;yicha
           </div>
 
+          {/* Optional note for the master */}
+          {selectedSlot && (
+            <div className="mt-4">
+              <div className="cap mb-1.5">Usta uchun izoh (ixtiyoriy)</div>
+              <textarea
+                value={notes}
+                onChange={(e) => setNotes(e.target.value.slice(0, 300))}
+                rows={2}
+                placeholder="masalan: yon tomonini kalta qilmang"
+                className="w-full bg-surface border border-line rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-dim outline-none focus:border-gold resize-none"
+              />
+            </div>
+          )}
+
           {selectedSlot && (
             <div className="mainbtn-wrap">
               <Button variant="primary" size="lg" fullWidth onClick={() => setStep('CONFIRM')}>
@@ -315,6 +401,12 @@ export function BarberBookingWizard({ barber, onBookingComplete }: BarberBooking
             </div>
 
             <div className="h-px bg-line my-3" />
+            {selectedMaster && (
+              <div className="flex justify-between text-sm mb-2.5">
+                <span className="text-muted">Usta</span>
+                <span className="font-bold text-white">{selectedMaster.name}</span>
+              </div>
+            )}
             <div className="flex justify-between text-sm">
               <span className="text-muted">Sana</span>
               <span className="font-bold text-white">{formatTashkentDate(selectedSlot.isoString, true)}</span>
@@ -331,6 +423,12 @@ export function BarberBookingWizard({ barber, onBookingComplete }: BarberBooking
                 {selectedServices.map((s) => s.name).join(', ')}
               </span>
             </div>
+            {notes.trim() && (
+              <div className="flex justify-between text-sm mt-2.5">
+                <span className="text-muted shrink-0">Izoh</span>
+                <span className="text-white text-right max-w-[190px] break-words">{notes.trim()}</span>
+              </div>
+            )}
             <div className="h-px bg-line my-3" />
             <div className="flex justify-between items-center">
               <span className="font-bold text-white">{t('total')}</span>

@@ -27,9 +27,24 @@ export interface BarberProfileType {
   shopName?: string | null;
   bio: string | null;
   address: string | null;
+  photoUrl?: string | null;
   workingHours: WorkingHours;
   user?: UserType;
   services?: ServiceType[];
+  masters?: MasterType[];
+}
+
+/// An individual barber at a shop. Each master has their own calendar.
+export interface MasterType {
+  id: string;
+  shopId: string;
+  name: string;
+  photoUrl?: string | null;
+  specialty?: string | null;
+  /// null => inherits the shop's working hours
+  workingHours?: WorkingHours | null;
+  isActive?: boolean;
+  sortOrder?: number;
 }
 
 export interface ServiceType {
@@ -50,6 +65,7 @@ export interface BookingType {
   id: string;
   clientId: string;
   barberId: string;
+  masterId?: string | null;
   startTime: string;
   endTime: string;
   totalPrice: number;
@@ -57,6 +73,7 @@ export interface BookingType {
   notes?: string | null;
   client?: UserType;
   barber?: BarberProfileType;
+  master?: MasterType | null;
   services?: { service: ServiceType }[];
   createdAt?: string;
 }

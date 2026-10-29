@@ -3,9 +3,24 @@ import {
   BarberProfileType,
   ServiceType,
   BookingType,
+  MasterType,
   WorkingHours,
   BookingStatus,
 } from '@/types';
+
+/** Map a Prisma master row to the API shape. */
+function toMaster(m: any): MasterType {
+  return {
+    id: m.id,
+    shopId: m.shopId,
+    name: m.name,
+    photoUrl: m.photoUrl,
+    specialty: m.specialty,
+    workingHours: (m.workingHours as unknown as WorkingHours) ?? null,
+    isActive: m.isActive,
+    sortOrder: m.sortOrder,
+  };
+}
 
 // ─── Barber Profile ─────────────────────────────────────────────────
 
@@ -23,6 +38,7 @@ export async function getBarberProfile(barberId?: string, userId?: string): Prom
     include: {
       user: true,
       services: { where: { isActive: true } },
+      masters: { where: { isActive: true }, orderBy: { sortOrder: 'asc' } },
     },
   });
 
@@ -34,6 +50,8 @@ export async function getBarberProfile(barberId?: string, userId?: string): Prom
     shopName: profile.shopName,
     bio: profile.bio,
     address: profile.address,
+    photoUrl: profile.photoUrl,
+    masters: profile.masters.map(toMaster),
     workingHours: profile.workingHours as unknown as WorkingHours,
     user: profile.user
       ? {
@@ -90,6 +108,78 @@ export async function updateBarberProfile(
   });
 
   return getBarberProfile(updated.id);
+}
+
+// ─── Masters ─────────────────────────────────────────────────────────
+
+export async function getMasters(shopId: string, includeInactive = false): Promise<MasterType[]> {
+  const masters = await prisma.master.findMany({
+    where: { shopId, ...(includeInactive ? {} : { isActive: true }) },
+    orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
+  });
+  return masters.map(toMaster);
+}
+
+export async function createMaster(data: {
+  shopId: string;
+  name: string;
+  specialty?: string | null;
+  workingHours?: WorkingHours | null;
+}): Promise<MasterType> {
+  const count = await prisma.master.count({ where: { shopId: data.shopId } });
+  const created = await prisma.master.create({
+    data: {
+      shopId: data.shopId,
+      name: data.name,
+      specialty: data.specialty ?? null,
+      workingHours: (data.workingHours ?? undefined) as any,
+      sortOrder: count,
+    },
+  });
+  return toMaster(created);
+}
+
+export async function updateMaster(
+  masterId: string,
+  data: {
+    name?: string;
+    specialty?: string | null;
+    workingHours?: WorkingHours | null;
+    isActive?: boolean;
+  }
+): Promise<MasterType> {
+  const updated = await prisma.master.update({
+    where: { id: masterId },
+    data: {
+      ...(data.name !== undefined && { name: data.name }),
+      ...(data.specialty !== undefined && { specialty: data.specialty }),
+      ...(data.workingHours !== undefined && { workingHours: data.workingHours as any }),
+      ...(data.isActive !== undefined && { isActive: data.isActive }),
+    },
+  });
+  return toMaster(updated);
+}
+
+/** Soft-delete: keeps past bookings intact, just hides the master from booking. */
+export async function deactivateMaster(masterId: string): Promise<boolean> {
+  await prisma.master.update({ where: { id: masterId }, data: { isActive: false } });
+  return true;
+}
+
+/** Effective hours for a master: their own, else the shop's. */
+export async function getMasterWorkingHours(
+  masterId: string
+): Promise<{ shopId: string; workingHours: WorkingHours } | null> {
+  const master = await prisma.master.findUnique({
+    where: { id: masterId },
+    include: { shop: true },
+  });
+  if (!master) return null;
+  const own = master.workingHours as unknown as WorkingHours | null;
+  return {
+    shopId: master.shopId,
+    workingHours: own ?? (master.shop.workingHours as unknown as WorkingHours),
+  };
 }
 
 // ─── Services ────────────────────────────────────────────────────────
@@ -161,15 +251,21 @@ export async function deleteService(serviceId: string): Promise<boolean> {
 
 // ─── Bookings ────────────────────────────────────────────────────────
 
-export async function getBookings(filter?: { barberId?: string; clientId?: string }): Promise<BookingType[]> {
+export async function getBookings(filter?: {
+  barberId?: string;
+  clientId?: string;
+  masterId?: string;
+}): Promise<BookingType[]> {
   const bookings = await prisma.booking.findMany({
     where: {
       ...(filter?.barberId && { barberId: filter.barberId }),
       ...(filter?.clientId && { clientId: filter.clientId }),
+      ...(filter?.masterId && { masterId: filter.masterId }),
     },
     include: {
       client: true,
       barber: { include: { user: true } },
+      master: true,
       services: { include: { service: true } },
     },
     orderBy: { startTime: 'desc' },
@@ -179,6 +275,8 @@ export async function getBookings(filter?: { barberId?: string; clientId?: strin
     id: b.id,
     clientId: b.clientId,
     barberId: b.barberId,
+    masterId: b.masterId,
+    master: b.master ? toMaster(b.master) : null,
     startTime: b.startTime.toISOString(),
     endTime: b.endTime.toISOString(),
     totalPrice: b.totalPrice,
@@ -230,8 +328,10 @@ export async function getBookings(filter?: { barberId?: string; clientId?: strin
 export async function createBooking(data: {
   barberId: string;
   clientId: string;
+  masterId: string;
   serviceIds: string[];
   startTime: string; // ISO string
+  notes?: string | null;
 }): Promise<BookingType> {
   // Fetch services from DB to calculate duration and price
   const services = await prisma.service.findMany({
@@ -248,14 +348,24 @@ export async function createBooking(data: {
     throw new Error('NO_VALID_SERVICES');
   }
 
-  // Best-effort overlap check to prevent double-booking.
+  // The master must belong to this shop and be active.
+  const master = await prisma.master.findUnique({
+    where: { id: data.masterId },
+    select: { id: true, shopId: true, isActive: true },
+  });
+  if (!master || master.shopId !== data.barberId || !master.isActive) {
+    throw new Error('INVALID_MASTER');
+  }
+
+  // Best-effort overlap check to prevent double-booking — scoped to the MASTER,
+  // since each master has an independent calendar.
   // NOTE: interactive transactions ($transaction with a callback) are avoided
   // here because they are unreliable over the Supabase transaction pooler
   // (pgbouncer, port 6543). Full race safety will come from a DB-level
   // exclusion constraint added via migration later.
   const overlap = await prisma.booking.findFirst({
     where: {
-      barberId: data.barberId,
+      masterId: data.masterId,
       status: { in: ['CONFIRMED', 'PENDING'] },
       startTime: { lt: endDate },
       endTime: { gt: startDate },
@@ -271,10 +381,12 @@ export async function createBooking(data: {
     data: {
       clientId: data.clientId,
       barberId: data.barberId,
+      masterId: data.masterId,
       startTime: startDate,
       endTime: endDate,
       totalPrice,
       status: 'CONFIRMED',
+      notes: data.notes ?? null,
       services: {
         create: data.serviceIds.map((sid) => ({ serviceId: sid })),
       },
@@ -282,6 +394,7 @@ export async function createBooking(data: {
     include: {
       client: true,
       barber: { include: { user: true } },
+      master: true,
       services: { include: { service: true } },
     },
   });
@@ -290,6 +403,9 @@ export async function createBooking(data: {
     id: booking.id,
     clientId: booking.clientId,
     barberId: booking.barberId,
+    masterId: booking.masterId,
+    master: booking.master ? toMaster(booking.master) : null,
+    notes: booking.notes,
     startTime: booking.startTime.toISOString(),
     endTime: booking.endTime.toISOString(),
     totalPrice: booking.totalPrice,

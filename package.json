@@ -10,6 +10,7 @@
     "postinstall": "prisma generate",
     "db:push": "prisma db push",
     "db:seed": "ts-node --compiler-options {\"module\":\"CommonJS\"} prisma/seed.ts",
+    "db:backfill-masters": "ts-node --compiler-options {\"module\":\"CommonJS\"} prisma/backfill-masters.ts",
     "bot": "ts-node scripts/bot.ts"
   },
   "dependencies": {

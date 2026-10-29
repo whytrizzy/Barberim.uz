@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { BarberProfileType, ServiceType, BookingType, WorkingHours, BookingStatus } from '@/types';
+import { BarberProfileType, ServiceType, BookingType, MasterType, WorkingHours, BookingStatus } from '@/types';
 import { useAuth } from '@/lib/AuthContext';
 import { apiFetch } from '@/lib/apiClient';
 import { useLanguage } from '@/lib/i18n/LanguageContext';
@@ -9,15 +9,19 @@ import { ProfileSettings } from './ProfileSettings';
 import { ServiceManager } from './ServiceManager';
 import { ScheduleManager } from './ScheduleManager';
 import { BookingManager } from './BookingManager';
+import { MasterManager } from './MasterManager';
 import { Link2, Check } from 'lucide-react';
 import { formatTashkentDate, formatUZS, tashkentDateOption } from '@/lib/dateUtils';
 
 export function BarberDashboard() {
   const { t } = useLanguage();
   const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState<'BOOKINGS' | 'SERVICES' | 'SCHEDULE' | 'PROFILE'>('BOOKINGS');
+  const [activeTab, setActiveTab] = useState<
+    'BOOKINGS' | 'MASTERS' | 'SERVICES' | 'SCHEDULE' | 'PROFILE'
+  >('BOOKINGS');
 
   const [profile, setProfile] = useState<BarberProfileType | null>(null);
+  const [masters, setMasters] = useState<MasterType[]>([]);
   const [services, setServices] = useState<ServiceType[]>([]);
   const [bookings, setBookings] = useState<BookingType[]>([]);
   const [loading, setLoading] = useState(true);
@@ -39,9 +43,10 @@ export function BarberDashboard() {
         setProfile(profData.profile);
         const bId = profData.profile.id;
 
-        const [servRes, bookRes] = await Promise.all([
+        const [servRes, bookRes, mastRes] = await Promise.all([
           apiFetch(`/api/barber/services?barberId=${bId}`),
           apiFetch(`/api/barber/bookings?barberId=${bId}`),
+          apiFetch('/api/barber/masters'),
         ]);
 
         const servData = await servRes.json();
@@ -49,6 +54,9 @@ export function BarberDashboard() {
 
         const bookData = await bookRes.json();
         if (bookData.success) setBookings(bookData.bookings || []);
+
+        const mastData = await mastRes.json();
+        if (mastData.success) setMasters(mastData.masters || []);
       }
     } catch (err) {
       console.error('Failed to load barber data:', err);
@@ -125,6 +133,32 @@ export function BarberDashboard() {
     if (result.success) {
       setProfile(result.profile);
     }
+  };
+
+  const handleAddMaster = async (data: { name: string; specialty?: string }) => {
+    const res = await apiFetch('/api/barber/masters', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    const result = await res.json();
+    if (result.success) setMasters([...masters, result.master]);
+  };
+
+  const handleEditMaster = async (id: string, data: { name: string; specialty?: string }) => {
+    const res = await apiFetch(`/api/barber/masters/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    const result = await res.json();
+    if (result.success) setMasters(masters.map((m) => (m.id === id ? result.master : m)));
+  };
+
+  const handleDeleteMaster = async (id: string) => {
+    const res = await apiFetch(`/api/barber/masters/${id}`, { method: 'DELETE' });
+    const result = await res.json();
+    if (result.success) setMasters(masters.filter((m) => m.id !== id));
   };
 
   const handleUpdateBookingStatus = async (bookingId: string, status: BookingStatus) => {
@@ -227,6 +261,17 @@ export function BarberDashboard() {
         </div>
       )}
 
+      {activeTab === 'MASTERS' && (
+        <div className="view-fade">
+          <MasterManager
+            masters={masters}
+            onAddMaster={handleAddMaster}
+            onEditMaster={handleEditMaster}
+            onDeleteMaster={handleDeleteMaster}
+          />
+        </div>
+      )}
+
       {activeTab === 'SERVICES' && (
         <div className="view-fade">
           <ServiceManager
@@ -258,6 +303,10 @@ export function BarberDashboard() {
               {activeBookingsCount}
             </span>
           )}
+        </a>
+        <a className={activeTab === 'MASTERS' ? 'on' : ''} onClick={() => setActiveTab('MASTERS')}>
+          <span className="ic">👥</span>
+          Ustalar
         </a>
         <a className={activeTab === 'SERVICES' ? 'on' : ''} onClick={() => setActiveTab('SERVICES')}>
           <span className="ic">✂️</span>

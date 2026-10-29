@@ -12,11 +12,14 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { barberId, serviceIds, startTime } = body;
+    const { barberId, masterId, serviceIds, startTime, notes } = body;
 
-    if (!barberId || !serviceIds?.length || !startTime) {
+    if (!barberId || !masterId || !serviceIds?.length || !startTime) {
       return NextResponse.json(
-        { success: false, error: 'Missing required booking details (barberId, serviceIds, startTime)' },
+        {
+          success: false,
+          error: 'Missing required booking details (barberId, masterId, serviceIds, startTime)',
+        },
         { status: 400 }
       );
     }
@@ -24,9 +27,11 @@ export async function POST(req: NextRequest) {
     // clientId always comes from the verified caller — never trusted from the body.
     const booking = await createBooking({
       barberId,
+      masterId,
       clientId: auth.id,
       serviceIds,
       startTime,
+      notes: typeof notes === 'string' ? notes.slice(0, 300) : null,
     });
 
     return NextResponse.json({ success: true, booking });
@@ -35,6 +40,12 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(
         { success: false, error: 'SLOT_TAKEN', message: 'Bu vaqt band qilib bo\'lindi. Iltimos, boshqa vaqt tanlang.' },
         { status: 409 }
+      );
+    }
+    if (err?.message === 'INVALID_MASTER') {
+      return NextResponse.json(
+        { success: false, error: 'INVALID_MASTER', message: 'Tanlangan usta topilmadi.' },
+        { status: 400 }
       );
     }
     if (err?.message === 'NO_VALID_SERVICES') {

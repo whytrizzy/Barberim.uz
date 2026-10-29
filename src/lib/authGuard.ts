@@ -72,6 +72,14 @@ export async function serviceBarberId(serviceId: string): Promise<string | null>
   return s?.barberId ?? null;
 }
 
+/** Returns the owning shop id of a master, or null if not found. */
+export async function masterShopId(masterId: string): Promise<string | null> {
+  const m = await withDbRetry(() =>
+    prisma.master.findUnique({ where: { id: masterId }, select: { shopId: true } })
+  );
+  return m?.shopId ?? null;
+}
+
 /** Returns the parties of a booking, or null if not found. */
 export async function bookingParties(
   bookingId: string

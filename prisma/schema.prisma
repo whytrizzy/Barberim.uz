@@ -36,21 +36,46 @@ model User {
   @@map("users")
 }
 
+/// A barbershop. Owned by one BARBER user, staffed by one or more Masters.
 model BarberProfile {
   id           String   @id @default(uuid())
   userId       String   @unique @map("user_id")
   shopName     String?  @map("shop_name")
   bio          String?
   address      String?
+  photoUrl     String?  @map("photo_url")
   workingHours Json     @map("working_hours")
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
 
   user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   services Service[]
+  masters  Master[]
   bookings Booking[] @relation("BarberBookings")
 
   @@map("barber_profiles")
+}
+
+/// An individual barber working at a shop. Availability is always computed
+/// per master (each master has their own calendar), never per shop.
+model Master {
+  id           String   @id @default(uuid())
+  shopId       String   @map("shop_id")
+  name         String
+  photoUrl     String?  @map("photo_url")
+  specialty    String?
+  /// null = inherit the shop's working hours
+  workingHours Json?    @map("working_hours")
+  isActive     Boolean  @default(true) @map("is_active")
+  sortOrder    Int      @default(0) @map("sort_order")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  shop     BarberProfile @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  bookings Booking[]
+
+  @@index([shopId])
+  @@map("masters")
 }
 
 model Service {
@@ -72,6 +97,8 @@ model Booking {
   id        String        @id @default(uuid())
   clientId  String        @map("client_id")
   barberId  String        @map("barber_id")
+  /// Nullable only so existing rows can be backfilled; treat as required in code.
+  masterId  String?       @map("master_id")
   startTime DateTime      @map("start_time")
   endTime   DateTime      @map("end_time")
   totalPrice Int          @map("total_price")
@@ -82,8 +109,10 @@ model Booking {
 
   client   User             @relation("ClientBookings", fields: [clientId], references: [id], onDelete: Cascade)
   barber   BarberProfile    @relation("BarberBookings", fields: [barberId], references: [id], onDelete: Cascade)
+  master   Master?          @relation(fields: [masterId], references: [id], onDelete: SetNull)
   services BookingService[]
 
+  @@index([masterId, startTime])
   @@map("bookings")
 }
 

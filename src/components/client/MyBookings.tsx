@@ -70,6 +70,9 @@ export function MyBookings({ bookings, onCancelBooking }: MyBookingsProps) {
                   <div className="text-[11px] text-muted truncate">
                     {serviceNames} · {durMin} daq
                   </div>
+                  {b.master && (
+                    <div className="text-[11px] text-dim truncate">👤 {b.master.name}</div>
+                  )}
                   {b.barber?.address && (
                     <div className="text-[11px] text-dim truncate">📍 {b.barber.address}</div>
                   )}
