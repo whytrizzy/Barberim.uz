@@ -2,6 +2,17 @@
 
 import Link from 'next/link';
 import { useState } from 'react';
+import { formatUzPhone } from '@/domain/phone';
+import { fromTashkent } from '@/domain/time';
+import { LanguagePicker } from '@/features/settings/language-picker';
+import {
+  formatDayMonth,
+  formatDuration,
+  formatMoney,
+  formatTime,
+  formatWeekday,
+} from '@/i18n/format';
+import { useI18n } from '@/i18n/provider';
 import { haptic } from '@/telegram/haptics';
 import { useTelegram } from '@/telegram/provider';
 import { useMainButton } from '@/telegram/use-main-button';
@@ -27,6 +38,16 @@ export function ShellCheck() {
     },
   });
 
+  const { locale, t, setLocale } = useI18n();
+  const sample = fromTashkent(2026, 11, 3, 14, 0);
+  const samples: [string, string][] = [
+    ['Money', formatMoney(250000, locale)],
+    ['Date', `${formatWeekday(sample, locale)}, ${formatDayMonth(sample, locale)}`],
+    ['Time', `${formatTime(sample)} · ${formatDuration(80, locale)}`],
+    ['Phone', formatUzPhone('+998901234567')],
+    ['Text', `${t.calendar.today} · ${t.common.continue} · ${t.common.loading}`],
+  ];
+
   const rows: [string, string][] = [
     ['Mode', mode],
     ['Platform', webApp?.platform ?? '—'],
@@ -40,6 +61,18 @@ export function ShellCheck() {
     <main className="mx-auto max-w-[390px] px-4 pt-4 pb-6">
       <h1 className="font-sign text-[34px] leading-none font-bold uppercase">Shell</h1>
       <p className="mt-1 text-sm text-ink-muted">Telegram integration check · development only</p>
+
+      <SectionLabel>Til · Locale</SectionLabel>
+      <LanguagePicker value={locale} onChange={setLocale} label="Til" />
+      <TileList className="mt-2">
+        {samples.map(([label, value]) => (
+          <TileRow
+            key={label}
+            lead={<span className="text-xs font-normal text-ink-muted">{label}</span>}
+            title={value}
+          />
+        ))}
+      </TileList>
 
       <SectionLabel>Holat</SectionLabel>
       <TileList>

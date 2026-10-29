@@ -1,6 +1,7 @@
 'use client';
 
 import { ArrowLeft } from 'lucide-react';
+import { useI18n } from '@/i18n/provider';
 import { useTelegram } from '@/telegram/provider';
 import { Button } from '@/ui/button';
 
@@ -10,12 +11,13 @@ import { Button } from '@/ui/button';
  */
 export function BrowserBackBar() {
   const { mode, browserBack } = useTelegram();
+  const { t } = useI18n();
   if (mode !== 'browser' || !browserBack) return null;
   return (
     <div className="sticky top-0 z-10 px-2 pt-2">
-      <Button variant="ghost" onClick={browserBack} className="gap-1.5 px-2" aria-label="Orqaga">
+      <Button variant="ghost" onClick={browserBack} className="gap-1.5 px-2">
         <ArrowLeft className="size-5" aria-hidden />
-        Orqaga
+        {t.common.back}
       </Button>
     </div>
   );

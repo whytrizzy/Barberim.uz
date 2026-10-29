@@ -1,0 +1,29 @@
+/**
+ * Uzbekistan phone numbers: +998 followed by a 2-digit operator/area code and 7 digits.
+ * Stored as E.164 (`+998901234567`), shown as `+998 90 123 45 67`.
+ */
+
+const E164 = /^\+998\d{9}$/;
+
+/**
+ * Accepts what people actually type — "90 123 45 67", "998901234567", "+998 (90) 123-45-67",
+ * "8 90 123 45 67" (old domestic prefix) — and returns E.164, or null if it isn't a UZ number.
+ */
+export function normalizeUzPhone(input: string): string | null {
+  let digits = input.replace(/\D/g, '');
+  if (digits.length === 10 && digits.startsWith('8')) digits = digits.slice(1);
+  if (digits.length === 9) digits = `998${digits}`;
+  const e164 = `+${digits}`;
+  return E164.test(e164) ? e164 : null;
+}
+
+export function isUzPhone(value: string): boolean {
+  return E164.test(value);
+}
+
+/** `+998901234567` → `+998 90 123 45 67`; anything else is returned unchanged. */
+export function formatUzPhone(e164: string): string {
+  if (!E164.test(e164)) return e164;
+  const d = e164.slice(4);
+  return `+998 ${d.slice(0, 2)} ${d.slice(2, 5)} ${d.slice(5, 7)} ${d.slice(7, 9)}`;
+}

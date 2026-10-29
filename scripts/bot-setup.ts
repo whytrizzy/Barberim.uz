@@ -8,29 +8,22 @@ import { Api } from 'grammy';
 import { canOpenMiniApp } from '@/bot/payload';
 import { clientEnv } from '@/env/client';
 import { serverEnv } from '@/env/server';
+import { getMessages } from '@/i18n/messages';
 
-// `language_code: undefined` is the default profile, shown for every language not listed below.
+// `language_code: undefined` is the default profile (Uzbek Latin), shown for every language
+// Telegram doesn't match below. Texts come from the shared dictionaries.
 const profiles = [
-  {
-    language_code: undefined,
-    commands: [
-      { command: 'start', description: 'Barberimni ochish' },
-      { command: 'help', description: 'Yordam' },
-    ],
-    short: 'Sartaroshga bir daqiqada yozilish — Telegram ichida.',
-    description:
-      'Barberim: ustangizni tanlang, boʻsh vaqtni bosing — tayyor. Eslatmani bot oʻzi yuboradi.',
-  },
-  {
-    language_code: 'ru' as const,
-    commands: [
-      { command: 'start', description: 'Открыть Barberim' },
-      { command: 'help', description: 'Помощь' },
-    ],
-    short: 'Запись к барберу за минуту — прямо в Telegram.',
-    description: 'Barberim: выберите мастера и свободное время — готово. Напоминание пришлёт бот.',
-  },
-];
+  { language_code: undefined, t: getMessages('uz-Latn').bot },
+  { language_code: 'ru' as const, t: getMessages('ru').bot },
+].map(({ language_code, t }) => ({
+  language_code,
+  commands: [
+    { command: 'start', description: t.commandStart },
+    { command: 'help', description: t.commandHelp },
+  ],
+  short: t.shortDescription,
+  description: t.description,
+}));
 
 async function main() {
   const token = serverEnv.TELEGRAM_BOT_TOKEN;
