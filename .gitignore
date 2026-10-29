@@ -30,3 +30,12 @@ yarn-error.log*
 # TypeScript
 *.tsbuildinfo
 next-env.d.ts
+
+# Local tooling / secrets (never commit)
+agent1/
+.claude/settings.local.json
+service_account*.json
+
+# Deploy tooling (SST / OpenNext)
+.sst/
+.open-next/
