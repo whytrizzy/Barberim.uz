@@ -8,10 +8,12 @@ import {
   type DayOverride,
   type WeeklyBlock,
 } from '@/domain/availability';
+import { combineMasters, groupDuration, type CombinedDay, type MasterDay } from '@/domain/combine';
 import { addDays, dateKey, startOfTashkentDay, type CalendarDate } from '@/domain/time';
 import { parseShopSettings, type ShopSettings } from '@/features/shop/schemas';
 import { db } from '../db/client';
 import { AppError } from '../http/errors';
+import { mastersOffering, priceParties } from './catalog';
 
 const DAY_MS = 86_400_000;
 
@@ -137,5 +139,72 @@ export async function getAvailability({
       date: dateKey(date),
       availability: dayAvailability(dayInput(schedule, date, durationMin, now)),
     };
+  });
+}
+
+/**
+ * One master's availability for the chosen services: for one person, or a family back to back
+ * (`parties` = each person's services). The duration uses the master's own service times.
+ */
+export async function getMasterAvailability({
+  staffId,
+  parties,
+  from,
+  days = 1,
+  now = new Date(),
+}: {
+  staffId: string;
+  parties: string[][];
+  from: CalendarDate;
+  days?: number;
+  now?: Date;
+}): Promise<DayResult[]> {
+  const staff = await db.staff.findUnique({ where: { id: staffId }, select: { shopId: true } });
+  if (!staff) throw new AppError('not_found', 'staff not found');
+  const durationMin = groupDuration(await priceParties(staffId, staff.shopId, parties));
+  return getAvailability({ staffId, from, days, durationMin, now });
+}
+
+export type CombinedDayResult = { date: string; availability: CombinedDay };
+
+/**
+ * "Any free master": every bookable master who offers all the chosen services, merged per day.
+ * Each slot lists who can take it, least busy first.
+ */
+export async function getShopAvailability({
+  shopId,
+  parties,
+  from,
+  days = 1,
+  now = new Date(),
+}: {
+  shopId: string;
+  parties: string[][];
+  from: CalendarDate;
+  days?: number;
+  now?: Date;
+}): Promise<CombinedDayResult[]> {
+  if (days < 1 || days > 62) throw new AppError('invalid_input', 'days must be 1–62');
+  const masters = await mastersOffering(shopId, parties.flat());
+  const perMaster = await Promise.all(
+    masters.map(async (m) => {
+      const durationMin = groupDuration(await priceParties(m.id, shopId, parties));
+      const schedule = await loadSchedule(m.id, from, days);
+      return { master: m, durationMin, schedule };
+    }),
+  );
+  return Array.from({ length: days }, (_, i) => {
+    const date = addDays(from, i);
+    const dayStart = startOfTashkentDay(date).getTime();
+    const dayEnd = dayStart + DAY_MS;
+    const masterDays: MasterDay[] = perMaster.map(({ master, durationMin, schedule }) => ({
+      staffId: master.id,
+      sortOrder: master.sortOrder,
+      load: schedule.busy.filter(
+        (b) => b.startAt.getTime() >= dayStart && b.startAt.getTime() < dayEnd,
+      ).length,
+      availability: dayAvailability(dayInput(schedule, date, durationMin, now)),
+    }));
+    return { date: dateKey(date), availability: combineMasters(masterDays) };
   });
 }
