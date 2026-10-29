@@ -85,7 +85,7 @@ AuditLog        actorId, action, entity, entityId, data, createdAt
 
 - [x] **P0.1 Branch + clean slate.** Tag `v1-legacy`, create `rebuild/v2`, move v1 `src/` aside (`legacy/`, excluded from build), add `agent1/` and secrets to `.gitignore`.
 - [x] **P0.2 Project setup.** Next.js 16, TS strict, ESLint + Prettier, path aliases, env validation with Zod (`src/env/`), Vitest. Build fails on type errors.
-- [ ] **P0.3 Folder structure.** `src/app` (routes), `src/features/<domain>` (booking, shop, staff, schedule, clients…), `src/server` (db, auth, services), `src/ui` (design-system components), `src/i18n`, `src/bot`.
+- [x] **P0.3 Folder structure.** `src/app` (routes), `src/features/<domain>` (booking, shop, staff, schedule, clients…), `src/server` (db, auth, services), `src/ui` (design-system components), `src/i18n`, `src/bot`.
 - [ ] **P0.4 Design system.** `/impeccable init` → `DESIGN.md` (colors, type, spacing, radius, motion, tone of voice). Tokens in Tailwind v4 theme, light + dark that follow Telegram's theme. shadcn/ui base components themed.
 - [ ] **P0.5 Telegram shell.** Telegram WebApp SDK wrapper: initData, theme sync, BackButton/MainButton hooks, haptics (guarded), viewport/safe areas. Dev mode that works in a normal browser with a fake user.
 - [ ] **P0.6 Bot skeleton.** grammY webhook route, `/start` with deep-link payloads (`shop_<slug>`, `staff_<id>`, `invite_<token>`), menu button opening the Mini App. Separate dev bot.
