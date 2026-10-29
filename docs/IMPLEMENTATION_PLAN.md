@@ -105,7 +105,7 @@ AuditLog        actorId, action, entity, entityId, data, createdAt
 
 ### 1B. Core booking engine
 
-- [ ] **P1.4 Availability engine** (pure functions + Vitest): weekly hours with breaks, overrides, existing bookings, service duration, buffer, "now + min notice", Tashkent time. Port useful parts of v1 `slotEngine.ts`. (#3)
+- [x] **P1.4 Availability engine** (`src/domain/availability.ts`, pure): working windows from weekly blocks (breaks) + date overrides (day off wins, custom hours replace), a step grid plus "right after a booking" starts (no gaps), buffer, minimum notice, horizon, Tashkent time; day status open/full/closed/day_off/past/beyond_horizon; `checkSlot` for server-side re-checks (clients only offered starts, staff `anyStart`). 500-run randomized invariant test. Server loader `getAvailability` (range of days in one round trip) with shop settings parsed safely. (#3)
 - [ ] **P1.5 Booking service.** Create / cancel / reschedule / complete / no-show with transition rules, snapshots, and constraint-violation → friendly "slot just taken" error. Fully unit-tested. (#1, #4)
 - [ ] **P1.6 "Any free master" + family booking** logic (back-to-back slots, `groupId`). (#24 core, #14 core)
 
