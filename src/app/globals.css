@@ -1,3 +1,146 @@
 @import 'tailwindcss';
 
-/* Design tokens arrive in P0.4 (DESIGN.md). */
+/* Sartaroshxona design tokens — see DESIGN.md. Theme comes from Telegram via <html data-theme>,
+   falling back to the OS setting when the attribute is absent (plain browser during development). */
+
+@custom-variant dark (&:where([data-theme='dark'], [data-theme='dark'] *));
+
+:root {
+  color-scheme: light;
+  --tile: #d9e8e1; /* mint wall tile: page ground */
+  --grout: rgb(255 255 255 / 0.55); /* faint grout lines on the wall */
+  --porcelain: #fbfdfc; /* tile surface for controls and rows */
+  --porcelain-sunk: #eef3f1; /* taken / inactive tiles */
+  --chrome: #a9b7b2; /* 1px grout between joined tiles, borders */
+  --ink: #0f332b; /* bottle green text */
+  --ink-muted: #4b6a62;
+  --ink-faint: #7f948d; /* disabled text only */
+  --enamel: #ae1730; /* sign red: brand, primary action, selection */
+  --enamel-strong: #921327; /* pressed */
+  --enamel-text: #ae1730; /* red used as text (links, errors) */
+  --on-enamel: #ffffff;
+  --pick: #0f332b; /* selected master / day tile */
+  --on-pick: #fbfdfc;
+  --success: #1f7a4d;
+  --warning: #9a6a00;
+}
+
+/* Dark tokens appear twice: once for Telegram's explicit dark theme, once for the OS fallback.
+   Keep the two blocks identical. */
+[data-theme='dark'] {
+  color-scheme: dark;
+  --tile: #0f2621;
+  --grout: rgb(255 255 255 / 0.035);
+  --porcelain: #16332c;
+  --porcelain-sunk: #122b25;
+  --chrome: #2b4b43;
+  --ink: #e6f2ed;
+  --ink-muted: #9bb8af;
+  --ink-faint: #6a8a81;
+  --enamel: #c8243d;
+  --enamel-strong: #a81c32;
+  --enamel-text: #f27a88;
+  --on-enamel: #ffffff;
+  --pick: #2f6b5c;
+  --on-pick: #ffffff;
+  --success: #4cc28a;
+  --warning: #e0b24a;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) {
+    color-scheme: dark;
+    --tile: #0f2621;
+    --grout: rgb(255 255 255 / 0.035);
+    --porcelain: #16332c;
+    --porcelain-sunk: #122b25;
+    --chrome: #2b4b43;
+    --ink: #e6f2ed;
+    --ink-muted: #9bb8af;
+    --ink-faint: #6a8a81;
+    --enamel: #c8243d;
+    --enamel-strong: #a81c32;
+    --enamel-text: #f27a88;
+    --enamel-text: #f27a88;
+    --on-enamel: #ffffff;
+    --pick: #2f6b5c;
+    --on-pick: #ffffff;
+    --success: #4cc28a;
+    --warning: #e0b24a;
+  }
+}
+
+@theme inline {
+  --color-tile: var(--tile);
+  --color-porcelain: var(--porcelain);
+  --color-porcelain-sunk: var(--porcelain-sunk);
+  --color-chrome: var(--chrome);
+  --color-ink: var(--ink);
+  --color-ink-muted: var(--ink-muted);
+  --color-ink-faint: var(--ink-faint);
+  --color-enamel: var(--enamel);
+  --color-enamel-strong: var(--enamel-strong);
+  --color-enamel-text: var(--enamel-text);
+  --color-on-enamel: var(--on-enamel);
+  --color-pick: var(--pick);
+  --color-on-pick: var(--on-pick);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+
+  --font-sans: var(--font-onest), system-ui, sans-serif;
+  --font-sign: var(--font-sign-face), 'Arial Narrow', sans-serif;
+
+  --radius-tile: 8px;
+  --radius-sign: 6px;
+
+  /* Strong ease-out: instant response, soft landing. UI motion stays under 300ms. */
+  --ease-snappy: cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+@layer base {
+  html {
+    -webkit-tap-highlight-color: transparent;
+    text-size-adjust: 100%;
+  }
+
+  body {
+    min-height: 100dvh;
+    background-color: var(--tile);
+    background-image:
+      linear-gradient(var(--grout) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grout) 1px, transparent 1px);
+    background-size: 24px 24px;
+    color: var(--ink);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  ::selection {
+    background: var(--enamel);
+    color: var(--on-enamel);
+  }
+
+  input,
+  textarea {
+    caret-color: var(--enamel);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--enamel);
+    outline-offset: 2px;
+  }
+
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--chrome) transparent;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}

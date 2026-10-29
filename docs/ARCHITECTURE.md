@@ -62,7 +62,7 @@ inside one folder.
 
 ## Conventions
 
-- **Files:** `kebab-case.ts`; React components `PascalCase.tsx`; tests next to the code as `*.test.ts`.
+- **Files:** `kebab-case` for everything, components included (`tile-group.tsx`, as shadcn/ui does); exported components are `PascalCase`; tests next to the code as `*.test.ts`.
 - **Validation:** every API input is parsed with a Zod schema from `features/<domain>/schemas.ts`.
 - **Errors:** services throw typed `AppError`s (code + i18n key); `server/http` maps them to HTTP.
 - **Time:** store UTC, compute in `Asia/Tashkent` via `domain/time` helpers only — never `new Date()`
