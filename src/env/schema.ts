@@ -11,12 +11,16 @@ export const serverEnvSchema = z
     APP_ENV: z.enum(['development', 'staging', 'production']).default('development'),
     // Required from P1.1 (database) on.
     DATABASE_URL: optional(z.url()),
-    // Required from P0.6 (bot) on. In development this is the dev bot's token.
+    // In development this is the dev bot's token.
     TELEGRAM_BOT_TOKEN: optional(botToken),
+    // Telegram sends it in X-Telegram-Bot-Api-Secret-Token so only Telegram can call /api/bot.
+    TELEGRAM_WEBHOOK_SECRET: optional(
+      z.string().regex(/^[A-Za-z0-9_-]{32,256}$/, 'must be 32-256 chars of A-Z a-z 0-9 _ -'),
+    ),
   })
   .superRefine((env, ctx) => {
     if (env.APP_ENV === 'development') return;
-    for (const key of ['DATABASE_URL', 'TELEGRAM_BOT_TOKEN'] as const) {
+    for (const key of ['DATABASE_URL', 'TELEGRAM_BOT_TOKEN', 'TELEGRAM_WEBHOOK_SECRET'] as const) {
       if (!env[key]) {
         ctx.addIssue({
           code: 'custom',

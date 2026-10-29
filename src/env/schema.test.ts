@@ -16,9 +16,9 @@ describe('serverEnvSchema', () => {
     expect(env.TELEGRAM_BOT_TOKEN).toBeUndefined();
   });
 
-  it('requires DB and bot token outside development', () => {
+  it('requires DB, bot token and webhook secret outside development', () => {
     expect(() => parseEnv(serverEnvSchema, { APP_ENV: 'production' }, 'server')).toThrow(
-      /DATABASE_URL[\s\S]*TELEGRAM_BOT_TOKEN/,
+      /DATABASE_URL[\s\S]*TELEGRAM_BOT_TOKEN[\s\S]*TELEGRAM_WEBHOOK_SECRET/,
     );
     const env = parseEnv(
       serverEnvSchema,
@@ -26,6 +26,7 @@ describe('serverEnvSchema', () => {
         APP_ENV: 'production',
         DATABASE_URL: 'postgresql://u:p@host:5432/db',
         TELEGRAM_BOT_TOKEN: validToken,
+        TELEGRAM_WEBHOOK_SECRET: 'a'.repeat(32),
       },
       'server',
     );

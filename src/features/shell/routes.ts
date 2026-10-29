@@ -14,6 +14,8 @@ const parentOverrides: Record<string, string> = {
   '/booking': '/bookings',
   '/shop': '/discover',
   '/staff': '/staff/today',
+  '/master': '/',
+  '/invite': '/',
 };
 
 export function isRootPath(pathname: string): boolean {

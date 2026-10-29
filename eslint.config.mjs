@@ -45,6 +45,7 @@ export default defineConfig([
   boundary('telegram', ['app', 'server', 'bot', 'features', 'env/server']),
   boundary('server', ['app', 'ui', 'telegram', /^@\/features\/(?![^/]+\/schemas$)/]),
   boundary('bot', ['app', 'ui', 'telegram', 'features']),
+  { files: ['scripts/**/*.ts'], rules: { 'no-console': 'off' } },
   globalIgnores([
     '.next/**',
     'out/**',
