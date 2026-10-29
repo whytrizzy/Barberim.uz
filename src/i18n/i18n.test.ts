@@ -35,7 +35,8 @@ describe('dictionaries', () => {
   });
 
   it('generates Uzbek Cyrillic with no Latin letters left (brands and code aside)', () => {
-    const allowed = /Barberim|Telegram|Mini App|Yandex|Google|NEXT_PUBLIC_APP_URL|https:|\/start|Dev|\{\w+\}/g;
+    const allowed =
+      /Barberim|Telegram|Mini App|Yandex|Google|NEXT_PUBLIC_APP_URL|https:|\/start|Dev|\{\w+\}/g;
     for (const [path, text] of leaves(getMessages('uz-Cyrl'))) {
       expect(text.replace(allowed, ''), path).not.toMatch(/[A-Za-z]/);
     }
