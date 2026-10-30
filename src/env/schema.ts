@@ -19,10 +19,23 @@ export const serverEnvSchema = z
     TELEGRAM_WEBHOOK_SECRET: optional(
       z.string().regex(/^[A-Za-z0-9_-]{32,256}$/, 'must be 32-256 chars of A-Z a-z 0-9 _ -'),
     ),
+    // S3 bucket for uploaded photos. Unset in development: photos are kept in .media/ instead.
+    MEDIA_BUCKET: optional(z.string().regex(/^[a-z0-9.-]{3,63}$/, 'must be an S3 bucket name')),
+    // Public base URL of that bucket (its CloudFront distribution), e.g. https://d123.cloudfront.net
+    MEDIA_BASE_URL: optional(z.url().refine((url) => !url.endsWith('/'), 'no trailing slash')),
+    // Lambda sets this itself; set it only to use a real bucket from a laptop.
+    AWS_REGION: z.string().default('eu-central-1'),
   })
   .superRefine((env, ctx) => {
     if (env.APP_ENV === 'development') return;
-    for (const key of ['DATABASE_URL', 'TELEGRAM_BOT_TOKEN', 'TELEGRAM_WEBHOOK_SECRET'] as const) {
+    const required = [
+      'DATABASE_URL',
+      'TELEGRAM_BOT_TOKEN',
+      'TELEGRAM_WEBHOOK_SECRET',
+      'MEDIA_BUCKET',
+      'MEDIA_BASE_URL',
+    ] as const;
+    for (const key of required) {
       if (!env[key]) {
         ctx.addIssue({
           code: 'custom',

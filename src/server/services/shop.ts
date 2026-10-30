@@ -11,6 +11,7 @@ import type { Shop, User } from '@/generated/prisma/client';
 import { requireStaff } from '../auth/auth';
 import { db } from '../db/client';
 import { AppError } from '../http/errors';
+import { media, photoIdOf } from '../storage/media';
 
 function refuse(reason: ShopRefusal, code: 'conflict' = 'conflict'): never {
   throw new AppError(code, reason, { reason });
@@ -27,7 +28,10 @@ export function toShopDto(shop: Shop): ShopDto {
     address: shop.address,
     landmark: shop.landmark,
     location: shop.lat !== null && shop.lng !== null ? { lat: shop.lat, lng: shop.lng } : null,
-    photos: shop.photos,
+    photos: shop.photos.flatMap((key) => {
+      const id = photoIdOf(key);
+      return id ? [{ id, url: media.url(key) }] : [];
+    }),
   };
 }
 

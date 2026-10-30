@@ -4,10 +4,12 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
 import { checkSlug } from '@/domain/slug';
 import { api } from '@/features/api/client';
+import { preparePhoto } from './prepare-photo';
 import {
   shopSchema,
   slugCheckResponseSchema,
   type CreateShopRequest,
+  type ShopDto,
   type UpdateShopRequest,
 } from './schemas';
 
@@ -41,6 +43,44 @@ export function useUpdateShop(shopId: string) {
       void queryClient.invalidateQueries({ queryKey: ['session'] });
     },
   });
+}
+
+/** Uploads, deletes and reorders the shop's photos; each change is saved at once. */
+export function useShopPhotos(shopId: string) {
+  const queryClient = useQueryClient();
+  const queryKey = ['shop', shopId];
+  const store = (shop: ShopDto) => queryClient.setQueryData(queryKey, shop);
+  const path = `/api/shops/${shopId}/photos`;
+
+  const add = useMutation({
+    mutationFn: async (file: File) =>
+      api(path, { method: 'POST', body: await preparePhoto(file), schema: shopSchema }),
+    onSuccess: store,
+  });
+  const remove = useMutation({
+    mutationFn: (photoId: string) =>
+      api(`${path}/${photoId}`, { method: 'DELETE', schema: shopSchema }),
+    onSuccess: store,
+  });
+  const reorder = useMutation({
+    mutationFn: (order: string[]) =>
+      api(path, { method: 'PUT', body: { order }, schema: shopSchema }),
+    // Move the photos straight away; put them back if the server refuses.
+    onMutate: (order) => {
+      const before = queryClient.getQueryData<ShopDto>(queryKey);
+      if (before) {
+        const byId = new Map(before.photos.map((photo) => [photo.id, photo]));
+        store({ ...before, photos: order.flatMap((id) => byId.get(id) ?? []) });
+      }
+      return { before };
+    },
+    onError: (_error, _order, context) => {
+      if (context?.before) store(context.before);
+      void queryClient.invalidateQueries({ queryKey });
+    },
+    onSuccess: store,
+  });
+  return { add, remove, reorder };
 }
 
 function useDebounced<T>(value: T, ms: number): T {

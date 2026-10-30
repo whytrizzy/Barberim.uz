@@ -7,6 +7,7 @@ import { errorText } from '@/features/api/error-text';
 import { useI18n } from '@/i18n/provider';
 import { EnamelSign } from '@/ui/enamel-sign';
 import { ShopForm } from './shop-form';
+import { ShopPhotos } from './shop-photos';
 import { useShop } from './use-shop';
 
 /** /staff/new — open a shop. */
@@ -32,6 +33,7 @@ export function ShopEditScreen({ shopId, justCreated }: { shopId: string; justCr
   const { t } = useI18n();
   const shop = useShop(shopId);
   const [saved, setSaved] = useState(false);
+  const [formVersion, setFormVersion] = useState(0);
 
   if (shop.isPending) {
     return <p className="px-4 pt-6 text-sm text-ink-muted">{t.common.loading}</p>;
@@ -60,12 +62,19 @@ export function ShopEditScreen({ shopId, justCreated }: { shopId: string; justCr
         </p>
       )}
       <div className="mt-5">
+        <ShopPhotos shopId={shopId} photos={shop.data.photos} />
+      </div>
+      <div className="mt-6">
         <ShopForm
-          // Remount with fresh values after a save.
-          key={shop.dataUpdatedAt}
+          // Remount with the saved values after a save — but not when only the photos changed,
+          // which would throw away details being typed.
+          key={formVersion}
           mode="edit"
           shop={shop.data}
-          onDone={() => setSaved(true)}
+          onDone={() => {
+            setSaved(true);
+            setFormVersion((n) => n + 1);
+          }}
         />
       </div>
     </main>

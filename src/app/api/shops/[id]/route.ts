@@ -1,20 +1,14 @@
-import { z } from 'zod';
 import { updateShopRequestSchema } from '@/features/shop/schemas';
 import { requireUser } from '@/server/auth/auth';
-import { AppError } from '@/server/http/errors';
 import { rateLimit } from '@/server/http/rate-limit';
-import { readJson, route } from '@/server/http/route';
+import { readJson, route, uuidParam } from '@/server/http/route';
 import { getShopForStaff, updateShop } from '@/server/services/shop';
 
 export const dynamic = 'force-dynamic';
 
 type Context = { params: Promise<{ id: string }> };
 
-async function shopId({ params }: Context) {
-  const { id } = await params;
-  if (!z.uuid().safeParse(id).success) throw new AppError('not_found', 'bad shop id');
-  return id;
-}
+const shopId = async ({ params }: Context) => uuidParam((await params).id, 'shop');
 
 /** The shop's details, for its staff. */
 export const GET = route(async (request, context: Context) => {

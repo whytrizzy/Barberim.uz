@@ -68,9 +68,26 @@ export const shopSchema = z.object({
   address: z.string(),
   landmark: z.string().nullable(),
   location: z.object({ lat: z.number(), lng: z.number() }).nullable(),
-  photos: z.array(z.string()),
+  /** In display order; the first one is the cover clients see first. */
+  photos: z.array(z.object({ id: z.string(), url: z.string() })),
 });
 export type ShopDto = z.infer<typeof shopSchema>;
+export type ShopPhoto = ShopDto['photos'][number];
+
+export const MAX_SHOP_PHOTOS = 8;
+/** The app resizes photos to this long edge before upload (a few hundred KB as WebP or JPEG). */
+export const PHOTO_MAX_EDGE = 1600;
+/** Upload limit, well above what a resized photo weighs. */
+export const MAX_PHOTO_BYTES = 2_000_000;
+
+/** PUT /api/shops/:id/photos — every current photo id, in the new order. */
+export const reorderPhotosRequestSchema = z.object({
+  order: z.array(z.uuid()).min(1).max(MAX_SHOP_PHOTOS),
+});
+export type ReorderPhotosRequest = z.infer<typeof reorderPhotosRequestSchema>;
+
+/** `details.reason` when a photo change is refused. */
+export type PhotoRefusal = 'too_many_photos' | 'photos_changed' | 'not_an_image' | 'too_large';
 
 export const slugCheckResponseSchema = z.object({
   slug: z.string(),

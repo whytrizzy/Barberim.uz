@@ -71,6 +71,7 @@ export type TelegramWebApp = {
   setBackgroundColor(color: string): void; // 6.1+
   setBottomBarColor(color: string): void; // 7.10+
   disableVerticalSwipes(): void; // 7.7+
+  showConfirm(message: string, callback: (ok: boolean) => void): void; // 6.2+
   onEvent(event: WebAppEvent, callback: () => void): void;
   offEvent(event: WebAppEvent, callback: () => void): void;
   MainButton: BottomButton;

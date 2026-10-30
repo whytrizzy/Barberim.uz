@@ -112,7 +112,7 @@ AuditLog        actorId, action, entity, entityId, data, createdAt
 ### 1C. Shop & staff management (barber side)
 
 - [x] **P1.7 Shop onboarding.** `/staff/new` and `/staff/shop/:id`: name, auto link name (`slugify`, live availability check, reserved words), region (14) + Tashkent district (12) or free text, address, landmark, map pin from device location (Telegram LocationManager / GPS) or a pasted Yandex/Google link; optional Yandex static map preview (`NEXT_PUBLIC_YANDEX_MAPS_KEY`). Shop starts as DRAFT with the user as bookable OWNER; max 3 owned shops. `POST /api/shops`, `GET /api/shops/slug`, `GET/PATCH /api/shops/:id`. (#10)
-- [ ] **P1.7b Shop photos.** Upload, order and delete shop photos. Needs a storage decision first: AWS S3 (+ CloudFront) or Neon Object Storage (S3-compatible, eu-central-1, no CDN).
+- [x] **P1.7b Shop photos.** Up to 8 photos per shop on the edit screen: add several at once, tap one to move it, make it the cover (first) or delete it; saved at once, apart from the details form. The phone resizes each photo to 1600 px and re-encodes it (WebP, or JPEG where Safari can't write WebP) — ~300 KB instead of 4 MB, and no EXIF/GPS. The server accepts only well-formed JPEG/WebP ≤ 2 MB, strips any metadata left, stores it under an immutable key `shops/<shopId>/<photoId>.<ext>` and appends it atomically (two uploads at once can't pass the limit); reorder is compare-and-set. Storage: AWS S3 behind CloudFront (`MEDIA_BUCKET`, `MEDIA_BASE_URL`, required outside development); in development photos go to `.media/` and are served by `/api/dev/media`. **The bucket and CloudFront distribution are created at deploy (P1.21).**
 - [ ] **P1.8 Services.** CRUD, categories (adult / kids / beard), "from" prices, which masters do which service. (#14)
 - [ ] **P1.9 Staff + invites.** Owner adds a master → bot invite link → master accepts and gets their own login. Roles OWNER / ADMIN / MASTER. (#2)
 - [ ] **P1.10 Schedules.** Weekly hours per master, breaks, days off / vacations, "today I leave at 16:00", presets: Friday prayer break, Ramadan hours. (#3, #12)
@@ -135,7 +135,7 @@ AuditLog        actorId, action, entity, entityId, data, createdAt
 ### 1F. Ship
 
 - [ ] **P1.20 Quality pass.** `/impeccable audit` on all screens, performance on a budget Android (bundle size, no heavy animations), error states, empty states. (#11)
-- [ ] **P1.21 Production setup.** Staging + prod envs, prod bot webhook, DB backups, remove debug code, basic logging. (No v1 data migration — fresh start.) (#5, #6)
+- [ ] **P1.21 Production setup.** Staging + prod envs, prod bot webhook, photo bucket (private S3 + CloudFront with origin access control, `MEDIA_BUCKET` / `MEDIA_BASE_URL`), DB backups, remove debug code, basic logging. (No v1 data migration — fresh start.) (#5, #6)
 
 **Done when:** a real shop can onboard, add masters and schedules, clients book through the bot link, everyone gets reminders, and double booking is impossible.
 

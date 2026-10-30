@@ -32,6 +32,7 @@ async function launchData(): Promise<string | null> {
 
 type Options<T extends z.ZodType> = {
   method?: 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE';
+  /** Sent as JSON, except a Blob (a photo), which is sent as it is with its own type. */
   body?: unknown;
   /** Validates the response, so a server/client mismatch fails loudly instead of rendering junk. */
   schema: T;
@@ -45,12 +46,13 @@ export async function api<T extends z.ZodType>(
   const headers: Record<string, string> = { Accept: 'application/json' };
   const auth = await launchData();
   if (auth) headers.Authorization = `${AUTH_SCHEME} ${auth}`;
-  if (body !== undefined) headers['Content-Type'] = 'application/json';
+  const raw = body instanceof Blob;
+  if (body !== undefined) headers['Content-Type'] = raw ? body.type : 'application/json';
 
   const response = await fetch(path, {
     method,
     headers,
-    body: body === undefined ? undefined : JSON.stringify(body),
+    body: body === undefined ? undefined : raw ? body : JSON.stringify(body),
     signal,
     cache: 'no-store',
   });
