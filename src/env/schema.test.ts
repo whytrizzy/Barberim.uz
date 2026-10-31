@@ -18,7 +18,7 @@ describe('serverEnvSchema', () => {
 
   it('requires DB, bot token, webhook secret and photo storage outside development', () => {
     expect(() => parseEnv(serverEnvSchema, { APP_ENV: 'production' }, 'server')).toThrow(
-      /DATABASE_URL[\s\S]*TELEGRAM_BOT_TOKEN[\s\S]*TELEGRAM_WEBHOOK_SECRET[\s\S]*MEDIA_BUCKET[\s\S]*MEDIA_BASE_URL/,
+      /DATABASE_URL[\s\S]*TELEGRAM_BOT_TOKEN[\s\S]*TELEGRAM_WEBHOOK_SECRET[\s\S]*MEDIA_BUCKET[\s\S]*MEDIA_BASE_URL[\s\S]*R2_ACCOUNT_ID[\s\S]*R2_SECRET_ACCESS_KEY/,
     );
     const env = parseEnv(
       serverEnvSchema,
@@ -28,17 +28,19 @@ describe('serverEnvSchema', () => {
         TELEGRAM_BOT_TOKEN: validToken,
         TELEGRAM_WEBHOOK_SECRET: 'a'.repeat(32),
         MEDIA_BUCKET: 'barberim-media-prod',
-        MEDIA_BASE_URL: 'https://d123.cloudfront.net',
+        MEDIA_BASE_URL: 'https://media.barberim.uz',
+        R2_ACCOUNT_ID: 'a'.repeat(32),
+        R2_ACCESS_KEY_ID: 'key',
+        R2_SECRET_ACCESS_KEY: 'secret',
       },
       'server',
     );
     expect(env.APP_ENV).toBe('production');
-    expect(env.AWS_REGION).toBe('eu-central-1');
   });
 
   it('rejects a media base URL with a trailing slash', () => {
     expect(() =>
-      parseEnv(serverEnvSchema, { MEDIA_BASE_URL: 'https://d123.cloudfront.net/' }, 'server'),
+      parseEnv(serverEnvSchema, { MEDIA_BASE_URL: 'https://media.barberim.uz/' }, 'server'),
     ).toThrow(/trailing slash/);
   });
 

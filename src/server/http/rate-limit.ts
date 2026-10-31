@@ -3,7 +3,7 @@ import { AppError } from './errors';
 
 /**
  * Fixed-window rate limiter kept in memory. Good enough to stop a single client hammering an
- * endpoint; on Lambda each instance has its own counters, so it is a brake, not a wall.
+ * endpoint; counters reset on deploy and each server has its own, so it is a brake, not a wall.
  * A shared store (DB / Redis) replaces it in P3.7.
  */
 const windows = new Map<string, { count: number; resetAt: number }>();

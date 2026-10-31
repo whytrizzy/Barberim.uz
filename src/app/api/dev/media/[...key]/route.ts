@@ -6,8 +6,8 @@ export const dynamic = 'force-dynamic';
 type Context = { params: Promise<{ key: string[] }> };
 
 /**
- * Development only: serves photos from the local .media/ folder, standing in for CloudFront.
- * 404 everywhere else (deployed environments serve photos from the CDN, never from here).
+ * Development only: serves photos from the local .media/ folder, standing in for R2.
+ * 404 everywhere else (deployed environments serve photos from R2, never from here).
  */
 export async function GET(_request: Request, { params }: Context): Promise<Response> {
   if (!isDevelopment) return new Response('Not found', { status: 404 });

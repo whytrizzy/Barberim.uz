@@ -10,7 +10,7 @@ export const dynamic = 'force-dynamic';
 type Handler = (request: Request) => Promise<Response>;
 let handler: Handler | null = null;
 
-/** One bot per server instance, created on the first update (warm Lambdas reuse it). */
+/** One bot per server instance, created on the first update. */
 function getHandler(): Handler | null {
   if (handler) return handler;
   const token = serverEnv.TELEGRAM_BOT_TOKEN;

@@ -23,7 +23,7 @@ src/
     auth/                 Telegram initData verification, sessions, role guards
     services/             Use cases per domain (createBooking, inviteStaff…), call domain + db
     http/                 Route-handler helpers: error → HTTP mapping, rate limiting
-    storage/              Photo storage (S3 + CloudFront; .media/ in development), image checks
+    storage/              Photo storage (Cloudflare R2; .media/ in development), image checks
 
   bot/                    grammY bot: commands, deep links, inline keyboards, message templates.
 

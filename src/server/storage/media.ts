@@ -6,7 +6,7 @@ import type { S3Client } from '@aws-sdk/client-s3';
 import { isDevelopment, serverEnv } from '@/env/server';
 
 /**
- * Where uploaded photos live: an S3 bucket served through CloudFront in deployed environments,
+ * Where uploaded photos live: a Cloudflare R2 bucket (S3-compatible API) in deployed environments,
  * a .media/ folder (served by /api/dev/media) on a developer's machine. Keys never change once
  * written — a new photo gets a new key — so they are cached forever.
  */
@@ -28,13 +28,23 @@ export const photoIdOf = (key: string) => keyPattern.exec(key)?.[1] ?? null;
 
 const cacheForever = 'public, max-age=31536000, immutable';
 
-function s3Store(bucket: string, baseUrl: string): MediaStore {
+function r2Store(bucket: string, baseUrl: string): MediaStore {
   // Loaded on first use: the SDK is big and most requests never touch photos.
   let client: Promise<{ client: S3Client; sdk: typeof S3 }> | null = null;
   const s3 = () =>
     (client ??= import('@aws-sdk/client-s3').then((sdk) => ({
       sdk,
-      client: new sdk.S3Client({ region: serverEnv.AWS_REGION }),
+      client: new sdk.S3Client({
+        region: 'auto',
+        endpoint: `https://${serverEnv.R2_ACCOUNT_ID}.r2.cloudflarestorage.com`,
+        credentials: {
+          accessKeyId: serverEnv.R2_ACCESS_KEY_ID ?? '',
+          secretAccessKey: serverEnv.R2_SECRET_ACCESS_KEY ?? '',
+        },
+        // R2 doesn't support every checksum the SDK sends by default.
+        requestChecksumCalculation: 'WHEN_REQUIRED',
+        responseChecksumValidation: 'WHEN_REQUIRED',
+      }),
     })));
 
   return {
@@ -94,5 +104,5 @@ export const cacheControlForMedia = cacheForever;
 
 export const media: MediaStore =
   serverEnv.MEDIA_BUCKET && serverEnv.MEDIA_BASE_URL
-    ? s3Store(serverEnv.MEDIA_BUCKET, serverEnv.MEDIA_BASE_URL)
+    ? r2Store(serverEnv.MEDIA_BUCKET, serverEnv.MEDIA_BASE_URL)
     : localStore();

@@ -19,12 +19,13 @@ export const serverEnvSchema = z
     TELEGRAM_WEBHOOK_SECRET: optional(
       z.string().regex(/^[A-Za-z0-9_-]{32,256}$/, 'must be 32-256 chars of A-Z a-z 0-9 _ -'),
     ),
-    // S3 bucket for uploaded photos. Unset in development: photos are kept in .media/ instead.
-    MEDIA_BUCKET: optional(z.string().regex(/^[a-z0-9.-]{3,63}$/, 'must be an S3 bucket name')),
-    // Public base URL of that bucket (its CloudFront distribution), e.g. https://d123.cloudfront.net
+    // Cloudflare R2 bucket for uploaded photos. Unset in development: photos are kept in .media/.
+    MEDIA_BUCKET: optional(z.string().regex(/^[a-z0-9-]{3,63}$/, 'must be an R2 bucket name')),
+    // Public base URL of that bucket (its custom domain), e.g. https://media.barberim.uz
     MEDIA_BASE_URL: optional(z.url().refine((url) => !url.endsWith('/'), 'no trailing slash')),
-    // Lambda sets this itself; set it only to use a real bucket from a laptop.
-    AWS_REGION: z.string().default('eu-central-1'),
+    R2_ACCOUNT_ID: optional(z.string().regex(/^[0-9a-f]{32}$/, 'must be a Cloudflare account id')),
+    R2_ACCESS_KEY_ID: optional(z.string().min(1)),
+    R2_SECRET_ACCESS_KEY: optional(z.string().min(1)),
   })
   .superRefine((env, ctx) => {
     if (env.APP_ENV === 'development') return;
@@ -34,6 +35,9 @@ export const serverEnvSchema = z
       'TELEGRAM_WEBHOOK_SECRET',
       'MEDIA_BUCKET',
       'MEDIA_BASE_URL',
+      'R2_ACCOUNT_ID',
+      'R2_ACCESS_KEY_ID',
+      'R2_SECRET_ACCESS_KEY',
     ] as const;
     for (const key of required) {
       if (!env[key]) {
