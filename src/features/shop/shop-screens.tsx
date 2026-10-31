@@ -1,6 +1,7 @@
 'use client';
 
-import { CircleCheck } from 'lucide-react';
+import { ChevronRight, CircleCheck, Scissors } from 'lucide-react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { errorText } from '@/features/api/error-text';
@@ -61,6 +62,14 @@ export function ShopEditScreen({ shopId, justCreated }: { shopId: string; justCr
           {saved ? t.shop.saved : t.shop.created}
         </p>
       )}
+      <Link
+        href={`/staff/shop/${shopId}/services`}
+        className="mt-5 flex items-center gap-3 rounded-tile border border-chrome bg-porcelain px-3 py-3 active:bg-porcelain-sunk"
+      >
+        <Scissors className="size-5 shrink-0 text-enamel-text" aria-hidden />
+        <span className="flex-1 text-[15px] font-semibold">{t.services.title}</span>
+        <ChevronRight className="size-5 text-ink-muted" aria-hidden />
+      </Link>
       <div className="mt-5">
         <ShopPhotos shopId={shopId} photos={shop.data.photos} />
       </div>
