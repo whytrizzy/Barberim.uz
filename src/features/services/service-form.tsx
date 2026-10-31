@@ -1,6 +1,6 @@
 'use client';
 
-import { Check, Trash2 } from 'lucide-react';
+import { Trash2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { ApiError } from '@/features/api/client';
@@ -8,13 +8,13 @@ import { errorText } from '@/features/api/error-text';
 import { formatDuration, groupDigits } from '@/i18n/format';
 import { interpolate } from '@/i18n/interpolate';
 import { useI18n } from '@/i18n/provider';
-import { cn } from '@/lib/cn';
 import { confirmAction } from '@/telegram/confirm';
 import { haptic } from '@/telegram/haptics';
 import { useMainButton } from '@/telegram/use-main-button';
 import { Button } from '@/ui/button';
 import { Select } from '@/ui/select';
 import { TextField } from '@/ui/text-field';
+import { Tick } from '@/ui/tick';
 import { TileList } from '@/ui/tile-list';
 import {
   MAX_SERVICE_MINUTES,
@@ -34,24 +34,6 @@ function durationChoices(current: number): number[] {
   for (let m = MIN_SERVICE_MINUTES; m <= 240; m += 5) choices.add(m);
   for (let m = 300; m <= MAX_SERVICE_MINUTES; m += 60) choices.add(m);
   return [...choices].sort((a, b) => a - b);
-}
-
-/** A checkbox in the app's own look; goes inside the label it belongs to. */
-function Tick({ checked, onChange }: { checked: boolean; onChange: () => void }) {
-  return (
-    <>
-      <input type="checkbox" className="sr-only" checked={checked} onChange={onChange} />
-      <span
-        aria-hidden
-        className={cn(
-          'grid size-5 shrink-0 place-items-center rounded-[5px] border border-chrome bg-porcelain transition-colors duration-150 ease-snappy',
-          checked && 'border-pick bg-pick text-on-pick',
-        )}
-      >
-        {checked && <Check className="size-3.5" strokeWidth={3} />}
-      </span>
-    </>
-  );
 }
 
 type ServiceFormProps = {

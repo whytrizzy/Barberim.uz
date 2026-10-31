@@ -1,12 +1,14 @@
 'use client';
 
-import { ChevronRight, CircleCheck, Scissors } from 'lucide-react';
+import { ChevronRight, CircleCheck, Scissors, Users } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { errorText } from '@/features/api/error-text';
+import { useSession } from '@/features/auth/use-session';
 import { useI18n } from '@/i18n/provider';
 import { EnamelSign } from '@/ui/enamel-sign';
+import { TileList } from '@/ui/tile-list';
 import { ShopForm } from './shop-form';
 import { ShopPhotos } from './shop-photos';
 import { useShop } from './use-shop';
@@ -35,6 +37,10 @@ export function ShopEditScreen({ shopId, justCreated }: { shopId: string; justCr
   const shop = useShop(shopId);
   const [saved, setSaved] = useState(false);
   const [formVersion, setFormVersion] = useState(0);
+  const session = useSession();
+  const role = session.data?.memberships.find((m) => m.shop.id === shopId)?.role;
+  // Masters can see the shop but not change it (the server refuses that too).
+  const canEdit = role !== undefined && role !== 'MASTER';
 
   if (shop.isPending) {
     return <p className="px-4 pt-6 text-sm text-ink-muted">{t.common.loading}</p>;
@@ -62,30 +68,47 @@ export function ShopEditScreen({ shopId, justCreated }: { shopId: string; justCr
           {saved ? t.shop.saved : t.shop.created}
         </p>
       )}
-      <Link
-        href={`/staff/shop/${shopId}/services`}
-        className="mt-5 flex items-center gap-3 rounded-tile border border-chrome bg-porcelain px-3 py-3 active:bg-porcelain-sunk"
-      >
-        <Scissors className="size-5 shrink-0 text-enamel-text" aria-hidden />
-        <span className="flex-1 text-[15px] font-semibold">{t.services.title}</span>
-        <ChevronRight className="size-5 text-ink-muted" aria-hidden />
-      </Link>
-      <div className="mt-5">
-        <ShopPhotos shopId={shopId} photos={shop.data.photos} />
-      </div>
-      <div className="mt-6">
-        <ShopForm
-          // Remount with the saved values after a save — but not when only the photos changed,
-          // which would throw away details being typed.
-          key={formVersion}
-          mode="edit"
-          shop={shop.data}
-          onDone={() => {
-            setSaved(true);
-            setFormVersion((n) => n + 1);
-          }}
-        />
-      </div>
+      <TileList className="mt-5">
+        {[
+          {
+            href: `/staff/shop/${shopId}/services` as const,
+            label: t.services.title,
+            Icon: Scissors,
+          },
+          { href: `/staff/shop/${shopId}/team` as const, label: t.team.title, Icon: Users },
+        ].map(({ href, label, Icon }) => (
+          <li key={href} className="bg-porcelain">
+            <Link
+              href={href}
+              className="flex items-center gap-3 px-3 py-3 active:bg-porcelain-sunk"
+            >
+              <Icon className="size-5 shrink-0 text-enamel-text" aria-hidden />
+              <span className="flex-1 text-[15px] font-semibold">{label}</span>
+              <ChevronRight className="size-5 text-ink-muted" aria-hidden />
+            </Link>
+          </li>
+        ))}
+      </TileList>
+      {canEdit && (
+        <>
+          <div className="mt-5">
+            <ShopPhotos shopId={shopId} photos={shop.data.photos} />
+          </div>
+          <div className="mt-6">
+            <ShopForm
+              // Remount with the saved values after a save — but not when only the photos changed,
+              // which would throw away details being typed.
+              key={formVersion}
+              mode="edit"
+              shop={shop.data}
+              onDone={() => {
+                setSaved(true);
+                setFormVersion((n) => n + 1);
+              }}
+            />
+          </div>
+        </>
+      )}
     </main>
   );
 }
