@@ -1,6 +1,13 @@
 'use client';
 
-import { CalendarClock, ChevronRight, CircleCheck, Scissors, Users } from 'lucide-react';
+import {
+  CalendarClock,
+  CalendarDays,
+  ChevronRight,
+  CircleCheck,
+  Scissors,
+  Users,
+} from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
@@ -71,6 +78,11 @@ export function ShopEditScreen({ shopId, justCreated }: { shopId: string; justCr
       )}
       <TileList className="mt-5">
         {[
+          {
+            href: `/staff/shop/${shopId}/calendar` as const,
+            label: t.agenda.title,
+            Icon: CalendarDays,
+          },
           {
             href: `/staff/shop/${shopId}/services` as const,
             label: t.services.title,
