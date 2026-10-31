@@ -18,7 +18,7 @@ import { mastersOffering, priceParties } from './catalog';
 const DAY_MS = 86_400_000;
 
 /** ScheduleOverride.date is a DATE column: the calendar date at UTC midnight. */
-const dbDate = (d: CalendarDate) => new Date(Date.UTC(d.year, d.month - 1, d.day));
+export const dbDate = (d: CalendarDate) => new Date(Date.UTC(d.year, d.month - 1, d.day));
 
 export type Schedule = {
   shopId: string;

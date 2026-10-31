@@ -104,3 +104,11 @@ export function isSameTashkentDay(a: Date, b: Date): boolean {
   const y = toTashkent(b);
   return x.year === y.year && x.month === y.month && x.day === y.day;
 }
+
+/** "09:30" → 570, or null if it isn't a time of day. */
+export function parseMinuteOfDay(value: string): number | null {
+  const m = /^(\d{2}):(\d{2})$/.exec(value);
+  if (!m) return null;
+  const [h, min] = [Number(m[1]), Number(m[2])];
+  return h < 24 && min < 60 ? h * 60 + min : null;
+}

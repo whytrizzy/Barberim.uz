@@ -1,6 +1,6 @@
 'use client';
 
-import { ChevronRight, CircleCheck, Scissors, Users } from 'lucide-react';
+import { CalendarClock, ChevronRight, CircleCheck, Scissors, Users } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
@@ -38,7 +38,8 @@ export function ShopEditScreen({ shopId, justCreated }: { shopId: string; justCr
   const [saved, setSaved] = useState(false);
   const [formVersion, setFormVersion] = useState(0);
   const session = useSession();
-  const role = session.data?.memberships.find((m) => m.shop.id === shopId)?.role;
+  const membership = session.data?.memberships.find((m) => m.shop.id === shopId);
+  const role = membership?.role;
   // Masters can see the shop but not change it (the server refuses that too).
   const canEdit = role !== undefined && role !== 'MASTER';
 
@@ -76,6 +77,15 @@ export function ShopEditScreen({ shopId, justCreated }: { shopId: string; justCr
             Icon: Scissors,
           },
           { href: `/staff/shop/${shopId}/team` as const, label: t.team.title, Icon: Users },
+          ...(membership
+            ? [
+                {
+                  href: `/staff/shop/${shopId}/team/${membership.staffId}/schedule` as const,
+                  label: t.schedule.mine,
+                  Icon: CalendarClock,
+                },
+              ]
+            : []),
         ].map(({ href, label, Icon }) => (
           <li key={href} className="bg-porcelain">
             <Link
