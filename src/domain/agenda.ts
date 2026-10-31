@@ -73,6 +73,21 @@ export function daySummary(bookings: { status: BookingStatus; totalPrice: number
   return { count: counted.length, total: counted.reduce((sum, b) => sum + b.totalPrice, 0) };
 }
 
+/** The first start at or after `fromMin` with room for `durationMin` between these bookings. */
+export function nextFreeStart(
+  bookings: { startMin: number; endMin: number }[],
+  fromMin: number,
+  durationMin: number,
+): number {
+  let start = fromMin;
+  for (const booking of [...bookings].sort((a, b) => a.startMin - b.startMin)) {
+    if (booking.endMin <= start) continue;
+    if (booking.startMin >= start + durationMin) break;
+    start = booking.endMin;
+  }
+  return start;
+}
+
 /** What staff can do with a booking right now, most likely first. */
 export function staffActions(
   booking: { status: BookingStatus; startAt: Date },

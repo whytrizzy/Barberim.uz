@@ -82,6 +82,36 @@ export const bookingSchema = z.object({
 });
 export type BookingDto = z.infer<typeof bookingSchema>;
 
+/** POST /api/shops/:id/bookings — staff add a walk-in or a booking taken by phone. */
+export const createStaffBookingRequestSchema = z.object({
+  staffId: id,
+  serviceIds,
+  startAt: instant,
+  source: z.enum(['WALK_IN', 'PHONE']),
+  client: z.union([
+    z.object({ shopClientId: id }),
+    z.object({
+      name: z.string().trim().min(1).max(60),
+      phone: z.string().trim().max(20).optional(),
+    }),
+  ]),
+  note: z.string().trim().max(500).optional(),
+});
+export type CreateStaffBookingRequest = z.infer<typeof createStaffBookingRequestSchema>;
+
+/** GET /api/shops/:id/clients?q=… */
+export const clientMatchesSchema = z.object({
+  clients: z.array(
+    z.object({
+      id: z.string(),
+      name: z.string(),
+      phone: z.string().nullable(),
+      visitCount: z.number(),
+    }),
+  ),
+});
+export type ClientMatch = z.infer<typeof clientMatchesSchema>['clients'][number];
+
 /**
  * `details.reason` on a refused booking (status 409 conflict / 400 invalid_input / 403):
  * the client shows a specific message for each.

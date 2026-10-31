@@ -2,6 +2,7 @@
 
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { buildAgenda, daySummary, isCancelled, type AgendaRow } from '@/domain/agenda';
 import {
@@ -19,6 +20,7 @@ import { formatDayMonth, formatDuration, formatMoney } from '@/i18n/format';
 import { interpolate } from '@/i18n/interpolate';
 import { useI18n } from '@/i18n/provider';
 import { haptic } from '@/telegram/haptics';
+import { useMainButton } from '@/telegram/use-main-button';
 import { SectionLabel } from '@/ui/section-label';
 import { Select } from '@/ui/select';
 import { Tile, TileGroup } from '@/ui/tile-group';
@@ -76,11 +78,13 @@ function BookingRow({
 
 function MasterDay({
   shopId,
+  date,
   master,
   nowMin,
   showName,
 }: {
   shopId: string;
+  date: string;
   master: CalendarMasterDto;
   nowMin: number | null;
   showName: boolean;
@@ -108,9 +112,21 @@ function MasterDay({
             ) : (
               <TileRow
                 key={`${row.kind}-${row.startMin}`}
+                className={row.kind === 'free' ? 'relative active:bg-porcelain' : undefined}
                 state={row.kind}
                 lead={formatMinuteOfDay(row.startMin)}
-                title={row.kind === 'free' ? t.agenda.free : t.agenda.break}
+                title={
+                  row.kind === 'free' ? (
+                    <Link
+                      href={`/staff/shop/${shopId}/calendar/new?date=${date}&staff=${master.id}&start=${row.startMin}`}
+                      className="after:absolute after:inset-0"
+                    >
+                      {t.agenda.free}
+                    </Link>
+                  ) : (
+                    t.agenda.break
+                  )
+                }
                 trail={
                   <span className="font-normal text-ink-muted">
                     {formatDuration(row.endMin - row.startMin, locale)}
@@ -166,6 +182,7 @@ const ALL = 'all';
 /** /staff/shop/:id/calendar — one day per master, or the whole shop. */
 export function CalendarScreen({ shopId, initialDate }: { shopId: string; initialDate?: string }) {
   const { t, locale } = useI18n();
+  const router = useRouter();
   const now = useNow();
   const today = dateKey(tashkentDate(now));
   const [date, setDate] = useState(() =>
@@ -188,6 +205,14 @@ export function CalendarScreen({ shopId, initialDate }: { shopId: string; initia
   const shown = masterId === ALL ? masters : masters.filter((m) => m.id === masterId);
   const summary = daySummary(shown.flatMap((master) => master.bookings));
   const nowMin = date === today ? minuteOfDay(now) : null;
+
+  useMainButton({
+    text: t.agenda.add,
+    onClick: () =>
+      router.push(
+        `/staff/shop/${shopId}/calendar/new?date=${date}${masterId === ALL ? '' : `&staff=${masterId}`}`,
+      ),
+  });
 
   return (
     <main className="mx-auto max-w-[390px] px-4 pt-4 pb-6">
@@ -278,6 +303,7 @@ export function CalendarScreen({ shopId, initialDate }: { shopId: string; initia
           key={master.id}
           shopId={shopId}
           master={master}
+          date={date}
           nowMin={nowMin}
           showName={shown.length > 1}
         />

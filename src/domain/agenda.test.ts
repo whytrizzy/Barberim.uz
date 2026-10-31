@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildAgenda, daySummary, staffActions, type AgendaBooking } from './agenda';
+import { buildAgenda, daySummary, nextFreeStart, staffActions, type AgendaBooking } from './agenda';
 
 const window = (startMin: number, endMin: number) => ({ startMin, endMin });
 const booked = (startMin: number, endMin: number): AgendaBooking => ({
@@ -65,6 +65,21 @@ describe('buildAgenda', () => {
   it('skips gaps too short to use', () => {
     const rows = buildAgenda([window(600, 662)], [booked(600, 660)], null);
     expect(shape(rows)).toEqual([['booking', 600, 660]]);
+  });
+});
+
+describe('nextFreeStart', () => {
+  const day = [booked(600, 660), booked(690, 720)];
+
+  it('uses the time asked for when it is free', () => {
+    expect(nextFreeStart(day, 540, 30)).toBe(540);
+    expect(nextFreeStart(day, 660, 30)).toBe(660);
+  });
+
+  it('waits for the current client, and skips gaps too short', () => {
+    expect(nextFreeStart(day, 620, 30)).toBe(660);
+    expect(nextFreeStart(day, 620, 40)).toBe(720);
+    expect(nextFreeStart(day, 580, 30)).toBe(660);
   });
 });
 

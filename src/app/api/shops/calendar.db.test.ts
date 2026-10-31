@@ -5,7 +5,9 @@ import { db } from '@/server/db/client';
 import { resetRateLimits } from '@/server/http/rate-limit';
 import { PATCH as act } from '../bookings/[id]/route';
 import { GET as detail } from './[id]/bookings/[bookingId]/route';
+import { POST as addBooking } from './[id]/bookings/route';
 import { GET } from './[id]/calendar/route';
+import { GET as clients } from './[id]/clients/route';
 import { POST as createShop } from './route';
 
 // The staff calendar against the real database (npm run test:db).
@@ -140,6 +142,107 @@ describe('calendar day', () => {
       headers: { Authorization: `tma ${initData}` },
     });
     expect((await GET(bad, { params: Promise.resolve({ id: shopId }) })).status).toBe(400);
+  });
+});
+
+describe('staff adding bookings', () => {
+  const haircut = async () =>
+    (
+      await db.service.create({
+        data: {
+          shopId,
+          name: 'Soch',
+          durationMin: 30,
+          price: 60_000,
+          staff: { create: [{ staffId: masterStaffId }, { staffId: ownerStaffId }] },
+        },
+      })
+    ).id;
+  const add = (who: Who, body: object) =>
+    addBooking(req(who, 'POST', body), { params: Promise.resolve({ id: shopId }) });
+  const search = (who: Who, q: string) => {
+    const initData = signInitData({ user: { id: Number(userIds[who]), first_name: who } }, token);
+    return clients(
+      new Request(`http://t/api?q=${encodeURIComponent(q)}`, {
+        headers: { Authorization: `tma ${initData}` },
+      }),
+      { params: Promise.resolve({ id: shopId }) },
+    );
+  };
+
+  it('adds a walk-in, reusing one record for nameless visitors', async () => {
+    const serviceId = await haircut();
+    const walkIn = (hour: number) => ({
+      staffId: masterStaffId,
+      serviceIds: [serviceId],
+      startAt: at(hour).toISOString(),
+      source: 'WALK_IN',
+      client: { name: 'Mijoz' },
+    });
+    const first = await add('master', walkIn(18));
+    expect(first.status).toBe(201);
+    expect(await first.json()).toMatchObject({ source: 'WALK_IN', totalPrice: 60_000 });
+    expect((await add('master', walkIn(19))).status).toBe(201);
+    expect(await db.shopClient.count({ where: { shopId, name: 'Mijoz' } })).toBe(1);
+
+    const overlap = await add('master', walkIn(19));
+    expect(overlap.status).toBe(409);
+    expect((await overlap.json()).error.details.reason).toBe('slot_taken');
+  });
+
+  it('recognises a known phone, creates new clients and refuses a bad number', async () => {
+    const serviceId = await haircut();
+    const phoneCall = (hour: number, client: object) => ({
+      staffId: ownerStaffId,
+      serviceIds: [serviceId],
+      startAt: at(hour).toISOString(),
+      source: 'PHONE',
+      client,
+    });
+    const before = await db.shopClient.count({ where: { shopId } });
+    expect(
+      (await add('owner', phoneCall(12, { name: 'Boshqa ism', phone: '+998901234567' }))).status,
+    ).toBe(201);
+    expect(await db.shopClient.count({ where: { shopId } })).toBe(before);
+
+    expect(
+      (await add('owner', phoneCall(13, { name: 'Yangi', phone: '+998907654321' }))).status,
+    ).toBe(201);
+    expect(await db.shopClient.count({ where: { shopId } })).toBe(before + 1);
+
+    const bad = await add('owner', phoneCall(14, { name: 'Xato', phone: '+99890' }));
+    expect((await bad.json()).error.details.reason).toBe('phone_invalid');
+  });
+
+  it('keeps masters to their own calendar and shops apart', async () => {
+    const serviceId = await haircut();
+    const body = {
+      staffId: ownerStaffId,
+      serviceIds: [serviceId],
+      startAt: at(20).toISOString(),
+      source: 'WALK_IN',
+      client: { name: 'Mijoz' },
+    };
+    expect((await add('master', body)).status).toBe(403);
+    expect((await add('outsider', body)).status).toBe(403);
+    const other = await openShop(`cal-c-${Date.now().toString(36)}`);
+    const elsewhere = await addBooking(req('owner', 'POST', body), {
+      params: Promise.resolve({ id: other }),
+    });
+    expect(elsewhere.status).toBe(404);
+  });
+
+  it('finds clients by name or phone; masters only find their own', async () => {
+    const found = await (await search('owner', 'ali')).json();
+    expect(found.clients.map((c: { name: string }) => c.name)).toContain('Ali');
+    const byPhone = await (await search('owner', '90 123')).json();
+    expect(byPhone.clients.map((c: { name: string }) => c.name)).toContain('Ali');
+    expect((await (await search('owner', 'a')).json()).clients).toEqual([]);
+    expect((await search('outsider', 'ali')).status).toBe(403);
+
+    const yangi = await (await search('owner', 'Yangi')).json();
+    expect(yangi.clients).toHaveLength(1);
+    expect((await (await search('master', 'Yangi')).json()).clients).toEqual([]);
   });
 });
 

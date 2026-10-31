@@ -256,6 +256,8 @@ export async function createClientBooking(
 }
 
 export type StaffBookingInput = {
+  /** When given, the master must work at this shop. */
+  shopId?: string;
   staffId: string;
   serviceIds: string[];
   startAt: Date;
@@ -274,7 +276,9 @@ export async function createStaffBooking(
   input: StaffBookingInput,
 ): Promise<BookingDto> {
   const target = await db.staff.findUnique({ where: { id: input.staffId } });
-  if (!target || !target.isActive) throw new AppError('not_found', 'staff not found');
+  if (!target || !target.isActive || (input.shopId && target.shopId !== input.shopId)) {
+    throw new AppError('not_found', 'staff not found');
+  }
   const actor = await requireStaff(user.id, target.shopId);
   if (actor.role === 'MASTER' && actor.id !== target.id) {
     throw new AppError('forbidden', 'masters can only book into their own calendar');
@@ -296,11 +300,19 @@ export async function createStaffBooking(
     if (input.client.phone && !phone) {
       throw new AppError('invalid_input', 'phone_invalid', { reason: 'phone_invalid' });
     }
-    shopClientId = (
-      await db.shopClient.create({
-        data: { shopId: target.shopId, name: input.client.name.trim(), phone },
-      })
-    ).id;
+    const name = input.client.name.trim();
+    // The same phone is the same person; without one, the same name shares a record, so nameless
+    // walk-ins don't fill the client list with a new "Client" each time.
+    const known = await db.shopClient.findFirst({
+      where: {
+        shopId: target.shopId,
+        ...(phone ? { phone } : { phone: null, userId: null, name }),
+      },
+      orderBy: { createdAt: 'asc' },
+    });
+    shopClientId =
+      known?.id ??
+      (await db.shopClient.create({ data: { shopId: target.shopId, name, phone } })).id;
   }
 
   const [booking] = await insertBookings([
