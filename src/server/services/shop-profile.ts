@@ -3,7 +3,12 @@ import { dayAvailability } from '@/domain/availability';
 import { combineMasters, type MasterDay } from '@/domain/combine';
 import { checkSlug } from '@/domain/slug';
 import { tashkentDate } from '@/domain/time';
-import type { PublishRefusal, ShopProfileDto, ShopStatusRequest } from '@/features/shop/schemas';
+import type {
+  PublishRefusal,
+  ShopDto,
+  ShopProfileDto,
+  ShopStatusRequest,
+} from '@/features/shop/schemas';
 import type { User } from '@/generated/prisma/client';
 import { requireStaff } from '../auth/auth';
 import { db } from '../db/client';
