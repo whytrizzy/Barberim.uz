@@ -121,7 +121,7 @@ AuditLog        actorId, action, entity, entityId, data, createdAt
 
 ### 1D. Client side
 
-- [ ] **P1.13 Shop profile page** (deep link target): photos, services, masters, today's free slots strip, address + "Route" (Yandex Navigator / Yandex Go). Also a "Publish" action for owners: a shop goes from DRAFT to ACTIVE once it has services and hours (clients can't book a draft, and nothing changes the status yet). (#10, #20)
+- [x] **P1.13 Shop profile page** (deep link target) at `/shop/:slug`: photos, services, masters, today's free times (across masters, shortest service), address + route and pin through Yandex Maps. Owners and admins publish from the shop screen: a shop goes from DRAFT to ACTIVE once a master has a service and hours, and can be taken down again; staff can preview it before that. The free times become tappable in P1.14. Direct Yandex Navigator / Yandex Go buttons are still to do: their links couldn't be confirmed without a real phone. (#10, #20)
 - [ ] **P1.14 Booking flow:** services → master (or "any") → date → slot → confirm with phone. Uses Telegram MainButton. Light skeletons, cached data. (#11, #24)
 - [ ] **P1.15 My bookings:** upcoming / past, cancel, reschedule.
 - [ ] **P1.16 Discovery:** search + filters (district, price, "free today", near me). (#19)

@@ -13,8 +13,8 @@ import type { Messages } from '@/i18n/messages';
 import { useI18n } from '@/i18n/provider';
 import { confirmAction } from '@/telegram/confirm';
 import { haptic } from '@/telegram/haptics';
+import { shareViaTelegram } from '@/telegram/links';
 import { useMainButton } from '@/telegram/use-main-button';
-import { getWebApp, safely } from '@/telegram/webapp';
 import { Button } from '@/ui/button';
 import { Select } from '@/ui/select';
 import { TextField } from '@/ui/text-field';
@@ -211,11 +211,7 @@ function InvitePanel({ shopId, member }: { shopId: string; member: StaffMemberDt
   }
 
   function share() {
-    if (!link) return;
-    const url = `https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent(t.team.inviteMessage)}`;
-    const webApp = getWebApp();
-    if (webApp) safely(() => webApp.openTelegramLink(url));
-    else window.open(url, '_blank', 'noopener');
+    if (link) shareViaTelegram(link, t.team.inviteMessage);
   }
 
   async function copy() {

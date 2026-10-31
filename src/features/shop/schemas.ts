@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { SERVICE_CATEGORIES } from '@/features/services/schemas';
 import { defaultBookingRules } from '@/domain/availability';
 import { isInUzbekistan, isRegion, isTashkentDistrict } from '@/domain/places';
 import { checkSlug } from '@/domain/slug';
@@ -100,3 +101,42 @@ export const MAX_OWNED_SHOPS = 3;
 
 /** `details.reason` when creating a shop is refused. */
 export type ShopRefusal = 'slug_taken' | 'too_many_shops';
+
+/** GET /api/shops/by-slug/:slug — what a client sees. */
+export const shopProfileSchema = z.object({
+  id: z.string(),
+  slug: z.string(),
+  name: z.string(),
+  /** A draft or suspended shop, shown only to its own staff. */
+  isPreview: z.boolean(),
+  region: z.string(),
+  district: z.string().nullable(),
+  address: z.string(),
+  landmark: z.string().nullable(),
+  location: z.object({ lat: z.number(), lng: z.number() }).nullable(),
+  photos: z.array(z.object({ id: z.string(), url: z.string() })),
+  services: z.array(
+    z.object({
+      id: z.string(),
+      name: z.string(),
+      category: z.enum(SERVICE_CATEGORIES),
+      durationMin: z.number(),
+      price: z.number(),
+      priceIsFrom: z.boolean(),
+    }),
+  ),
+  masters: z.array(z.object({ id: z.string(), name: z.string(), bio: z.string().nullable() })),
+  today: z.object({
+    status: z.enum(['open', 'full', 'closed', 'day_off', 'past', 'beyond_horizon']),
+    /** Start times someone can still take today, as minutes since Tashkent midnight. */
+    freeStarts: z.array(z.number()),
+  }),
+});
+export type ShopProfileDto = z.infer<typeof shopProfileSchema>;
+
+/** POST /api/shops/:id/status */
+export const shopStatusRequestSchema = z.object({ status: z.enum(['ACTIVE', 'DRAFT']) });
+export type ShopStatusRequest = z.infer<typeof shopStatusRequestSchema>;
+
+/** `details.reason` when a shop can't go live yet. */
+export type PublishRefusal = 'no_services' | 'no_hours' | 'suspended';

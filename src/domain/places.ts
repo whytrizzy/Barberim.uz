@@ -90,6 +90,11 @@ const round = ({ lat, lng }: Coordinates): Coordinates => ({
   lng: Math.round(lng * 1e6) / 1e6,
 });
 
+/** Yandex Maps with a driving route from wherever the person is to this point. */
+export function yandexRouteLink({ lat, lng }: Coordinates): string {
+  return `https://yandex.uz/maps/?rtext=~${lat},${lng}&rtt=auto`;
+}
+
 /** A Yandex Maps link with a pin, for checking the location or getting directions. */
 export function yandexMapsLink({ lat, lng }: Coordinates): string {
   return `https://yandex.uz/maps/?pt=${lng},${lat}&z=17&l=map`;

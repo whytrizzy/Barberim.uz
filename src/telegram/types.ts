@@ -68,6 +68,7 @@ export type TelegramWebApp = {
   expand(): void;
   close(): void;
   openTelegramLink(url: string): void;
+  openLink(url: string): void;
   setHeaderColor(color: string): void; // 6.1+
   setBackgroundColor(color: string): void; // 6.1+
   setBottomBarColor(color: string): void; // 7.10+

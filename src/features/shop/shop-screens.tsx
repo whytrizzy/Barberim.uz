@@ -16,6 +16,7 @@ import { useSession } from '@/features/auth/use-session';
 import { useI18n } from '@/i18n/provider';
 import { EnamelSign } from '@/ui/enamel-sign';
 import { TileList } from '@/ui/tile-list';
+import { PublishCard } from './publish-card';
 import { ShopForm } from './shop-form';
 import { ShopPhotos } from './shop-photos';
 import { useShop } from './use-shop';
@@ -64,9 +65,6 @@ export function ShopEditScreen({ shopId, justCreated }: { shopId: string; justCr
   return (
     <main className="mx-auto max-w-[390px] px-4 pt-4 pb-6">
       <EnamelSign overline={t.shop.editTitle}>{shop.data.name}</EnamelSign>
-      {shop.data.status === 'DRAFT' && (
-        <p className="mt-2 text-sm text-ink-muted">{t.shop.draft}</p>
-      )}
       {(justCreated || saved) && (
         <p
           role="status"
@@ -113,6 +111,7 @@ export function ShopEditScreen({ shopId, justCreated }: { shopId: string; justCr
       </TileList>
       {canEdit && (
         <>
+          <PublishCard shop={shop.data} />
           <div className="mt-5">
             <ShopPhotos shopId={shopId} photos={shop.data.photos} />
           </div>
