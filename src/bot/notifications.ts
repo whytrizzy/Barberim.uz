@@ -19,6 +19,7 @@ export const bookingTemplates = [
   'booking.cancelled_by_shop',
   'booking.reminder24h',
   'booking.reminder2h',
+  'booking.review_ask',
 ] as const;
 export type BookingTemplate = (typeof bookingTemplates)[number];
 
@@ -151,6 +152,7 @@ export function renderNotification(template: string, payload: unknown): Outgoing
     'booking.cancelled_by_shop': notify.cancelledByShop,
     'booking.reminder24h': notify.reminder24h,
     'booking.reminder2h': notify.reminder2h,
+    'booking.review_ask': notify.reviewAsk,
   };
   const isReminder = (REMINDER_TEMPLATES as readonly string[]).includes(template);
   return {
@@ -162,7 +164,14 @@ export function renderNotification(template: string, payload: unknown): Outgoing
     }),
     buttons: isReminder
       ? reminderButtons(locale, bookingId)
-      : [[{ label: notify.open, path: `/booking/${bookingId}` }]],
+      : [
+          [
+            {
+              label: template === 'booking.review_ask' ? notify.reviewOpen : notify.open,
+              path: `/booking/${bookingId}`,
+            },
+          ],
+        ],
   };
 }
 

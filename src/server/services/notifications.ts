@@ -27,6 +27,7 @@ const BACKOFF_MIN = [1, 5, 15, 60];
 const LEASE_MS = 5 * 60_000;
 const BATCH_SIZE = 100;
 const DAY_REMINDER_MIN_LEFT_MS = 3 * 3_600_000;
+const REVIEW_ASK_DELAY_MS = 3_600_000;
 
 /**
  * Queues a message to the person a booking is for. People with no Telegram account behind their
@@ -147,6 +148,32 @@ export async function cancelReminders(tx: Prisma.TransactionClient, bookingId: s
   });
 }
 
+/** A while after a finished visit, once per visit, unless they have already reviewed it. */
+export async function queueReviewAsk(
+  tx: Prisma.TransactionClient,
+  bookingId: string,
+  now = new Date(),
+): Promise<void> {
+  const asked = await tx.notification.count({
+    where: { bookingId, template: 'booking.review_ask', status: { not: 'CANCELLED' } },
+  });
+  const reviewed = await tx.review.count({ where: { bookingId } });
+  if (asked > 0 || reviewed > 0) return;
+  await queueBookingMessage(
+    tx,
+    'booking.review_ask',
+    bookingId,
+    new Date(now.getTime() + REVIEW_ASK_DELAY_MS),
+  );
+}
+
+export async function cancelReviewAsk(tx: Prisma.TransactionClient, bookingId: string) {
+  await tx.notification.updateMany({
+    where: { bookingId, status: 'PENDING', template: 'booking.review_ask' },
+    data: { status: 'CANCELLED' },
+  });
+}
+
 /** Whatever hasn't gone out yet is out of date once the booking is cancelled. */
 export async function cancelQueuedMessages(tx: Prisma.TransactionClient, bookingId: string) {
   await tx.notification.updateMany({
@@ -206,11 +233,15 @@ export async function dispatchDue(
       result.failed++;
       continue;
     }
-    // A message about a visit that has already begun only confuses.
+    // A message about a visit that has already begun only confuses (asking for a review is the
+    // exception: that's the point of it).
     // So does a day-before reminder that arrives hours before: the 2-hour one is about to go.
     const { startAt } = bookingPayloadSchema.parse(row.payload);
     const left = new Date(startAt).getTime() - now.getTime();
-    if (left <= 0 || (row.template === 'booking.reminder24h' && left < DAY_REMINDER_MIN_LEFT_MS)) {
+    if (
+      (left <= 0 && row.template !== 'booking.review_ask') ||
+      (row.template === 'booking.reminder24h' && left < DAY_REMINDER_MIN_LEFT_MS)
+    ) {
       await finish(row.id, 'CANCELLED', 'too late');
       result.dropped++;
       continue;

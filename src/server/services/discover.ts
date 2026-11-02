@@ -13,6 +13,7 @@ import type { Prisma } from '@/generated/prisma/client';
 import { cyrillicToLatin, latinToCyrillic } from '@/i18n/translit';
 import { db } from '../db/client';
 import { dbDate } from './availability';
+import { ratingSummaries } from './reviews';
 import { media, photoIdOf } from '../storage/media';
 
 /** Shops looked at for free times and distance; more than a city's worth after filtering. */
@@ -106,6 +107,8 @@ export async function discoverShops(
     take: MAX_CANDIDATES,
   });
 
+  const ratings = await ratingSummaries(candidates.map((shop) => shop.id));
+
   const shops = candidates.map((shop): DiscoveredShop => {
     const rules = parseShopSettings(shop.settings);
     const day = combineMasters(
@@ -144,6 +147,7 @@ export async function discoverShops(
       landmark: shop.landmark,
       coverUrl: cover ? media.url(cover) : null,
       fromPrice: Math.min(...shop.services.map((service) => service.price)),
+      rating: ratings.get(shop.id) ?? { average: null, count: 0 },
       nextFreeToday: day.slots.find((slot) => slot.state === 'available')?.startMin ?? null,
       distanceKm: input.near && location ? distanceKm(input.near, location) : null,
     };

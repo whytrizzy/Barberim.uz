@@ -83,6 +83,7 @@ model Shop {
   services  Service[]
   clients   ShopClient[]
   bookings  Booking[]
+  reviews   Review[]
   auditLogs AuditLog[]
 
   @@index([status, district])
@@ -299,6 +300,7 @@ model Booking {
   client        ShopClient     @relation(fields: [shopClientId], references: [id], onDelete: NoAction)
   items         BookingItem[]
   notifications Notification[]
+  review        Review?
 
   @@index([staffId, startAt])
   @@index([shopId, startAt])
@@ -378,4 +380,28 @@ model AuditLog {
 
   @@index([shopId, createdAt])
   @@map("audit_logs")
+}
+
+model Review {
+  id        String    @id @default(uuid(7)) @db.Uuid
+  /// One review per visit; only a finished visit can have one.
+  bookingId String    @unique @map("booking_id") @db.Uuid
+  shopId    String    @map("shop_id") @db.Uuid
+  /// 1 to 5.
+  rating    Int
+  comment   String?
+  /// The shop's public answer.
+  reply     String?
+  repliedAt DateTime? @map("replied_at") @db.Timestamptz(3)
+  /// The shop asked the platform to look at it. It stays visible until moderated (P3.6).
+  isFlagged Boolean   @default(false) @map("is_flagged")
+  /// Set by moderation only: a shop can't remove a review it dislikes.
+  isHidden  Boolean   @default(false) @map("is_hidden")
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  booking Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  shop    Shop    @relation(fields: [shopId], references: [id], onDelete: Cascade)
+
+  @@index([shopId, createdAt])
+  @@map("reviews")
 }

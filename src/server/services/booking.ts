@@ -21,8 +21,10 @@ import { mastersOffering, offeredServices, priceParties } from './catalog';
 import {
   cancelQueuedMessages,
   cancelReminders,
+  cancelReviewAsk,
   queueBookingMessage,
   queueReminders,
+  queueReviewAsk,
   queueStaffAlert,
   type StaffAlert,
 } from './notifications';
@@ -458,6 +460,8 @@ export async function applyBookingAction(
       if (input.action === 'complete' || input.action === 'no_show') {
         await cancelReminders(tx, booking.id);
       }
+      if (input.action === 'complete') await queueReviewAsk(tx, booking.id, now);
+      if (input.action === 'no_show') await cancelReviewAsk(tx, booking.id);
       if (input.action === 'reschedule') {
         await cancelReminders(tx, booking.id);
         await queueReminders(tx, booking.id, input.startAt);

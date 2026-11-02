@@ -6,6 +6,7 @@ import {
   ChevronRight,
   CircleCheck,
   Scissors,
+  Star,
   Users,
 } from 'lucide-react';
 import Link from 'next/link';
@@ -89,6 +90,7 @@ export function ShopEditScreen({ shopId, justCreated }: { shopId: string; justCr
             Icon: Scissors,
           },
           { href: `/staff/shop/${shopId}/team` as const, label: t.team.title, Icon: Users },
+          { href: `/staff/shop/${shopId}/reviews` as const, label: t.reviews.title, Icon: Star },
           ...(membership
             ? [
                 {

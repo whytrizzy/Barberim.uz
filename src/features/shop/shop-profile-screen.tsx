@@ -7,6 +7,7 @@ import { regions, yandexMapsLink, yandexRouteLink } from '@/domain/places';
 import { formatMinuteOfDay } from '@/domain/time';
 import { ApiError } from '@/features/api/client';
 import { LoadError, ScreenLoading } from '@/features/api/load-states';
+import { RatingLine, ReviewCard } from '@/features/reviews/reviews-screens';
 import { SERVICE_CATEGORIES } from '@/features/services/schemas';
 import { formatDuration, formatMoney } from '@/i18n/format';
 import { interpolate } from '@/i18n/interpolate';
@@ -89,6 +90,11 @@ export function ShopProfileScreen({ slug }: { slug: string }) {
   return (
     <main className="mx-auto max-w-[390px] px-4 pt-4 pb-6">
       <EnamelSign overline={area}>{typed(shop.name)}</EnamelSign>
+      {shop.rating.average !== null && (
+        <p className="mt-2 text-sm">
+          <RatingLine summary={shop.rating} />
+        </p>
+      )}
       {shop.isPreview && (
         <p
           role="status"
@@ -175,6 +181,19 @@ export function ShopProfileScreen({ slug }: { slug: string }) {
               </li>
             ))}
           </TileList>
+        </section>
+      )}
+
+      {shop.reviews.length > 0 && (
+        <section className="mt-5">
+          <SectionLabel className="mt-0">{t.reviews.title}</SectionLabel>
+          <ul className="grid gap-px overflow-hidden rounded-tile border border-chrome bg-chrome">
+            {shop.reviews.map((review) => (
+              <li key={review.id} className="bg-porcelain px-3 py-2.5">
+                <ReviewCard review={review} shopName={typed(shop.name)} />
+              </li>
+            ))}
+          </ul>
         </section>
       )}
 

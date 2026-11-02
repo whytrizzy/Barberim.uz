@@ -10,6 +10,7 @@ import { formatMinuteOfDay } from '@/domain/time';
 import { ApiError } from '@/features/api/client';
 import { errorText } from '@/features/api/error-text';
 import { LoadError, ScreenLoading } from '@/features/api/load-states';
+import { BookingReview } from '@/features/reviews/reviews-screens';
 import { formatDayMonth, formatDuration, formatMoney, formatTime } from '@/i18n/format';
 import { interpolate } from '@/i18n/interpolate';
 import type { Messages } from '@/i18n/messages';
@@ -228,6 +229,7 @@ function Details({ booking }: { booking: MyBookingDto }) {
           {t.myBookings.shopPage}
         </Link>
       </div>
+      {booking.status === 'COMPLETED' && <BookingReview bookingId={booking.id} />}
 
       {moving ? (
         <MovePanel

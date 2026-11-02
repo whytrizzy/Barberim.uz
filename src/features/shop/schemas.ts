@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { publicReviewSchema, ratingSummarySchema } from '@/features/reviews/schemas';
 import { SERVICE_CATEGORIES } from '@/features/services/schemas';
 import { defaultBookingRules } from '@/domain/availability';
 import { isInUzbekistan, isRegion, isTashkentDistrict } from '@/domain/places';
@@ -130,6 +131,9 @@ export const shopProfileSchema = z.object({
     }),
   ),
   masters: z.array(z.object({ id: z.string(), name: z.string(), bio: z.string().nullable() })),
+  rating: ratingSummarySchema,
+  /** The latest few. */
+  reviews: z.array(publicReviewSchema),
   today: z.object({
     status: z.enum(['open', 'full', 'closed', 'day_off', 'past', 'beyond_horizon']),
     /** Start times someone can still take today, as minutes since Tashkent midnight. */
@@ -174,6 +178,7 @@ export const discoverResultSchema = z.object({
       coverUrl: z.string().nullable(),
       /** The cheapest service. */
       fromPrice: z.number(),
+      rating: ratingSummarySchema,
       /** The next time someone can still take today, in minutes since Tashkent midnight. */
       nextFreeToday: z.number().nullable(),
       /** Only when searching near a place, and the shop has set its location. */

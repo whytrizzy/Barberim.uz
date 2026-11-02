@@ -8,6 +8,7 @@ import { regions, type Coordinates } from '@/domain/places';
 import { formatMinuteOfDay } from '@/domain/time';
 import { api } from '@/features/api/client';
 import { LoadError } from '@/features/api/load-states';
+import { RatingLine } from '@/features/reviews/reviews-screens';
 import { formatMoney } from '@/i18n/format';
 import { interpolate } from '@/i18n/interpolate';
 import { districtName, districtOptions, placeName, regionOptions, typedText } from '@/i18n/places';
@@ -64,6 +65,11 @@ function ShopCard({ shop }: { shop: DiscoveredShop }) {
           <span className="mt-0.5 block truncate text-xs text-ink-muted">
             {typedText(shop.landmark ?? shop.address, locale)}
           </span>
+          {shop.rating.average !== null && (
+            <span className="mt-0.5 block text-xs">
+              <RatingLine summary={shop.rating} />
+            </span>
+          )}
           <span className="mt-1 flex items-center justify-between gap-2 text-[13px] font-semibold tabular-nums">
             <span className="truncate">
               {interpolate(t.services.fromPrice, { price: formatMoney(shop.fromPrice, locale) })}
