@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { regions, yandexMapsLink, yandexRouteLink } from '@/domain/places';
 import { formatMinuteOfDay } from '@/domain/time';
 import { ApiError } from '@/features/api/client';
-import { errorText } from '@/features/api/error-text';
+import { LoadError, ScreenLoading } from '@/features/api/load-states';
 import { SERVICE_CATEGORIES } from '@/features/services/schemas';
 import { formatDuration, formatMoney } from '@/i18n/format';
 import { interpolate } from '@/i18n/interpolate';
@@ -65,14 +65,17 @@ export function ShopProfileScreen({ slug }: { slug: string }) {
   );
 
   if (query.isPending) {
-    return <p className="px-4 pt-6 text-sm text-ink-muted">{t.common.loading}</p>;
+    return <ScreenLoading />;
   }
   if (query.isError) {
     const missing = query.error instanceof ApiError && query.error.status === 404;
     return (
-      <p role="alert" className="px-4 pt-6 text-sm text-enamel-text">
-        {missing ? t.shopProfile.notFound : errorText(t, query.error)}
-      </p>
+      <LoadError
+        className="mx-auto max-w-[390px] px-4 pt-6"
+        message={missing ? t.shopProfile.notFound : undefined}
+        error={query.error}
+        onRetry={missing ? undefined : () => void query.refetch()}
+      />
     );
   }
 

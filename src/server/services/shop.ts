@@ -2,12 +2,14 @@ import 'server-only';
 import { checkSlug } from '@/domain/slug';
 import {
   MAX_OWNED_SHOPS,
+  parseShopSettings,
   type CreateShopRequest,
   type ShopDto,
   type ShopRefusal,
+  type ShopRulesRequest,
   type UpdateShopRequest,
 } from '@/features/shop/schemas';
-import type { Shop, User } from '@/generated/prisma/client';
+import type { Prisma, Shop, User } from '@/generated/prisma/client';
 import { requireStaff } from '../auth/auth';
 import { db } from '../db/client';
 import { AppError } from '../http/errors';
@@ -28,6 +30,7 @@ export function toShopDto(shop: Shop): ShopDto {
     address: shop.address,
     landmark: shop.landmark,
     location: shop.lat !== null && shop.lng !== null ? { lat: shop.lat, lng: shop.lng } : null,
+    requireApproval: parseShopSettings(shop.settings).requireApproval,
     photos: shop.photos.flatMap((key) => {
       const id = photoIdOf(key);
       return id ? [{ id, url: media.url(key) }] : [];
@@ -99,6 +102,32 @@ export async function createShop(user: User, input: CreateShopRequest): Promise<
 export async function getShopForStaff(user: User, shopId: string): Promise<ShopDto> {
   await requireStaff(user.id, shopId);
   return toShopDto(await db.shop.findUniqueOrThrow({ where: { id: shopId } }));
+}
+
+/** Changes how the shop takes bookings, keeping its other settings. Existing bookings stay. */
+export async function updateShopRules(
+  user: User,
+  shopId: string,
+  input: ShopRulesRequest,
+): Promise<ShopDto> {
+  await requireStaff(user.id, shopId, ['OWNER', 'ADMIN']);
+  const current = await db.shop.findUniqueOrThrow({
+    where: { id: shopId },
+    select: { settings: true },
+  });
+  const settings = { ...(current.settings as Prisma.JsonObject), ...input };
+  const shop = await db.shop.update({ where: { id: shopId }, data: { settings } });
+  await db.auditLog.create({
+    data: {
+      shopId,
+      actorUserId: user.id,
+      action: 'shop.rules',
+      entity: 'shop',
+      entityId: shopId,
+      data: input,
+    },
+  });
+  return toShopDto(shop);
 }
 
 /** Owners and admins edit the shop's details. */

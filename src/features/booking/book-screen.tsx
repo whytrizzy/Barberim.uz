@@ -7,6 +7,7 @@ import { useRef, useState } from 'react';
 import { formatMinuteOfDay } from '@/domain/time';
 import { ApiError } from '@/features/api/client';
 import { errorText } from '@/features/api/error-text';
+import { LoadError, ScreenLoading } from '@/features/api/load-states';
 import { useSession } from '@/features/auth/use-session';
 import { PhoneCapture } from '@/features/profile/phone-capture';
 import { useShopProfile } from '@/features/shop/use-shop-profile';
@@ -197,14 +198,17 @@ export function BookScreen({
   );
 
   if (profile.isPending) {
-    return <p className="px-4 pt-6 text-sm text-ink-muted">{t.common.loading}</p>;
+    return <ScreenLoading />;
   }
   if (profile.isError || !shop) {
     const missing = profile.error instanceof ApiError && profile.error.status === 404;
     return (
-      <p role="alert" className="px-4 pt-6 text-sm text-enamel-text">
-        {missing ? t.shopProfile.notFound : errorText(t, profile.error)}
-      </p>
+      <LoadError
+        className="mx-auto max-w-[390px] px-4 pt-6"
+        message={missing ? t.shopProfile.notFound : undefined}
+        error={profile.error}
+        onRetry={missing ? undefined : () => void profile.refetch()}
+      />
     );
   }
   if (shop.isPreview) {
@@ -294,9 +298,10 @@ export function BookScreen({
               ))}
             </div>
           ) : options.isError ? (
-            <p role="alert" className="text-sm text-enamel-text">
-              {bookError(t, options.error)}
-            </p>
+            <LoadError
+              message={bookError(t, options.error)}
+              onRetry={() => void options.refetch()}
+            />
           ) : (
             <>
               <SlotPicker

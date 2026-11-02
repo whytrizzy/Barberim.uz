@@ -34,7 +34,7 @@ export function Select({
           className={cn(
             'h-12 w-full appearance-none rounded-tile border border-chrome bg-porcelain pr-10 pl-3 text-base font-semibold',
             'focus:border-enamel focus:ring-2 focus:ring-enamel/25 focus:outline-none',
-            !select.value && 'font-normal text-ink-faint',
+            !select.value && placeholder && 'font-normal text-ink-muted',
             error && 'border-enamel',
           )}
           {...select}

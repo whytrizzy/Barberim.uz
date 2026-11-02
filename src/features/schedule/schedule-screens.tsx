@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { ApiError } from '@/features/api/client';
 import { errorText } from '@/features/api/error-text';
+import { LoadError, ScreenLoading } from '@/features/api/load-states';
 import {
   DEFAULT_WORK_DAY,
   FRIDAY_PRAYER_BREAK,
@@ -339,13 +340,15 @@ export function ScheduleScreen({ shopId, staffId }: { shopId: string; staffId: s
   const query = useSchedule(shopId, staffId);
 
   if (query.isPending) {
-    return <p className="px-4 pt-6 text-sm text-ink-muted">{t.common.loading}</p>;
+    return <ScreenLoading />;
   }
   if (query.isError) {
     return (
-      <p role="alert" className="px-4 pt-6 text-sm text-enamel-text">
-        {errorText(t, query.error)}
-      </p>
+      <LoadError
+        className="mx-auto max-w-[390px] px-4 pt-6"
+        error={query.error}
+        onRetry={() => void query.refetch()}
+      />
     );
   }
   const schedule = query.data;
@@ -434,13 +437,15 @@ export function ScheduleChangeScreen({ shopId, staffId }: { shopId: string; staf
   );
 
   if (query.isPending) {
-    return <p className="px-4 pt-6 text-sm text-ink-muted">{t.common.loading}</p>;
+    return <ScreenLoading />;
   }
   if (query.isError) {
     return (
-      <p role="alert" className="px-4 pt-6 text-sm text-enamel-text">
-        {errorText(t, query.error)}
-      </p>
+      <LoadError
+        className="mx-auto max-w-[390px] px-4 pt-6"
+        error={query.error}
+        onRetry={() => void query.refetch()}
+      />
     );
   }
   return (

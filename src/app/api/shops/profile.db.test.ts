@@ -4,6 +4,7 @@ import { signInitData } from '@/server/auth/init-data';
 import { db } from '@/server/db/client';
 import { resetRateLimits } from '@/server/http/rate-limit';
 import { getShopProfile } from '@/server/services/shop-profile';
+import { POST as setRules } from './[id]/rules/route';
 import { POST as setStatus } from './[id]/status/route';
 import { GET } from './by-slug/[slug]/route';
 import { POST as createShop } from './route';
@@ -146,5 +147,28 @@ describe('going live', () => {
   it('takes the shop down again', async () => {
     expect((await status('owner', 'DRAFT')).status).toBe(200);
     expect((await view('client')).status).toBe(404);
+  });
+});
+
+describe('taking bookings by hand', () => {
+  const rules = (who: Who, body: object) =>
+    setRules(req(who, 'POST', body), { params: Promise.resolve({ id: shopId }) });
+
+  it('lets owners switch it, keeping the other settings', async () => {
+    await db.shop.update({ where: { id: shopId }, data: { settings: { slotStepMin: 15 } } });
+    const on = await rules('owner', { requireApproval: true });
+    expect(on.status).toBe(200);
+    expect((await on.json()).requireApproval).toBe(true);
+    const shop = await db.shop.findUniqueOrThrow({ where: { id: shopId } });
+    expect(shop.settings).toMatchObject({ slotStepMin: 15, requireApproval: true });
+
+    const off = await rules('owner', { requireApproval: false });
+    expect((await off.json()).requireApproval).toBe(false);
+  });
+
+  it('refuses masters, outsiders and nonsense', async () => {
+    expect((await rules('master', { requireApproval: true })).status).toBe(403);
+    expect((await rules('client', { requireApproval: true })).status).toBe(403);
+    expect((await rules('owner', { requireApproval: 'yes' })).status).toBe(400);
   });
 });

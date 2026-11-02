@@ -13,6 +13,7 @@ export const uzLatn = {
     save: 'Saqlash',
     close: 'Yopish',
     retry: 'Qayta urinish',
+    goHome: 'Bosh sahifaga',
     loading: 'Yuklanmoqda…',
     somethingWrong: 'Nimadir xato ketdi. Qayta urinib koʻring.',
   },
@@ -263,6 +264,8 @@ export const uzLatn = {
     serviceGone: 'Bu xizmat endi bu ustada yoʻq. Sahifani yangilang.',
   },
   shopProfile: {
+    requireApproval: 'Yozuvlarni men tasdiqlayman',
+    requireApprovalHint: 'Yoqilsa, mijoz yozilgach, siz qabul qilguningizcha yozuv kutib turadi.',
     todayTitle: 'Bugun boʻsh vaqtlar',
     todayFull: 'Bugun boʻsh vaqt qolmadi',
     todayClosed: 'Bugun ishlamaydi',
@@ -314,7 +317,7 @@ export const uzLatn = {
     title: 'Mening yozuvlarim',
     upcoming: 'Oldinda',
     past: 'Oʻtganlar',
-    noUpcoming: 'Oldinda yozuv yoʻq. Sartaroshxona havolasini ochib, yoziling.',
+    noUpcoming: 'Oldinda yozuv yoʻq.',
     noPast: 'Hali oʻtgan yozuv yoʻq.',
     status: {
       PENDING: 'Tasdiq kutilmoqda',
@@ -402,6 +405,7 @@ export const uzLatn = {
   },
   errors: {
     network: 'Internet bilan aloqa yoʻq. Tarmoqni tekshirib, qayta urinib koʻring.',
+    pageNotFound: 'Bunday sahifa yoʻq.',
     sessionExpired: 'Sessiya eskirdi. Ilovani yopib, qayta oching.',
     rateLimited: 'Juda koʻp urinish. Bir daqiqadan keyin qayta urinib koʻring.',
   },

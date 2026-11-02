@@ -2,7 +2,12 @@
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/features/api/client';
-import { shopProfileSchema, shopSchema, type ShopStatusRequest } from './schemas';
+import {
+  shopProfileSchema,
+  shopSchema,
+  type ShopRulesRequest,
+  type ShopStatusRequest,
+} from './schemas';
 
 export function useShopProfile(slug: string) {
   return useQuery({
@@ -12,6 +17,16 @@ export function useShopProfile(slug: string) {
     // Free times change through the day, but a client glancing at the page needn't wait for them.
     staleTime: 30_000,
     retry: false,
+  });
+}
+
+/** Saved at once, and shown at once: it's a single tick. */
+export function useShopRules(shopId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (body: ShopRulesRequest) =>
+      api(`/api/shops/${shopId}/rules`, { method: 'POST', body, schema: shopSchema }),
+    onSuccess: (shop) => queryClient.setQueryData(['shop', shop.id], shop),
   });
 }
 

@@ -14,6 +14,7 @@ import {
 } from '@/domain/time';
 import { ApiError } from '@/features/api/client';
 import { errorText } from '@/features/api/error-text';
+import { LoadError, ScreenLoading } from '@/features/api/load-states';
 import { useSession } from '@/features/auth/use-session';
 import type { ClientMatch } from '@/features/booking/schemas';
 import { TimeField } from '@/features/schedule/day-hours';
@@ -149,13 +150,18 @@ export function AddBookingScreen({
   useMainButton({ text: t.agenda.addSubmit, loading: add.isPending, onClick: submit });
 
   if (services.isPending || day.isPending) {
-    return <p className="px-4 pt-6 text-sm text-ink-muted">{t.common.loading}</p>;
+    return <ScreenLoading />;
   }
   if (services.isError || day.isError) {
     return (
-      <p role="alert" className="px-4 pt-6 text-sm text-enamel-text">
-        {errorText(t, services.error ?? day.error)}
-      </p>
+      <LoadError
+        className="mx-auto max-w-[390px] px-4 pt-6"
+        error={services.error ?? day.error}
+        onRetry={() => {
+          void services.refetch();
+          void day.refetch();
+        }}
+      />
     );
   }
 

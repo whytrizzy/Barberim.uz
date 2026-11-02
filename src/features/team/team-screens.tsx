@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { ApiError } from '@/features/api/client';
 import { errorText } from '@/features/api/error-text';
+import { LoadError, ScreenLoading } from '@/features/api/load-states';
 import { clientEnv } from '@/env/client';
 import { formatDayMonth } from '@/i18n/format';
 import { interpolate } from '@/i18n/interpolate';
@@ -95,13 +96,15 @@ export function TeamListScreen({ shopId }: { shopId: string }) {
   );
 
   if (query.isPending) {
-    return <p className="px-4 pt-6 text-sm text-ink-muted">{t.common.loading}</p>;
+    return <ScreenLoading />;
   }
   if (query.isError) {
     return (
-      <p role="alert" className="px-4 pt-6 text-sm text-enamel-text">
-        {errorText(t, query.error)}
-      </p>
+      <LoadError
+        className="mx-auto max-w-[390px] px-4 pt-6"
+        error={query.error}
+        onRetry={() => void query.refetch()}
+      />
     );
   }
   return (
@@ -388,14 +391,17 @@ export function TeamMemberScreen({ shopId, staffId }: { shopId: string; staffId:
   const query = useTeam(shopId);
 
   if (query.isPending) {
-    return <p className="px-4 pt-6 text-sm text-ink-muted">{t.common.loading}</p>;
+    return <ScreenLoading />;
   }
   const member = query.data?.members.find((candidate) => candidate.id === staffId);
   if (query.isError || !member?.canManage) {
     return (
-      <p role="alert" className="px-4 pt-6 text-sm text-enamel-text">
-        {query.isError ? errorText(t, query.error) : t.team.notFound}
-      </p>
+      <LoadError
+        className="mx-auto max-w-[390px] px-4 pt-6"
+        message={query.isError ? undefined : t.team.notFound}
+        error={query.error}
+        onRetry={query.isError ? () => void query.refetch() : undefined}
+      />
     );
   }
   return (

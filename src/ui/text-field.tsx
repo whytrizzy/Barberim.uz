@@ -37,7 +37,7 @@ export function TextField({ label, prefix, hint, error, className, id, ...input 
           id={fieldId}
           aria-invalid={error ? true : undefined}
           aria-describedby={error || hint ? noteId : undefined}
-          className="h-full min-w-0 flex-1 bg-transparent text-base font-semibold tabular-nums outline-none placeholder:font-normal placeholder:text-ink-faint"
+          className="h-full min-w-0 flex-1 bg-transparent text-base font-semibold tabular-nums outline-none placeholder:font-normal placeholder:text-ink-muted"
           {...input}
         />
       </div>

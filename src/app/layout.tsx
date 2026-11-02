@@ -18,6 +18,9 @@ const onest = Onest({
   subsets: ['latin', 'latin-ext', 'cyrillic', 'cyrillic-ext'],
   variable: '--font-onest',
   display: 'swap',
+  // Each script is a separate file: the browser fetches only those a page uses. Preloading would
+  // force all of them down a slow connection.
+  preload: false,
 });
 
 const signFace = Fira_Sans_Extra_Condensed({
@@ -25,6 +28,7 @@ const signFace = Fira_Sans_Extra_Condensed({
   weight: ['600', '700'],
   variable: '--font-sign-face',
   display: 'swap',
+  preload: false,
 });
 
 export const metadata: Metadata = {

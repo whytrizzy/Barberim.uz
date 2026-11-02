@@ -3,7 +3,7 @@
 import { ChevronRight, Scissors } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { errorText } from '@/features/api/error-text';
+import { LoadError, ScreenLoading } from '@/features/api/load-states';
 import { formatDuration, formatMoney } from '@/i18n/format';
 import { interpolate } from '@/i18n/interpolate';
 import { useI18n } from '@/i18n/provider';
@@ -78,13 +78,15 @@ export function ServiceListScreen({ shopId }: { shopId: string }) {
   );
 
   if (query.isPending) {
-    return <p className="px-4 pt-6 text-sm text-ink-muted">{t.common.loading}</p>;
+    return <ScreenLoading />;
   }
   if (query.isError) {
     return (
-      <p role="alert" className="px-4 pt-6 text-sm text-enamel-text">
-        {errorText(t, query.error)}
-      </p>
+      <LoadError
+        className="mx-auto max-w-[390px] px-4 pt-6"
+        error={query.error}
+        onRetry={() => void query.refetch()}
+      />
     );
   }
 
@@ -131,16 +133,19 @@ export function ServiceEditScreen({
   const query = useShopServices(shopId);
 
   if (query.isPending) {
-    return <p className="px-4 pt-6 text-sm text-ink-muted">{t.common.loading}</p>;
+    return <ScreenLoading />;
   }
   const service = serviceId
     ? (query.data?.services.find((candidate) => candidate.id === serviceId) ?? null)
     : null;
   if (query.isError || (serviceId && !service)) {
     return (
-      <p role="alert" className="px-4 pt-6 text-sm text-enamel-text">
-        {query.isError ? errorText(t, query.error) : t.services.notFound}
-      </p>
+      <LoadError
+        className="mx-auto max-w-[390px] px-4 pt-6"
+        message={query.isError ? undefined : t.services.notFound}
+        error={query.error}
+        onRetry={query.isError ? () => void query.refetch() : undefined}
+      />
     );
   }
 

@@ -81,14 +81,14 @@ export function LocationField({
                 href={yandexMapsLink(value)}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-sm text-enamel-text underline underline-offset-2"
+                className="inline-flex min-h-11 items-center text-sm text-enamel-text underline underline-offset-2"
               >
                 {t.shop.checkOnMap}
               </a>
             </div>
             <Button
               variant="ghost"
-              className="px-2"
+              className="min-w-11 px-2"
               onClick={() => onChange(null)}
               aria-label={t.shop.locationRemove}
             >

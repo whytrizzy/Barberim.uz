@@ -37,7 +37,7 @@ function LanguageChoice() {
   return (
     <main lang={selected} className="mx-auto flex max-w-[390px] flex-col px-4 pt-6">
       <EnamelSign overline="Sartaroshxona">Barberim</EnamelSign>
-      <h2 className="mt-8 font-sign text-[28px] leading-none font-bold uppercase">
+      <h2 className="mt-8 font-sign text-[30px] leading-none font-bold uppercase">
         {t.language.title}
       </h2>
       <p className="mt-2 text-sm text-ink-muted">{t.language.hint}</p>

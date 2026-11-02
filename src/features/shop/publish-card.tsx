@@ -10,8 +10,9 @@ import { confirmAction } from '@/telegram/confirm';
 import { haptic } from '@/telegram/haptics';
 import { shareViaTelegram } from '@/telegram/links';
 import { Button } from '@/ui/button';
+import { Tick } from '@/ui/tick';
 import type { ShopDto } from './schemas';
-import { useShopStatus } from './use-shop-profile';
+import { useShopRules, useShopStatus } from './use-shop-profile';
 
 function statusError(t: Messages, error: unknown): string {
   if (error instanceof ApiError) {
@@ -27,6 +28,7 @@ function statusError(t: Messages, error: unknown): string {
 export function PublishCard({ shop }: { shop: ShopDto }) {
   const { t } = useI18n();
   const status = useShopStatus(shop.id);
+  const approval = useShopRules(shop.id);
   const live = shop.status === 'ACTIVE';
   const bot = clientEnv.NEXT_PUBLIC_BOT_USERNAME ?? 'barberim_bot';
   const link = `https://t.me/${bot}?start=shop_${shop.slug}`;
@@ -86,6 +88,27 @@ export function PublishCard({ shop }: { shop: ShopDto }) {
       {status.error && (
         <p role="alert" className="text-sm text-enamel-text">
           {statusError(t, status.error)}
+        </p>
+      )}
+      <label className="flex min-h-11 cursor-pointer items-start gap-3 rounded-tile py-1 has-focus-visible:ring-2 has-focus-visible:ring-pick">
+        <Tick
+          checked={shop.requireApproval}
+          onChange={() => {
+            haptic.selection();
+            approval.mutate(
+              { requireApproval: !shop.requireApproval },
+              { onError: () => haptic.notify('error') },
+            );
+          }}
+        />
+        <span>
+          <span className="block text-[15px] font-semibold">{t.shopProfile.requireApproval}</span>
+          <span className="block text-sm text-ink-muted">{t.shopProfile.requireApprovalHint}</span>
+        </span>
+      </label>
+      {approval.error && (
+        <p role="alert" className="text-sm text-enamel-text">
+          {errorText(t, approval.error)}
         </p>
       )}
     </section>

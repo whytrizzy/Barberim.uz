@@ -69,6 +69,8 @@ export const shopSchema = z.object({
   address: z.string(),
   landmark: z.string().nullable(),
   location: z.object({ lat: z.number(), lng: z.number() }).nullable(),
+  /** Client bookings wait for the shop to accept them. */
+  requireApproval: z.boolean(),
   /** In display order; the first one is the cover clients see first. */
   photos: z.array(z.object({ id: z.string(), url: z.string() })),
 });
@@ -135,6 +137,10 @@ export const shopProfileSchema = z.object({
   }),
 });
 export type ShopProfileDto = z.infer<typeof shopProfileSchema>;
+
+/** POST /api/shops/:id/rules */
+export const shopRulesRequestSchema = z.object({ requireApproval: z.boolean() });
+export type ShopRulesRequest = z.infer<typeof shopRulesRequestSchema>;
 
 /** POST /api/shops/:id/status */
 export const shopStatusRequestSchema = z.object({ status: z.enum(['ACTIVE', 'DRAFT']) });

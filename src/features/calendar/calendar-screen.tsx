@@ -15,7 +15,7 @@ import {
   tashkentDate,
   weekdayOf,
 } from '@/domain/time';
-import { errorText } from '@/features/api/error-text';
+import { LoadError, ScreenLoading } from '@/features/api/load-states';
 import { formatDayMonth, formatDuration, formatMoney } from '@/i18n/format';
 import { interpolate } from '@/i18n/interpolate';
 import { useI18n } from '@/i18n/provider';
@@ -230,7 +230,29 @@ export function CalendarScreen({ shopId, initialDate }: { shopId: string; initia
         </p>
       </div>
 
-      <div className="mt-4 flex items-center gap-1">
+      <TileGroup label={t.agenda.pickDay} columns={7} className="mt-4">
+        {Array.from({ length: 7 }, (_, i) => {
+          const day = addDays(monday, i);
+          const key = dateKey(day);
+          return (
+            <Tile
+              key={key}
+              selected={key === date}
+              className="px-0"
+              aria-label={formatDayMonth(startOfTashkentDay(day), locale)}
+              onClick={() => pick(key)}
+            >
+              <span className="text-xs leading-tight">{t.calendar.weekdaysShort[i]}</span>
+              <span
+                className={`text-sm leading-tight tabular-nums ${key === today ? 'font-bold underline' : 'font-semibold'}`}
+              >
+                {day.day}
+              </span>
+            </Tile>
+          );
+        })}
+      </TileGroup>
+      <div className="mt-1 flex items-center justify-between">
         <button
           type="button"
           aria-label={t.agenda.previousWeek}
@@ -239,28 +261,15 @@ export function CalendarScreen({ shopId, initialDate }: { shopId: string; initia
         >
           <ChevronLeft className="size-5" aria-hidden />
         </button>
-        <TileGroup label={t.agenda.pickDay} columns={7} className="flex-1">
-          {Array.from({ length: 7 }, (_, i) => {
-            const day = addDays(monday, i);
-            const key = dateKey(day);
-            return (
-              <Tile
-                key={key}
-                selected={key === date}
-                className="px-0"
-                aria-label={formatDayMonth(startOfTashkentDay(day), locale)}
-                onClick={() => pick(key)}
-              >
-                <span className="text-[11px] leading-tight">{t.calendar.weekdaysShort[i]}</span>
-                <span
-                  className={`text-sm leading-tight tabular-nums ${key === today ? 'font-bold underline' : 'font-semibold'}`}
-                >
-                  {day.day}
-                </span>
-              </Tile>
-            );
-          })}
-        </TileGroup>
+        {date !== today && (
+          <button
+            type="button"
+            className="min-h-11 text-sm font-semibold text-enamel-text"
+            onClick={() => pick(today)}
+          >
+            {t.agenda.backToToday}
+          </button>
+        )}
         <button
           type="button"
           aria-label={t.agenda.nextWeek}
@@ -270,15 +279,6 @@ export function CalendarScreen({ shopId, initialDate }: { shopId: string; initia
           <ChevronRight className="size-5" aria-hidden />
         </button>
       </div>
-      {date !== today && (
-        <button
-          type="button"
-          className="mt-1 min-h-11 text-sm font-semibold text-enamel-text"
-          onClick={() => pick(today)}
-        >
-          {t.agenda.backToToday}
-        </button>
-      )}
 
       {masters.length > 1 && (
         <Select
@@ -293,11 +293,9 @@ export function CalendarScreen({ shopId, initialDate }: { shopId: string; initia
         />
       )}
 
-      {query.isPending && <p className="mt-5 text-sm text-ink-muted">{t.common.loading}</p>}
+      {query.isPending && <ScreenLoading className="px-0 pt-5" />}
       {query.isError && (
-        <p role="alert" className="mt-5 text-sm text-enamel-text">
-          {errorText(t, query.error)}
-        </p>
+        <LoadError className="mt-5" error={query.error} onRetry={() => void query.refetch()} />
       )}
       {shown.map((master) => (
         <MasterDay

@@ -2,6 +2,7 @@
 
 import { CalendarCheck, ChevronRight, Search, Store } from 'lucide-react';
 import Link from 'next/link';
+import { LoadError } from '@/features/api/load-states';
 import { useSession } from '@/features/auth/use-session';
 import { useI18n } from '@/i18n/provider';
 import { TileList } from '@/ui/tile-list';
@@ -10,6 +11,11 @@ import { TileList } from '@/ui/tile-list';
 export function HomeActions() {
   const { t } = useI18n();
   const session = useSession();
+  if (session.isError) {
+    return (
+      <LoadError className="mt-6" error={session.error} onRetry={() => void session.refetch()} />
+    );
+  }
   if (!session.data) return null;
   const shops = session.data.memberships;
 

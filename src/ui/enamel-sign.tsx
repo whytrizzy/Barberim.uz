@@ -21,7 +21,7 @@ export function EnamelSign({ overline, children, className }: EnamelSignProps) {
       )}
     >
       {overline && (
-        <p className="font-sign text-[11px] font-bold tracking-[0.14em] uppercase opacity-85">
+        <p className="font-sign text-xs font-bold tracking-[0.14em] uppercase opacity-85">
           {overline}
         </p>
       )}

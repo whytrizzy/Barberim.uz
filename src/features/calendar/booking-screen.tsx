@@ -14,6 +14,7 @@ import {
 import { formatUzPhone } from '@/domain/phone';
 import { ApiError } from '@/features/api/client';
 import { errorText } from '@/features/api/error-text';
+import { LoadError, ScreenLoading } from '@/features/api/load-states';
 import { TimeField } from '@/features/schedule/day-hours';
 import { formatDayMonth, formatDuration, formatMoney, formatTime } from '@/i18n/format';
 import { interpolate } from '@/i18n/interpolate';
@@ -214,16 +215,17 @@ function BookingDetails({ shopId, booking }: { shopId: string; booking: BookingD
 
 /** /staff/shop/:id/calendar/:bookingId */
 export function BookingScreen({ shopId, bookingId }: { shopId: string; bookingId: string }) {
-  const { t } = useI18n();
   const query = useBookingDetail(shopId, bookingId);
   if (query.isPending) {
-    return <p className="px-4 pt-6 text-sm text-ink-muted">{t.common.loading}</p>;
+    return <ScreenLoading />;
   }
   if (query.isError) {
     return (
-      <p role="alert" className="px-4 pt-6 text-sm text-enamel-text">
-        {errorText(t, query.error)}
-      </p>
+      <LoadError
+        className="mx-auto max-w-[390px] px-4 pt-6"
+        error={query.error}
+        onRetry={() => void query.refetch()}
+      />
     );
   }
   return <BookingDetails shopId={shopId} booking={query.data} />;

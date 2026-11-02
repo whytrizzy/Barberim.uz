@@ -9,6 +9,7 @@ import { yandexRouteLink } from '@/domain/places';
 import { formatMinuteOfDay } from '@/domain/time';
 import { ApiError } from '@/features/api/client';
 import { errorText } from '@/features/api/error-text';
+import { LoadError, ScreenLoading } from '@/features/api/load-states';
 import { formatDayMonth, formatDuration, formatMoney, formatTime } from '@/i18n/format';
 import { interpolate } from '@/i18n/interpolate';
 import type { Messages } from '@/i18n/messages';
@@ -104,9 +105,7 @@ function MovePanel({
         </div>
       )}
       {options.isError && (
-        <p role="alert" className="text-sm text-enamel-text">
-          {actionError(t, options.error)}
-        </p>
+        <LoadError message={actionError(t, options.error)} onRetry={() => void options.refetch()} />
       )}
       {options.isSuccess && (
         <SlotPicker
@@ -277,14 +276,17 @@ export function MyBookingScreen({ bookingId }: { bookingId: string }) {
   const { t } = useI18n();
   const query = useMyBooking(bookingId);
   if (query.isPending) {
-    return <p className="px-4 pt-6 text-sm text-ink-muted">{t.common.loading}</p>;
+    return <ScreenLoading />;
   }
   if (query.isError) {
     const missing = query.error instanceof ApiError && query.error.status === 404;
     return (
-      <p role="alert" className="px-4 pt-6 text-sm text-enamel-text">
-        {missing ? t.myBookings.notFound : errorText(t, query.error)}
-      </p>
+      <LoadError
+        className="mx-auto max-w-[390px] px-4 pt-6"
+        message={missing ? t.myBookings.notFound : undefined}
+        error={query.error}
+        onRetry={missing ? undefined : () => void query.refetch()}
+      />
     );
   }
   return <Details booking={query.data} />;

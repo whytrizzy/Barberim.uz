@@ -3,6 +3,7 @@
 import { useRouter } from 'next/navigation';
 import { ApiError } from '@/features/api/client';
 import { errorText } from '@/features/api/error-text';
+import { LoadError, ScreenLoading } from '@/features/api/load-states';
 import { interpolate } from '@/i18n/interpolate';
 import type { Messages } from '@/i18n/messages';
 import { useI18n } from '@/i18n/provider';
@@ -58,14 +59,17 @@ export function InviteScreen({ token }: { token: string }) {
   );
 
   if (invite.isPending) {
-    return <p className="px-4 pt-6 text-sm text-ink-muted">{t.common.loading}</p>;
+    return <ScreenLoading />;
   }
   if (invite.isError || !data) {
     const missing = invite.error instanceof ApiError && invite.error.status === 404;
     return (
-      <p role="alert" className="px-4 pt-6 text-sm text-enamel-text">
-        {missing ? t.team.inviteUsed : errorText(t, invite.error)}
-      </p>
+      <LoadError
+        className="mx-auto max-w-[390px] px-4 pt-6"
+        message={missing ? t.team.inviteUsed : undefined}
+        error={invite.error}
+        onRetry={missing ? undefined : () => void invite.refetch()}
+      />
     );
   }
 

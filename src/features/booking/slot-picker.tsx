@@ -60,7 +60,7 @@ export function SlotPicker({
                   : `flex min-h-14 w-14 shrink-0 flex-col items-center justify-center rounded-tile border border-chrome active:bg-porcelain-sunk ${open ? 'bg-porcelain' : 'bg-porcelain-sunk text-ink-faint line-through'}`
               }
             >
-              <span className="text-[11px] leading-tight">
+              <span className="text-xs leading-tight">
                 {index === 0 ? t.calendar.today : formatWeekday(dateOf(option.date), locale, true)}
               </span>
               <span className="text-sm leading-tight font-semibold tabular-nums">

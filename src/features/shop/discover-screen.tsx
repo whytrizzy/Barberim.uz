@@ -7,7 +7,7 @@ import { useState } from 'react';
 import { regions, type Coordinates } from '@/domain/places';
 import { formatMinuteOfDay } from '@/domain/time';
 import { api } from '@/features/api/client';
-import { errorText } from '@/features/api/error-text';
+import { LoadError } from '@/features/api/load-states';
 import { formatMoney } from '@/i18n/format';
 import { interpolate } from '@/i18n/interpolate';
 import { districtName, districtOptions, placeName, regionOptions, typedText } from '@/i18n/places';
@@ -251,9 +251,7 @@ export function DiscoverScreen() {
         </div>
       )}
       {results.isError && (
-        <p role="alert" className="mt-4 text-sm text-enamel-text">
-          {errorText(t, results.error)}
-        </p>
+        <LoadError className="mt-4" error={results.error} onRetry={() => void results.refetch()} />
       )}
       {results.isSuccess &&
         (shops.length > 0 ? (

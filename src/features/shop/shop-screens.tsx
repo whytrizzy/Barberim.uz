@@ -11,7 +11,7 @@ import {
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
-import { errorText } from '@/features/api/error-text';
+import { LoadError, ScreenLoading } from '@/features/api/load-states';
 import { useSession } from '@/features/auth/use-session';
 import { useI18n } from '@/i18n/provider';
 import { EnamelSign } from '@/ui/enamel-sign';
@@ -52,13 +52,15 @@ export function ShopEditScreen({ shopId, justCreated }: { shopId: string; justCr
   const canEdit = role !== undefined && role !== 'MASTER';
 
   if (shop.isPending) {
-    return <p className="px-4 pt-6 text-sm text-ink-muted">{t.common.loading}</p>;
+    return <ScreenLoading />;
   }
   if (shop.isError) {
     return (
-      <p role="alert" className="px-4 pt-6 text-sm text-enamel-text">
-        {errorText(t, shop.error)}
-      </p>
+      <LoadError
+        className="mx-auto max-w-[390px] px-4 pt-6"
+        error={shop.error}
+        onRetry={() => void shop.refetch()}
+      />
     );
   }
 

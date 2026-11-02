@@ -91,7 +91,7 @@ export function ShopPhotos({ shopId, photos }: { shopId: string; photos: ShopPho
         <SectionLabel className="mt-0">
           <span id="shop-photos">{t.shop.photos}</span>
         </SectionLabel>
-        <span className="font-sign text-[13px] font-bold text-ink-faint tabular-nums">
+        <span className="font-sign text-[13px] font-bold text-ink-muted tabular-nums">
           {photos.length + uploading}/{MAX_SHOP_PHOTOS}
         </span>
       </div>
@@ -124,7 +124,7 @@ export function ShopPhotos({ shopId, photos }: { shopId: string; photos: ShopPho
                   decoding="async"
                 />
                 {index === 0 && (
-                  <span className="absolute top-1.5 left-1.5 rounded-[4px] bg-enamel px-1.5 py-0.5 font-sign text-[11px] leading-none font-bold tracking-[0.06em] text-on-enamel uppercase">
+                  <span className="absolute top-1.5 left-1.5 rounded-[4px] bg-enamel px-1.5 py-0.5 font-sign text-xs leading-none font-bold tracking-[0.06em] text-on-enamel uppercase">
                     {t.shop.photoCover}
                   </span>
                 )}

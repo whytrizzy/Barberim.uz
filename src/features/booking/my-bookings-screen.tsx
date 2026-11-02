@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useState } from 'react';
-import { errorText } from '@/features/api/error-text';
+import { LoadError } from '@/features/api/load-states';
 import { formatDayMonth, formatMoney, formatTime } from '@/i18n/format';
 import { typedText } from '@/i18n/places';
 import { useI18n } from '@/i18n/provider';
@@ -86,9 +86,7 @@ export function MyBookingsScreen() {
         </div>
       )}
       {query.isError && (
-        <p role="alert" className="mt-4 text-sm text-enamel-text">
-          {errorText(t, query.error)}
-        </p>
+        <LoadError className="mt-4" error={query.error} onRetry={() => void query.refetch()} />
       )}
       {query.isSuccess &&
         (list.length > 0 ? (
@@ -98,9 +96,19 @@ export function MyBookingsScreen() {
             ))}
           </TileList>
         ) : (
-          <p className="mt-4 rounded-tile border border-chrome bg-porcelain-sunk px-3 py-3 text-sm text-ink-muted">
-            {tab === 'upcoming' ? t.myBookings.noUpcoming : t.myBookings.noPast}
-          </p>
+          <div className="mt-4 rounded-tile border border-chrome bg-porcelain-sunk px-3 py-3">
+            <p className="text-sm text-ink-muted">
+              {tab === 'upcoming' ? t.myBookings.noUpcoming : t.myBookings.noPast}
+            </p>
+            {tab === 'upcoming' && (
+              <Link
+                href="/discover"
+                className="mt-1 flex min-h-11 items-center text-sm font-semibold text-enamel-text"
+              >
+                {t.discover.title}
+              </Link>
+            )}
+          </div>
         ))}
     </main>
   );

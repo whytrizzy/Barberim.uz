@@ -18,7 +18,7 @@ colors:
   on-enamel: '#ffffff'
   pick: '#0f332b'
   on-pick: '#fbfdfc'
-  success: '#1f7a4d'
+  success: '#196b43'
   warning: '#9a6a00'
 typography:
   sign-display:
