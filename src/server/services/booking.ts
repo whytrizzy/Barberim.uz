@@ -23,6 +23,8 @@ import {
   cancelReminders,
   queueBookingMessage,
   queueReminders,
+  queueStaffAlert,
+  type StaffAlert,
 } from './notifications';
 
 function refuse(code: AppErrorCode, reason: BookingRefusal, extra: object = {}): never {
@@ -78,6 +80,8 @@ async function insertBookings(
   rows: Prisma.BookingUncheckedCreateInput[],
   /** Told once, about the first booking: a family gets one message. */
   message?: BookingTemplate,
+  /** Likewise told once. */
+  alert?: StaffAlert,
 ): Promise<BookingWithItems[]> {
   try {
     return await db.$transaction(async (tx) => {
@@ -96,6 +100,7 @@ async function insertBookings(
         })),
       });
       if (message && created[0]) await queueBookingMessage(tx, message, created[0].id);
+      if (alert && created[0]) await queueStaffAlert(tx, created[0].id, alert);
       if (created[0]) await queueReminders(tx, created[0].id, created[0].startAt);
       return created;
     });
@@ -234,6 +239,11 @@ export async function createClientBookings(
           items: { create: p.items },
         })),
         schedule.settings.requireApproval ? 'booking.requested' : 'booking.created',
+        {
+          template: schedule.settings.requireApproval ? 'staff.request' : 'staff.new_booking',
+          actorUserId: user.id,
+          audience: 'shop',
+        },
       );
       return created.map(toBookingDto);
     } catch (error) {
@@ -347,6 +357,7 @@ export async function createStaffBooking(
     ],
     // Someone standing in the shop already knows; someone who phoned gets it in writing.
     input.source === 'PHONE' ? 'booking.created' : undefined,
+    { template: 'staff.new_booking', actorUserId: user.id, audience: 'master' },
   );
   return toBookingDto(booking!);
 }
@@ -455,6 +466,14 @@ export async function applyBookingAction(
       if (input.as === 'staff') {
         const message = staffActionMessages[input.action];
         if (message) await queueBookingMessage(tx, message, booking.id);
+      }
+      if (input.action === 'cancel' || input.action === 'reschedule') {
+        await queueStaffAlert(tx, booking.id, {
+          template: input.action === 'cancel' ? 'staff.cancelled' : 'staff.moved',
+          actorUserId: user.id,
+          audience: input.as === 'client' ? 'shop' : 'master',
+          oldStartAt: input.action === 'reschedule' ? booking.startAt : undefined,
+        });
       }
       await tx.auditLog.create({
         data: {

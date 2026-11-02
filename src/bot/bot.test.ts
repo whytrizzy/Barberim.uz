@@ -51,8 +51,42 @@ function replies(outcome: 'ok' | 'too_late' | 'not_found' = 'ok') {
     localeOf: vi.fn().mockResolvedValue('ru'),
     coming: vi.fn().mockResolvedValue(outcome),
     cancel: vi.fn().mockResolvedValue(outcome),
+    accept: vi.fn().mockResolvedValue(outcome),
+    reject: vi.fn().mockResolvedValue(outcome),
   };
 }
+
+describe('taps on a booking request', () => {
+  it('accepts on one tap', async () => {
+    const bookingReplies = replies();
+    const { bot, calls } = testBot({ bookingReplies });
+    await bot.handleUpdate(tap(`bk:accept:${bookingId}`));
+    expect(bookingReplies.accept).toHaveBeenCalledWith(42, bookingId);
+    const edit = calls.find((c) => c.method === 'editMessageText');
+    expect(edit?.payload.text).toContain('Принято');
+  });
+
+  it('asks before rejecting, and can back out', async () => {
+    const bookingReplies = replies();
+    const { bot, calls } = testBot({ bookingReplies });
+    await bot.handleUpdate(tap(`bk:reject:${bookingId}`));
+    expect(bookingReplies.reject).not.toHaveBeenCalled();
+    expect(JSON.stringify(calls.at(-2)?.payload.reply_markup)).toContain('bk:reject_yes');
+    await bot.handleUpdate(tap(`bk:reject_no:${bookingId}`));
+    expect(bookingReplies.reject).not.toHaveBeenCalled();
+    expect(JSON.stringify(calls.at(-2)?.payload.reply_markup)).toContain('bk:accept');
+
+    await bot.handleUpdate(tap(`bk:reject_yes:${bookingId}`));
+    expect(bookingReplies.reject).toHaveBeenCalledWith(42, bookingId);
+  });
+
+  it('tells a second person that it has been decided', async () => {
+    const { bot, calls } = testBot({ bookingReplies: replies('too_late') });
+    await bot.handleUpdate(tap(`bk:accept:${bookingId}`));
+    const edit = calls.find((c) => c.method === 'editMessageText');
+    expect(edit?.payload.text).toContain('уже есть решение');
+  });
+});
 
 describe('taps on a reminder', () => {
   it('records "coming" and turns the buttons into the answer', async () => {

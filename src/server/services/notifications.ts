@@ -7,9 +7,11 @@ import {
   type BookingPayload,
   type BookingTemplate,
   type Sender,
+  type StaffPayload,
+  type StaffTemplate,
 } from '@/bot/notifications';
 import { reminderTimes } from '@/domain/booking';
-import { Prisma } from '@/generated/prisma/client';
+import { Prisma, type StaffRole } from '@/generated/prisma/client';
 import { fromDbLocale } from '../auth/auth';
 import { db } from '../db/client';
 
@@ -56,6 +58,67 @@ export async function queueBookingMessage(
   };
   await tx.notification.create({
     data: { chatId: person.telegramId, template, payload, sendAt, bookingId },
+  });
+}
+
+export type StaffAlert = {
+  template: StaffTemplate;
+  /** Who did it: they know already, so they aren't told. */
+  actorUserId: string;
+  /**
+   * `shop`: the booking's master and the owner and admins, when a client did something.
+   * `master`: just the master, when a colleague changed their day.
+   */
+  audience: 'shop' | 'master';
+  oldStartAt?: Date;
+};
+
+/** Tells the shop's people about a change, each in their own language. */
+export async function queueStaffAlert(
+  tx: Prisma.TransactionClient,
+  bookingId: string,
+  { template, actorUserId, audience, oldStartAt }: StaffAlert,
+): Promise<void> {
+  const booking = await tx.booking.findUniqueOrThrow({
+    where: { id: bookingId },
+    select: {
+      shopId: true,
+      staffId: true,
+      startAt: true,
+      shop: { select: { name: true } },
+      staff: { select: { displayName: true } },
+      client: { select: { name: true } },
+    },
+  });
+  const recipients = await tx.staff.findMany({
+    where: {
+      shopId: booking.shopId,
+      isActive: true,
+      userId: { not: null },
+      OR: [
+        { id: booking.staffId },
+        ...(audience === 'shop' ? [{ role: { in: ['OWNER', 'ADMIN'] as StaffRole[] } }] : []),
+      ],
+      NOT: { userId: actorUserId },
+    },
+    select: { user: { select: { telegramId: true, locale: true } } },
+  });
+  const sendAt = new Date();
+  await tx.notification.createMany({
+    data: recipients.flatMap(({ user }) => {
+      if (!user) return [];
+      const payload: StaffPayload = {
+        bookingId,
+        shopId: booking.shopId,
+        shopName: booking.shop.name,
+        masterName: booking.staff.displayName,
+        clientName: booking.client.name,
+        startAt: booking.startAt.toISOString(),
+        ...(oldStartAt && { oldStartAt: oldStartAt.toISOString() }),
+        locale: fromDbLocale(user.locale),
+      };
+      return [{ chatId: user.telegramId, template, payload, sendAt, bookingId }];
+    }),
   });
 }
 

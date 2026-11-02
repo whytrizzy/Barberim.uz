@@ -51,7 +51,7 @@ const reminders = ['booking.reminder24h', 'booking.reminder2h'];
 /** Everything but reminders, which have their own tests below. */
 const messages = (bookingId: string) =>
   db.notification.findMany({
-    where: { bookingId, template: { notIn: reminders } },
+    where: { bookingId, template: { startsWith: 'booking.', notIn: reminders } },
     orderBy: { createdAt: 'asc' },
   });
 
@@ -69,7 +69,10 @@ const clientBooking = async (hour: number) => {
     startAt: at(hour),
   });
   await db.notification.deleteMany({
-    where: { bookingId: booking.id, template: { in: reminders } },
+    where: {
+      bookingId: booking.id,
+      OR: [{ template: { in: reminders } }, { template: { startsWith: 'staff.' } }],
+    },
   });
   return booking;
 };
@@ -130,8 +133,8 @@ describe('reminders', () => {
       },
       { now: dueAt, onlyBookings: [booking.id] },
     );
-    // The "you're booked" message was due too.
-    expect(result).toMatchObject({ sent: 2 });
+    // The "you're booked" message and the owner's alert were due too.
+    expect(result).toMatchObject({ sent: 3 });
     const reminder = got.find((m) => m.buttons.flat().length === 3);
     expect(reminder?.buttons.flat().map((b) => (b as { label: string }).label)).toEqual([
       'Приду',
@@ -236,7 +239,7 @@ beforeEach(() => {
 afterAll(async () => {
   await db.booking.deleteMany({ where: { shopId } });
   await db.shop.deleteMany({ where: { id: shopId } });
-  await db.user.deleteMany({ where: { id: { in: [owner.id, client.id] } } });
+  await db.user.deleteMany({ where: { telegramId: { gte: BigInt(base), lte: BigInt(base + 9) } } });
   await db.$disconnect();
 });
 
@@ -443,5 +446,159 @@ describe('POST /api/cron/dispatch', () => {
   it('refuses anyone without the secret', async () => {
     expect((await call()).status).toBe(401);
     expect((await call('Bearer wrong')).status).toBe(401);
+  });
+});
+
+describe('staff alerts', () => {
+  let admin: User;
+  let colleague: User;
+  let colleagueStaffId = '';
+  const alertsOf = (bookingId: string, template: string) =>
+    db.notification.findMany({ where: { bookingId, template } });
+  const book = (hour: number) =>
+    createClientBooking(client, {
+      staffId: colleagueStaffId,
+      serviceIds: [serviceId],
+      startAt: later(hour),
+    });
+
+  beforeAll(async () => {
+    // Earlier tests used up this client's limit on upcoming bookings.
+    await db.booking.updateMany({ where: { shopId }, data: { status: 'CANCELLED_CLIENT' } });
+    admin = await db.user.create({
+      data: { telegramId: BigInt(base + 3), firstName: 'Admin', locale: 'ru' },
+    });
+    colleague = await db.user.create({
+      data: { telegramId: BigInt(base + 4), firstName: 'Master' },
+    });
+    await db.staff.create({
+      data: { shopId, userId: admin.id, displayName: 'Admin', role: 'ADMIN', isBookable: false },
+    });
+    colleagueStaffId = (
+      await db.staff.create({ data: { shopId, userId: colleague.id, displayName: 'Bekzod' } })
+    ).id;
+    await db.staffService.create({ data: { staffId: colleagueStaffId, serviceId } });
+    await db.weeklyHours.createMany({
+      data: [1, 2, 3, 4, 5, 6, 7].map((weekday) => ({
+        staffId: colleagueStaffId,
+        weekday,
+        startMin: 0,
+        endMin: 1440,
+      })),
+    });
+  });
+
+  it('tells the master, the owner and admins about a client’s booking', async () => {
+    const booking = await book(15);
+    const rows = await alertsOf(booking.id, 'staff.new_booking');
+    expect(rows.map((r) => r.chatId).sort()).toEqual(
+      [owner.telegramId, admin.telegramId, colleague.telegramId].sort(),
+    );
+    const toAdmin = rows.find((r) => r.chatId === admin.telegramId);
+    expect(toAdmin?.payload).toMatchObject({ clientName: 'Client', locale: 'ru', shopId });
+  });
+
+  it('tells the shop when a client moves or cancels, even from a reminder', async () => {
+    const booking = await book(16);
+    await applyBookingAction(client, booking.id, {
+      action: 'reschedule',
+      as: 'client',
+      startAt: later(17),
+    });
+    const moved = await alertsOf(booking.id, 'staff.moved');
+    expect(moved).toHaveLength(3);
+    expect(moved[0]?.payload).toMatchObject({
+      startAt: later(17).toISOString(),
+      oldStartAt: later(16).toISOString(),
+    });
+
+    expect(await bookingReplies.cancel(Number(client.telegramId), booking.id)).toBe('ok');
+    expect(await alertsOf(booking.id, 'staff.cancelled')).toHaveLength(3);
+  });
+
+  it('tells only the master when a colleague changes their day, and never the actor', async () => {
+    const booking = await book(18);
+    await applyBookingAction(owner, booking.id, {
+      action: 'reschedule',
+      as: 'staff',
+      startAt: later(19),
+    });
+    const moved = await alertsOf(booking.id, 'staff.moved');
+    expect(moved.map((r) => r.chatId)).toEqual([colleague.telegramId]);
+
+    await applyBookingAction(colleague, booking.id, { action: 'cancel', as: 'staff' });
+    expect(await alertsOf(booking.id, 'staff.cancelled')).toEqual([]);
+  });
+
+  it('doesn’t tell a master about a walk-in they added themselves', async () => {
+    const walkIn = await createStaffBooking(colleague, {
+      staffId: colleagueStaffId,
+      serviceIds: [serviceId],
+      startAt: later(20),
+      source: 'WALK_IN',
+      client: { name: 'Mijoz' },
+    });
+    expect(await alertsOf(walkIn.id, 'staff.new_booking')).toEqual([]);
+
+    const fromOwner = await createStaffBooking(owner, {
+      staffId: colleagueStaffId,
+      serviceIds: [serviceId],
+      startAt: later(21),
+      source: 'PHONE',
+      client: { name: 'Ali' },
+    });
+    const rows = await alertsOf(fromOwner.id, 'staff.new_booking');
+    expect(rows.map((r) => r.chatId)).toEqual([colleague.telegramId]);
+  });
+
+  describe('requests', () => {
+    beforeAll(() =>
+      db.shop.update({
+        where: { id: shopId },
+        data: {
+          settings: { minNoticeMin: 0, maxActiveBookingsPerClient: 20, requireApproval: true },
+        },
+      }),
+    );
+    afterAll(() =>
+      db.shop.update({
+        where: { id: shopId },
+        data: { settings: { minNoticeMin: 0, maxActiveBookingsPerClient: 20 } },
+      }),
+    );
+
+    it('asks the shop, with buttons, and accepting tells the client', async () => {
+      const booking = await book(5);
+      expect(booking.status).toBe('PENDING');
+      const rows = await alertsOf(booking.id, 'staff.request');
+      expect(rows).toHaveLength(3);
+
+      expect(await bookingReplies.accept(Number(colleague.telegramId), booking.id)).toBe('ok');
+      const row = await db.booking.findUniqueOrThrow({ where: { id: booking.id } });
+      expect(row.status).toBe('CONFIRMED');
+      expect(await alertsOf(booking.id, 'booking.confirmed')).toHaveLength(1);
+      // Someone else got there first.
+      expect(await bookingReplies.accept(Number(admin.telegramId), booking.id)).toBe('too_late');
+    });
+
+    it('rejecting cancels it and tells the client', async () => {
+      const booking = await book(6);
+      expect(await bookingReplies.reject(Number(owner.telegramId), booking.id)).toBe('ok');
+      const row = await db.booking.findUniqueOrThrow({ where: { id: booking.id } });
+      expect(row.status).toBe('CANCELLED_SHOP');
+      expect(await alertsOf(booking.id, 'booking.cancelled_by_shop')).toHaveLength(1);
+    });
+
+    it('won’t let outsiders or other masters answer', async () => {
+      const booking = await book(7);
+      expect(await bookingReplies.accept(Number(client.telegramId), booking.id)).toBe('not_found');
+      expect(await bookingReplies.reject(base + 99, booking.id)).toBe('not_found');
+      const owned = await createClientBooking(client, {
+        staffId,
+        serviceIds: [serviceId],
+        startAt: later(8),
+      });
+      expect(await bookingReplies.accept(Number(colleague.telegramId), owned.id)).toBe('not_found');
+    });
   });
 });

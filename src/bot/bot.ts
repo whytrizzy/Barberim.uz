@@ -4,7 +4,14 @@ import { localeFromLanguageCode, type Locale } from '@/i18n/locales';
 import { getMessages } from '@/i18n/messages';
 import { summarizeBotError } from './errors';
 import { botTexts, startMessage } from './messages';
-import { buildKeyboard, cancelAskButtons, reminderButtons, replyPattern } from './notifications';
+import {
+  buildKeyboard,
+  cancelAskButtons,
+  rejectAskButtons,
+  reminderButtons,
+  replyPattern,
+  requestButtons,
+} from './notifications';
 import { canOpenMiniApp, miniAppUrl, parseStartPayload } from './payload';
 
 export type ContactSaveResult = 'saved' | 'not_own' | 'not_uz';
@@ -34,6 +41,9 @@ export type BookingReplies = {
   localeOf: (telegramId: number) => Promise<Locale | null>;
   coming: (telegramId: number, bookingId: string) => Promise<ReplyOutcome>;
   cancel: (telegramId: number, bookingId: string) => Promise<ReplyOutcome>;
+  /** Staff answering a booking request. */
+  accept: (telegramId: number, bookingId: string) => Promise<ReplyOutcome>;
+  reject: (telegramId: number, bookingId: string) => Promise<ReplyOutcome>;
 };
 
 /** Builds the bot with all handlers. Transport-agnostic: used by the webhook and local polling. */
@@ -78,22 +88,32 @@ export function createBot({ token, appUrl, savePhone, bookingReplies, botInfo }:
       localeFromLanguageCode(ctx.from.language_code);
     const { notify } = getMessages(locale);
 
-    if (action === 'cancel' || action === 'cancel_no') {
-      const buttons = action === 'cancel' ? cancelAskButtons : reminderButtons;
+    // Steps that only change the buttons: "are you sure?", and backing out of it.
+    const swap = {
+      cancel: { buttons: cancelAskButtons, toast: notify.cancelAsk },
+      cancel_no: { buttons: reminderButtons, toast: undefined },
+      reject: { buttons: rejectAskButtons, toast: notify.rejectAsk },
+      reject_no: { buttons: requestButtons, toast: undefined },
+    }[action as string];
+    if (swap) {
       await ctx.editMessageReplyMarkup({
-        reply_markup: buildKeyboard(buttons(locale, id), appUrl),
+        reply_markup: buildKeyboard(swap.buttons(locale, id), appUrl),
       });
-      return ctx.answerCallbackQuery(action === 'cancel' ? notify.cancelAsk : undefined);
+      return ctx.answerCallbackQuery(swap.toast);
     }
 
-    const outcome =
-      action === 'coming'
-        ? await bookingReplies.coming(ctx.from.id, id)
-        : await bookingReplies.cancel(ctx.from.id, id);
-    const done = action === 'coming' ? notify.comingDone : notify.cancelledDone;
+    const forStaff = action === 'accept' || action === 'reject_yes';
+    const answer = {
+      coming: { run: bookingReplies.coming, done: notify.comingDone },
+      cancel_yes: { run: bookingReplies.cancel, done: notify.cancelledDone },
+      accept: { run: bookingReplies.accept, done: notify.acceptDone },
+      reject_yes: { run: bookingReplies.reject, done: notify.rejectDone },
+    }[action as 'coming' | 'cancel_yes' | 'accept' | 'reject_yes'];
+    const outcome = await answer.run(ctx.from.id, id);
     const line = {
-      ok: done,
-      too_late: notify.replyTooLate,
+      ok: answer.done,
+      // For staff, usually a colleague got there first.
+      too_late: forStaff ? notify.staffHandled : notify.replyTooLate,
       not_found: notify.replyNotFound,
     }[outcome];
     // The answer becomes part of the message, and its buttons go: there's nothing left to tap.

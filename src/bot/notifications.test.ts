@@ -43,6 +43,39 @@ describe('renderNotification', () => {
   });
 });
 
+describe('staff alerts', () => {
+  const alert = {
+    ...payload,
+    shopId: 's1',
+    clientName: 'Ali',
+    oldStartAt: '2026-11-03T06:00:00.000Z',
+  };
+
+  it('says who and when, and links to the calendar', () => {
+    const message = renderNotification('staff.moved', alert);
+    expect(message?.text).toContain('Ali');
+    expect(message?.text).toContain('15:00');
+    expect(message?.text).toContain('11:00');
+    expect(message?.buttons).toEqual([
+      [{ label: 'Kalendarda ochish', path: '/staff/shop/s1/calendar/b1' }],
+    ]);
+  });
+
+  it('adds Accept and Reject only to requests', () => {
+    const request = renderNotification('staff.request', alert);
+    expect(request?.buttons[0]?.map((b) => 'data' in b && b.data)).toEqual([
+      'bk:accept:b1',
+      'bk:reject:b1',
+    ]);
+    const plain = renderNotification('staff.new_booking', alert);
+    expect(plain?.buttons.flat()).toHaveLength(1);
+  });
+
+  it('refuses an alert missing what it needs', () => {
+    expect(renderNotification('staff.request', payload)).toBeNull();
+  });
+});
+
 describe('classifySendError', () => {
   it('gives up when the person can never receive it', () => {
     expect(classifySendError(apiError(403, 'bot was blocked by the user')).kind).toBe('permanent');
