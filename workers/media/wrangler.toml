@@ -11,6 +11,6 @@ crons = ["*/5 * * * *"]
 
 [vars]
 # Change this if Render gave the service a different address.
-APP_URL = "https://barberim.onrender.com"
+APP_URL = "https://barberim-uz.onrender.com"
 
 # CRON_SECRET is a secret, set with: npx wrangler secret put CRON_SECRET
