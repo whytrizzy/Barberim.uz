@@ -2,7 +2,7 @@
 const rootPaths = new Set([
   '/',
   '/discover',
-  '/bookings',
+
   '/staff/today',
   '/staff/calendar',
   '/staff/clients',

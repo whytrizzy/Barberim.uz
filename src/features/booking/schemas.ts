@@ -101,6 +101,28 @@ export const bookingOptionsSchema = z.object({
 });
 export type BookingOptions = z.infer<typeof bookingOptionsSchema>;
 
+/** GET /api/me/bookings/:id — a client's own booking, with where to go. */
+export const myBookingSchema = bookingSchema.extend({
+  masterName: z.string(),
+  shop: z.object({
+    slug: z.string(),
+    name: z.string(),
+    address: z.string(),
+    landmark: z.string().nullable(),
+    location: z.object({ lat: z.number(), lng: z.number() }).nullable(),
+  }),
+});
+export type MyBookingDto = z.infer<typeof myBookingSchema>;
+
+/** GET /api/me/bookings */
+export const myBookingsSchema = z.object({
+  /** Soonest first. */
+  upcoming: z.array(myBookingSchema),
+  /** Latest first: finished, missed and cancelled. */
+  past: z.array(myBookingSchema),
+});
+export type MyBookingsDto = z.infer<typeof myBookingsSchema>;
+
 /** POST /api/shops/:id/bookings — staff add a walk-in or a booking taken by phone. */
 export const createStaffBookingRequestSchema = z.object({
   staffId: id,

@@ -29,6 +29,7 @@ export function useCreateBooking(slug: string) {
     // for, so the answer shows straight away even on a slow connection.
     onSettled: () => {
       void queryClient.invalidateQueries({ queryKey: ['booking-options'] });
+      void queryClient.invalidateQueries({ queryKey: ['my-bookings'] });
       void queryClient.invalidateQueries({ queryKey: ['shop-profile', slug] });
     },
   });

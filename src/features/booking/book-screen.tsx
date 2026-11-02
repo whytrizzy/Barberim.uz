@@ -1,21 +1,16 @@
 'use client';
 
 import { CircleCheck } from 'lucide-react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useRef, useState } from 'react';
-import { formatMinuteOfDay, parseDateKey, startOfTashkentDay } from '@/domain/time';
+import { formatMinuteOfDay } from '@/domain/time';
 import { ApiError } from '@/features/api/client';
 import { errorText } from '@/features/api/error-text';
 import { useSession } from '@/features/auth/use-session';
 import { PhoneCapture } from '@/features/profile/phone-capture';
 import { useShopProfile } from '@/features/shop/use-shop-profile';
-import {
-  formatDayMonth,
-  formatDuration,
-  formatMoney,
-  formatTime,
-  formatWeekday,
-} from '@/i18n/format';
+import { formatDayMonth, formatDuration, formatMoney, formatTime } from '@/i18n/format';
 import { interpolate } from '@/i18n/interpolate';
 import type { Messages } from '@/i18n/messages';
 import { typedText } from '@/i18n/places';
@@ -29,6 +24,7 @@ import { Tick } from '@/ui/tick';
 import { Tile, TileGroup } from '@/ui/tile-group';
 import { TileList } from '@/ui/tile-list';
 import type { BookingDto } from './schemas';
+import { dateOf, SlotPicker } from './slot-picker';
 import { useBookingOptions, useCreateBooking } from './use-book';
 
 const ANY = 'any';
@@ -53,23 +49,9 @@ function bookError(t: Messages, error: unknown): string {
   return errorText(t, error);
 }
 
-const dateOf = (key: string) => {
-  const date = parseDateKey(key);
-  return date ? startOfTashkentDay(date) : new Date();
-};
-
-function Booked({
-  booking,
-  shopName,
-  onDone,
-}: {
-  booking: BookingDto;
-  shopName: string;
-  onDone: () => void;
-}) {
+function Booked({ booking, shopName }: { booking: BookingDto; shopName: string }) {
   const { t, locale } = useI18n();
   const start = new Date(booking.startAt);
-  useMainButton({ text: t.book.done, onClick: onDone });
   return (
     <main className="mx-auto max-w-[390px] px-4 pt-4 pb-6">
       <EnamelSign overline={shopName}>
@@ -95,6 +77,12 @@ function Booked({
         {interpolate(t.agenda.total, { total: formatMoney(booking.totalPrice, locale) })}
       </p>
       <p className="mt-3 text-sm text-ink-muted">{t.book.payAtShop}</p>
+      <Link
+        href="/bookings"
+        className="mt-2 flex min-h-11 items-center text-sm font-semibold text-enamel-text"
+      >
+        {t.myBookings.title}
+      </Link>
     </main>
   );
 }
@@ -195,15 +183,17 @@ export function BookScreen({
   }
 
   useMainButton(
-    booked || !shop || shop.isPreview
-      ? null
-      : {
-          text: start
-            ? interpolate(t.book.submitAt, { time: formatMinuteOfDay(start.startMin) })
-            : t.book.submit,
-          loading: create.isPending,
-          onClick: submit,
-        },
+    booked
+      ? { text: t.book.done, onClick: () => router.replace(`/shop/${slug}`) }
+      : !shop || shop.isPreview
+        ? null
+        : {
+            text: start
+              ? interpolate(t.book.submitAt, { time: formatMinuteOfDay(start.startMin) })
+              : t.book.submit,
+            loading: create.isPending,
+            onClick: submit,
+          },
   );
 
   if (profile.isPending) {
@@ -221,13 +211,7 @@ export function BookScreen({
     return <p className="px-4 pt-6 text-sm text-ink-muted">{t.shopProfile.preview}</p>;
   }
   if (booked) {
-    return (
-      <Booked
-        booking={booked}
-        shopName={typedText(shop.name, locale)}
-        onDone={() => router.replace(`/shop/${slug}`)}
-      />
-    );
+    return <Booked booking={booked} shopName={typedText(shop.name, locale)} />;
   }
 
   return (
@@ -315,73 +299,20 @@ export function BookScreen({
             </p>
           ) : (
             <>
-              <div
-                role="radiogroup"
-                aria-label={t.book.day}
-                className="-mx-4 flex gap-1.5 overflow-x-auto px-4 pb-1"
-              >
-                {days.map((option, index) => {
-                  const open = option.status === 'open';
-                  const selected = option.date === dayKey;
-                  const when = dateOf(option.date);
-                  return (
-                    <button
-                      key={option.date}
-                      type="button"
-                      role="radio"
-                      aria-checked={selected}
-                      disabled={!open}
-                      onClick={() => {
-                        haptic.selection();
-                        setChosenDay(option.date);
-                        setChosenStart(null);
-                      }}
-                      className={
-                        selected
-                          ? 'flex min-h-14 w-14 shrink-0 flex-col items-center justify-center rounded-tile border border-pick bg-pick text-on-pick'
-                          : `flex min-h-14 w-14 shrink-0 flex-col items-center justify-center rounded-tile border border-chrome active:bg-porcelain-sunk ${open ? 'bg-porcelain' : 'bg-porcelain-sunk text-ink-faint line-through'}`
-                      }
-                    >
-                      <span className="text-[11px] leading-tight">
-                        {index === 0 ? t.calendar.today : formatWeekday(when, locale, true)}
-                      </span>
-                      <span className="text-sm leading-tight font-semibold tabular-nums">
-                        {parseDateKey(option.date)?.day}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-
-              <SectionLabel className="mt-4">{t.book.time}</SectionLabel>
-              {day && day.slots.length > 0 ? (
-                <TileGroup label={t.book.time} columns={4}>
-                  {day.slots.map((slot) => (
-                    <Tile
-                      key={slot.startMin}
-                      tone="enamel"
-                      selected={start?.startMin === slot.startMin}
-                      className="text-[15px] font-semibold tabular-nums"
-                      onClick={() => {
-                        haptic.selection();
-                        setChosenStart(slot.startMin);
-                        create.reset();
-                      }}
-                    >
-                      {formatMinuteOfDay(slot.startMin)}
-                    </Tile>
-                  ))}
-                </TileGroup>
-              ) : (
-                <p className="rounded-tile border border-chrome bg-porcelain-sunk px-3 py-3 text-sm text-ink-muted">
-                  {t.book.noTimes}
-                </p>
-              )}
-              {submitted && !start && day && day.slots.length > 0 && (
-                <p role="alert" className="mt-1.5 text-sm text-enamel-text">
-                  {t.book.pickTime}
-                </p>
-              )}
+              <SlotPicker
+                days={days}
+                dayKey={dayKey}
+                startMin={start?.startMin ?? null}
+                missingTime={submitted && !start}
+                onDay={(key) => {
+                  setChosenDay(key);
+                  setChosenStart(null);
+                }}
+                onStart={(minute) => {
+                  setChosenStart(minute);
+                  create.reset();
+                }}
+              />
             </>
           )}
         </section>

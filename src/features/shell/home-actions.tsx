@@ -1,6 +1,6 @@
 'use client';
 
-import { ChevronRight, Store } from 'lucide-react';
+import { CalendarCheck, ChevronRight, Store } from 'lucide-react';
 import Link from 'next/link';
 import { useSession } from '@/features/auth/use-session';
 import { useI18n } from '@/i18n/provider';
@@ -13,21 +13,35 @@ export function HomeActions() {
   if (!session.data) return null;
   const shops = session.data.memberships;
 
-  if (shops.length === 0) {
-    return (
-      <Link
-        href="/staff/new"
-        className="mt-6 flex items-center gap-3 rounded-tile border border-chrome bg-porcelain px-3 py-3"
-      >
-        <Store className="size-5 shrink-0 text-enamel-text" aria-hidden />
-        <span className="flex-1 text-[15px] font-semibold">{t.shop.openShopCta}</span>
+  const myBookings = (
+    <li className="bg-porcelain">
+      <Link href="/bookings" className="flex items-center gap-3 px-3 py-3">
+        <CalendarCheck className="size-5 shrink-0 text-enamel-text" aria-hidden />
+        <span className="flex-1 text-[15px] font-semibold">{t.myBookings.title}</span>
         <ChevronRight className="size-5 text-ink-muted" aria-hidden />
       </Link>
+    </li>
+  );
+
+  if (shops.length === 0) {
+    return (
+      <>
+        <TileList className="mt-6">{myBookings}</TileList>
+        <Link
+          href="/staff/new"
+          className="mt-3 flex items-center gap-3 rounded-tile border border-chrome bg-porcelain px-3 py-3"
+        >
+          <Store className="size-5 shrink-0 text-enamel-text" aria-hidden />
+          <span className="flex-1 text-[15px] font-semibold">{t.shop.openShopCta}</span>
+          <ChevronRight className="size-5 text-ink-muted" aria-hidden />
+        </Link>
+      </>
     );
   }
 
   return (
     <TileList className="mt-6">
+      {myBookings}
       {shops.map((m) => (
         <li key={m.staffId} className="bg-porcelain">
           <Link href={`/staff/shop/${m.shop.id}`} className="flex items-center gap-3 px-3 py-3">
