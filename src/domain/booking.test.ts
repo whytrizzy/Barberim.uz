@@ -1,5 +1,25 @@
 import { describe, expect, it } from 'vitest';
-import { checkTransition, priceBooking, type BookingStatus } from './booking';
+import { checkTransition, priceBooking, reminderTimes, type BookingStatus } from './booking';
+
+describe('reminderTimes', () => {
+  const visit = new Date('2030-01-08T05:00:00Z');
+  const hoursBefore = (hours: number) => new Date(visit.getTime() - hours * 3_600_000);
+  const kinds = (now: Date) => reminderTimes(visit, now).map((r) => r.kind);
+
+  it('gives both to a booking made well ahead', () => {
+    expect(kinds(hoursBefore(48))).toEqual(['24h', '2h']);
+    const [day, soon] = reminderTimes(visit, hoursBefore(48));
+    expect(day?.sendAt).toEqual(hoursBefore(24));
+    expect(soon?.sendAt).toEqual(hoursBefore(2));
+  });
+
+  it('leaves out what would come straight after booking, or has passed', () => {
+    expect(kinds(hoursBefore(24.5))).toEqual(['2h']);
+    expect(kinds(hoursBefore(5))).toEqual(['2h']);
+    expect(kinds(hoursBefore(2.5))).toEqual([]);
+    expect(kinds(hoursBefore(1))).toEqual([]);
+  });
+});
 
 const start = new Date('2030-01-08T05:00:00Z');
 const before = new Date('2030-01-08T04:00:00Z');

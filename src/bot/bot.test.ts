@@ -26,6 +26,91 @@ function testBot(config: Partial<BotConfig> = {}) {
 
 const from = { id: 42, is_bot: false, first_name: 'Aziz', language_code: 'uz' };
 
+const bookingId = '01a19c4b-9c4a-77ef-b56c-e45457e311d0';
+
+function tap(data: string) {
+  return {
+    update_id: 2,
+    callback_query: {
+      id: 'q1',
+      from,
+      chat_instance: 'c',
+      data,
+      message: {
+        message_id: 9,
+        date: 1,
+        chat: { id: 42, type: 'private' as const, first_name: 'Aziz' },
+        text: 'Eslatma',
+      },
+    },
+  };
+}
+
+function replies(outcome: 'ok' | 'too_late' | 'not_found' = 'ok') {
+  return {
+    localeOf: vi.fn().mockResolvedValue('ru'),
+    coming: vi.fn().mockResolvedValue(outcome),
+    cancel: vi.fn().mockResolvedValue(outcome),
+  };
+}
+
+describe('taps on a reminder', () => {
+  it('records "coming" and turns the buttons into the answer', async () => {
+    const bookingReplies = replies();
+    const { bot, calls } = testBot({ bookingReplies });
+    await bot.handleUpdate(tap(`bk:coming:${bookingId}`));
+    expect(bookingReplies.coming).toHaveBeenCalledWith(42, bookingId);
+    const edit = calls.find((c) => c.method === 'editMessageText');
+    expect(edit?.payload.text).toContain('Eslatma');
+    expect(edit?.payload.text).toContain('Спасибо');
+    expect(calls.some((c) => c.method === 'answerCallbackQuery')).toBe(true);
+  });
+
+  it('asks before cancelling, and doesn’t cancel on the first tap', async () => {
+    const bookingReplies = replies();
+    const { bot, calls } = testBot({ bookingReplies });
+    await bot.handleUpdate(tap(`bk:cancel:${bookingId}`));
+    expect(bookingReplies.cancel).not.toHaveBeenCalled();
+    const edit = calls.find((c) => c.method === 'editMessageReplyMarkup');
+    const markup = edit?.payload.reply_markup as {
+      inline_keyboard: { callback_data: string }[][];
+    };
+    expect(markup.inline_keyboard[0]?.map((b) => b.callback_data)).toEqual([
+      `bk:cancel_yes:${bookingId}`,
+      `bk:cancel_no:${bookingId}`,
+    ]);
+  });
+
+  it('cancels on yes, and puts the buttons back on no', async () => {
+    const bookingReplies = replies();
+    const { bot, calls } = testBot({ bookingReplies });
+    await bot.handleUpdate(tap(`bk:cancel_no:${bookingId}`));
+    expect(bookingReplies.cancel).not.toHaveBeenCalled();
+    const back = calls.find((c) => c.method === 'editMessageReplyMarkup');
+    expect(JSON.stringify(back?.payload.reply_markup)).toContain(`bk:coming:${bookingId}`);
+
+    await bot.handleUpdate(tap(`bk:cancel_yes:${bookingId}`));
+    expect(bookingReplies.cancel).toHaveBeenCalledWith(42, bookingId);
+    const done = calls.find((c) => c.method === 'editMessageText');
+    expect(done?.payload.text).toContain('Запись отменена');
+  });
+
+  it('says so when the booking is gone or over', async () => {
+    const late = testBot({ bookingReplies: replies('too_late') });
+    await late.bot.handleUpdate(tap(`bk:coming:${bookingId}`));
+    const edit = late.calls.find((c) => c.method === 'editMessageText');
+    expect(edit?.payload.text).toContain('уже не активна');
+  });
+
+  it('ignores anything that doesn’t look like one of ours', async () => {
+    const bookingReplies = replies();
+    const { bot } = testBot({ bookingReplies });
+    await bot.handleUpdate(tap('bk:coming:not-a-booking'));
+    await bot.handleUpdate(tap(`bk:delete:${bookingId}`));
+    expect(bookingReplies.coming).not.toHaveBeenCalled();
+  });
+});
+
 function contactUpdate(contact: { user_id?: number; phone_number: string }) {
   return {
     update_id: 1,

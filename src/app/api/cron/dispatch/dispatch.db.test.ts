@@ -7,6 +7,7 @@ import {
   createClientBooking,
   createStaffBooking,
 } from '@/server/services/booking';
+import { bookingReplies } from '@/server/services/booking-replies';
 import { dispatchDue } from '@/server/services/notifications';
 
 // The outbox against the real database (npm run test:db). Nothing here talks to Telegram.
@@ -45,15 +46,140 @@ const failing =
     );
   };
 
-const messages = (bookingId: string) =>
-  db.notification.findMany({ where: { bookingId }, orderBy: { createdAt: 'asc' } });
+const reminders = ['booking.reminder24h', 'booking.reminder2h'];
 
-const clientBooking = (hour: number) =>
-  createClientBooking(client, {
+/** Everything but reminders, which have their own tests below. */
+const messages = (bookingId: string) =>
+  db.notification.findMany({
+    where: { bookingId, template: { notIn: reminders } },
+    orderBy: { createdAt: 'asc' },
+  });
+
+const remindersOf = (bookingId: string) =>
+  db.notification.findMany({
+    where: { bookingId, template: { in: reminders } },
+    orderBy: { sendAt: 'asc' },
+  });
+
+/** A booking whose reminders are out of the way of tests about sending. */
+const clientBooking = async (hour: number) => {
+  const booking = await createClientBooking(client, {
     staffId,
     serviceIds: [serviceId],
     startAt: at(hour),
   });
+  await db.notification.deleteMany({
+    where: { bookingId: booking.id, template: { in: reminders } },
+  });
+  return booking;
+};
+
+const threeDaysOn = addDays(tashkentDate(new Date()), 3);
+const later = (hour: number) =>
+  fromTashkent(threeDaysOn.year, threeDaysOn.month, threeDaysOn.day, hour);
+const HOUR = 3_600_000;
+
+describe('reminders', () => {
+  const book = (hour: number) =>
+    createClientBooking(client, { staffId, serviceIds: [serviceId], startAt: later(hour) });
+
+  it('schedules both, a day and two hours ahead', async () => {
+    const booking = await book(9);
+    const rows = await remindersOf(booking.id);
+    expect(rows.map((r) => [r.template, r.status])).toEqual([
+      ['booking.reminder24h', 'PENDING'],
+      ['booking.reminder2h', 'PENDING'],
+    ]);
+    expect(rows[0]!.sendAt.getTime()).toBe(later(9).getTime() - 24 * HOUR);
+    expect(rows[1]!.sendAt.getTime()).toBe(later(9).getTime() - 2 * HOUR);
+  });
+
+  it('redoes them when the booking moves, and forgets the "coming"', async () => {
+    const booking = await book(10);
+    expect(await bookingReplies.coming(Number(client.telegramId), booking.id)).toBe('ok');
+    await applyBookingAction(owner, booking.id, {
+      action: 'reschedule',
+      as: 'staff',
+      startAt: later(11),
+    });
+    const rows = await remindersOf(booking.id);
+    expect(rows.filter((r) => r.status === 'CANCELLED')).toHaveLength(2);
+    const live = rows.filter((r) => r.status === 'PENDING');
+    expect(live.map((r) => r.sendAt.getTime())).toEqual([
+      later(11).getTime() - 24 * HOUR,
+      later(11).getTime() - 2 * HOUR,
+    ]);
+    const row = await db.booking.findUniqueOrThrow({ where: { id: booking.id } });
+    expect(row.clientConfirmedAt).toBeNull();
+  });
+
+  it('drops them when the booking is cancelled', async () => {
+    const booking = await book(12);
+    await applyBookingAction(client, booking.id, { action: 'cancel', as: 'client' });
+    const rows = await remindersOf(booking.id);
+    expect(rows.every((r) => r.status === 'CANCELLED')).toBe(true);
+  });
+
+  it('sends with Coming, Cancel and Reschedule buttons when due', async () => {
+    const booking = await book(13);
+    const dueAt = new Date(later(13).getTime() - 24 * HOUR + 1000);
+    const got: { text: string; buttons: unknown[][] }[] = [];
+    const result = await dispatchDue(
+      async (_chat, message) => {
+        got.push(message);
+      },
+      { now: dueAt, onlyBookings: [booking.id] },
+    );
+    // The "you're booked" message was due too.
+    expect(result).toMatchObject({ sent: 2 });
+    const reminder = got.find((m) => m.buttons.flat().length === 3);
+    expect(reminder?.buttons.flat().map((b) => (b as { label: string }).label)).toEqual([
+      'Приду',
+      'Отменить',
+      'Другое время',
+    ]);
+  });
+
+  it('skips a day-before reminder that would arrive at the last moment', async () => {
+    const booking = await book(14);
+    await db.notification.deleteMany({
+      where: { bookingId: booking.id, template: { notIn: ['booking.reminder24h'] } },
+    });
+    const result = await dispatchDue(okSender, {
+      now: new Date(later(14).getTime() - 2 * HOUR),
+      onlyBookings: [booking.id],
+    });
+    expect(result).toMatchObject({ sent: 0, dropped: 1 });
+  });
+});
+
+describe('answers to a reminder', () => {
+  const id = () => Number(client.telegramId);
+
+  it('marks the client as coming, for that client only', async () => {
+    const booking = await clientBooking(5);
+    expect(await bookingReplies.coming(Number(owner.telegramId), booking.id)).toBe('not_found');
+    expect(await bookingReplies.coming(base + 99, booking.id)).toBe('not_found');
+    expect(await bookingReplies.coming(id(), booking.id)).toBe('ok');
+    const row = await db.booking.findUniqueOrThrow({ where: { id: booking.id } });
+    expect(row.clientConfirmedAt).not.toBeNull();
+  });
+
+  it('cancels for that client only, once', async () => {
+    const booking = await clientBooking(3);
+    expect(await bookingReplies.cancel(Number(owner.telegramId), booking.id)).toBe('not_found');
+    expect(await bookingReplies.cancel(id(), booking.id)).toBe('ok');
+    const row = await db.booking.findUniqueOrThrow({ where: { id: booking.id } });
+    expect(row.status).toBe('CANCELLED_CLIENT');
+    expect(await bookingReplies.cancel(id(), booking.id)).toBe('too_late');
+    expect(await bookingReplies.coming(id(), booking.id)).toBe('too_late');
+  });
+
+  it('knows the person’s language, and nothing about strangers', async () => {
+    expect(await bookingReplies.localeOf(id())).toBe('ru');
+    expect(await bookingReplies.localeOf(base + 99)).toBeNull();
+  });
+});
 
 beforeAll(async () => {
   owner = await db.user.create({ data: { telegramId: BigInt(base + 1), firstName: 'Owner' } });

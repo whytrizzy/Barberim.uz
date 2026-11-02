@@ -76,6 +76,8 @@ export const bookingSchema = z.object({
   groupId: z.string().nullable(),
   totalPrice: z.number().int(),
   note: z.string().nullable(),
+  /** The client tapped "Coming" on a reminder for this time. */
+  clientConfirmed: z.boolean(),
   items: z.array(
     z.object({ name: z.string(), price: z.number().int(), durationMin: z.number().int() }),
   ),

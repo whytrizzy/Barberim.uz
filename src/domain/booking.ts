@@ -58,6 +58,22 @@ export function checkTransition(
   return { ok: true, to: rule.to(actor) };
 }
 
+const HOUR_MS = 3_600_000;
+/** A reminder this close to being asked for isn't worth sending: they've only just booked. */
+const REMINDER_MARGIN_MS = HOUR_MS;
+
+export type ReminderKind = '24h' | '2h';
+
+/** When to remind a client, from now on; a booking made at the last minute gets fewer. */
+export function reminderTimes(startAt: Date, now: Date): { kind: ReminderKind; sendAt: Date }[] {
+  return (
+    [
+      { kind: '24h', sendAt: new Date(startAt.getTime() - 24 * HOUR_MS) },
+      { kind: '2h', sendAt: new Date(startAt.getTime() - 2 * HOUR_MS) },
+    ] as const
+  ).filter(({ sendAt }) => sendAt.getTime() - now.getTime() >= REMINDER_MARGIN_MS);
+}
+
 /** A service as one master offers it: their own price/duration override the shop's. */
 export type OfferedService = {
   id: string;

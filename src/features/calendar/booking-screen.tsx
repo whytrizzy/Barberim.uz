@@ -95,6 +95,9 @@ function BookingDetails({ shopId, booking }: { shopId: string; booking: BookingD
         {interpolate(t.agenda.withMaster, { name: booking.masterName })} ·{' '}
         {t.agenda.sources[booking.source]}
       </p>
+      {booking.clientConfirmed && (
+        <p className="mt-1 text-sm font-semibold text-success">{t.agenda.clientComingFull}</p>
+      )}
 
       <SectionLabel className="mt-5">{t.agenda.client}</SectionLabel>
       <div className="flex items-center gap-3 rounded-tile border border-chrome bg-porcelain px-3 py-2.5">

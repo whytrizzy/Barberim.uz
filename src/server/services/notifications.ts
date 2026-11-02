@@ -2,11 +2,13 @@ import 'server-only';
 import {
   bookingPayloadSchema,
   classifySendError,
+  REMINDER_TEMPLATES,
   renderNotification,
   type BookingPayload,
   type BookingTemplate,
   type Sender,
 } from '@/bot/notifications';
+import { reminderTimes } from '@/domain/booking';
 import { Prisma } from '@/generated/prisma/client';
 import { fromDbLocale } from '../auth/auth';
 import { db } from '../db/client';
@@ -22,6 +24,7 @@ const BACKOFF_MIN = [1, 5, 15, 60];
 /** A run that dies mid-way leaves its messages to be tried again after this long. */
 const LEASE_MS = 5 * 60_000;
 const BATCH_SIZE = 100;
+const DAY_REMINDER_MIN_LEFT_MS = 3 * 3_600_000;
 
 /**
  * Queues a message to the person a booking is for. People with no Telegram account behind their
@@ -53,6 +56,31 @@ export async function queueBookingMessage(
   };
   await tx.notification.create({
     data: { chatId: person.telegramId, template, payload, sendAt, bookingId },
+  });
+}
+
+/** Schedules the reminders for this start time; they go to the first of a family only. */
+export async function queueReminders(
+  tx: Prisma.TransactionClient,
+  bookingId: string,
+  startAt: Date,
+  now = new Date(),
+): Promise<void> {
+  for (const { kind, sendAt } of reminderTimes(startAt, now)) {
+    await queueBookingMessage(
+      tx,
+      kind === '24h' ? 'booking.reminder24h' : 'booking.reminder2h',
+      bookingId,
+      sendAt,
+    );
+  }
+}
+
+/** Reminders that haven't gone out, when the visit moved or has happened. */
+export async function cancelReminders(tx: Prisma.TransactionClient, bookingId: string) {
+  await tx.notification.updateMany({
+    where: { bookingId, status: 'PENDING', template: { in: [...REMINDER_TEMPLATES] } },
+    data: { status: 'CANCELLED' },
   });
 }
 
@@ -116,8 +144,10 @@ export async function dispatchDue(
       continue;
     }
     // A message about a visit that has already begun only confuses.
+    // So does a day-before reminder that arrives hours before: the 2-hour one is about to go.
     const { startAt } = bookingPayloadSchema.parse(row.payload);
-    if (new Date(startAt) <= now) {
+    const left = new Date(startAt).getTime() - now.getTime();
+    if (left <= 0 || (row.template === 'booking.reminder24h' && left < DAY_REMINDER_MIN_LEFT_MS)) {
       await finish(row.id, 'CANCELLED', 'too late');
       result.dropped++;
       continue;

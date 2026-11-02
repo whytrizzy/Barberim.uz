@@ -273,24 +273,26 @@ enum BookingSource {
 /// One client in one master's chair for one time range. Two non-cancelled bookings of the same
 /// master can never overlap — enforced by the `bookings_no_overlap` exclusion constraint.
 model Booking {
-  id           String        @id @default(uuid(7)) @db.Uuid
-  shopId       String        @map("shop_id") @db.Uuid
-  staffId      String        @map("staff_id") @db.Uuid
-  shopClientId String        @map("shop_client_id") @db.Uuid
-  startAt      DateTime      @map("start_at") @db.Timestamptz(3)
-  endAt        DateTime      @map("end_at") @db.Timestamptz(3)
-  status       BookingStatus @default(CONFIRMED)
-  source       BookingSource @default(APP)
+  id                String        @id @default(uuid(7)) @db.Uuid
+  shopId            String        @map("shop_id") @db.Uuid
+  staffId           String        @map("staff_id") @db.Uuid
+  shopClientId      String        @map("shop_client_id") @db.Uuid
+  startAt           DateTime      @map("start_at") @db.Timestamptz(3)
+  endAt             DateTime      @map("end_at") @db.Timestamptz(3)
+  status            BookingStatus @default(CONFIRMED)
+  source            BookingSource @default(APP)
   /// Shared by bookings made together: a father and his sons, a groom and friends.
-  groupId      String?       @map("group_id") @db.Uuid
+  groupId           String?       @map("group_id") @db.Uuid
   /// Integer UZS, sum of the items' price snapshots.
-  totalPrice   Int           @map("total_price")
-  note         String?
-  cancelledAt  DateTime?     @map("cancelled_at") @db.Timestamptz(3)
-  cancelReason String?       @map("cancel_reason")
-  createdById  String?       @map("created_by_id") @db.Uuid
-  createdAt    DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt    DateTime      @updatedAt @map("updated_at") @db.Timestamptz(3)
+  totalPrice        Int           @map("total_price")
+  note              String?
+  cancelledAt       DateTime?     @map("cancelled_at") @db.Timestamptz(3)
+  cancelReason      String?       @map("cancel_reason")
+  /// The client tapped "Coming" on a reminder. Cleared when the time changes.
+  clientConfirmedAt DateTime?     @map("client_confirmed_at") @db.Timestamptz(3)
+  createdById       String?       @map("created_by_id") @db.Uuid
+  createdAt         DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt         DateTime      @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   shop          Shop           @relation(fields: [shopId], references: [id], onDelete: Cascade)
   staff         Staff          @relation(fields: [staffId], references: [id], onDelete: NoAction)

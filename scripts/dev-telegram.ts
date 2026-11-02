@@ -15,6 +15,7 @@ import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { createBot } from '@/bot/bot';
 import { createSender } from '@/bot/notifications';
 import { serverEnv } from '@/env/server';
+import { bookingReplies } from '@/server/services/booking-replies';
 import { dispatchDue } from '@/server/services/notifications';
 import { savePhoneFromBotContact } from '@/server/services/profile';
 
@@ -86,7 +87,12 @@ async function main() {
       );
   }, OUTBOX_EVERY_MS);
 
-  const bot = createBot({ token, appUrl: tunnel.url, savePhone: savePhoneFromBotContact });
+  const bot = createBot({
+    token,
+    appUrl: tunnel.url,
+    savePhone: savePhoneFromBotContact,
+    bookingReplies,
+  });
   await bot.api.deleteWebhook();
   await bot.api.setChatMenuButton({
     menu_button: { type: 'web_app', text: 'Barberim', web_app: { url: tunnel.url } },

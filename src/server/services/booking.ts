@@ -18,7 +18,12 @@ import { db } from '../db/client';
 import { AppError, type AppErrorCode } from '../http/errors';
 import { dayInput, loadSchedule } from './availability';
 import { mastersOffering, offeredServices, priceParties } from './catalog';
-import { cancelQueuedMessages, queueBookingMessage } from './notifications';
+import {
+  cancelQueuedMessages,
+  cancelReminders,
+  queueBookingMessage,
+  queueReminders,
+} from './notifications';
 
 function refuse(code: AppErrorCode, reason: BookingRefusal, extra: object = {}): never {
   throw new AppError(code, reason, { reason, ...extra });
@@ -56,6 +61,7 @@ export function toBookingDto(b: BookingWithItems): BookingDto {
     groupId: b.groupId,
     totalPrice: b.totalPrice,
     note: b.note,
+    clientConfirmed: b.clientConfirmedAt !== null,
     items: b.items.map((i) => ({
       name: i.nameSnapshot,
       price: i.priceSnapshot,
@@ -90,6 +96,7 @@ async function insertBookings(
         })),
       });
       if (message && created[0]) await queueBookingMessage(tx, message, created[0].id);
+      if (created[0]) await queueReminders(tx, created[0].id, created[0].startAt);
       return created;
     });
   } catch (error) {
@@ -419,6 +426,8 @@ export async function applyBookingAction(
       }
       data.startAt = input.startAt;
       data.endAt = new Date(input.startAt.getTime() + durationMs);
+      // They said they'd come at the old time, not this one.
+      data.clientConfirmedAt = null;
       break;
     }
   }
@@ -435,6 +444,13 @@ export async function applyBookingAction(
         await tx.shopClient.update({ where: { id: booking.shopClientId }, data: clientCounters });
       }
       if (input.action === 'cancel') await cancelQueuedMessages(tx, booking.id);
+      if (input.action === 'complete' || input.action === 'no_show') {
+        await cancelReminders(tx, booking.id);
+      }
+      if (input.action === 'reschedule') {
+        await cancelReminders(tx, booking.id);
+        await queueReminders(tx, booking.id, input.startAt);
+      }
       // The client hears about what the shop did; what they did themselves is on their screen.
       if (input.as === 'staff') {
         const message = staffActionMessages[input.action];

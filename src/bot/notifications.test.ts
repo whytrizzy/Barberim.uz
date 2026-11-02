@@ -26,7 +26,7 @@ describe('renderNotification', () => {
     expect(message?.text).toContain('Sardor');
     expect(message?.text).toContain('3-noyabr');
     expect(message?.text).toContain('15:00');
-    expect(message?.button.path).toBe('/booking/b1');
+    expect(message?.buttons).toEqual([[{ label: 'Yozuvni ochish', path: '/booking/b1' }]]);
   });
 
   it('writes in all three languages, transliterating typed names for Cyrillic', () => {

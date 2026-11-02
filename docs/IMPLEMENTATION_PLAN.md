@@ -129,7 +129,7 @@ AuditLog        actorId, action, entity, entityId, data, createdAt
 ### 1E. Notifications
 
 - [x] **P1.17 Outbox + dispatcher.** `Notification` rows written in the same transaction as the booking change; `POST /api/cron/dispatch` (`CRON_SECRET`) with retries and backoff, safe against two runs at once and crashes; templates in 3 languages. First messages, to clients with a Telegram account: booked, request sent, confirmed, moved or cancelled by the shop. `npm run dev:telegram` runs the outbox locally.
-- [ ] **P1.18 Client reminders** 24h and 2h before with inline buttons (Coming / Cancel / Reschedule). (#15)
+- [x] **P1.18 Client reminders** 24h and 2h before with inline buttons: Coming (shown to staff; cleared if the time moves), Cancel (asks first), Reschedule (opens the booking). Scheduled with the booking in the same transaction, redone when it moves, dropped when it's cancelled or done; a booking made at the last minute gets fewer. For a family, only the first booking is reminded. (#15)
 - [ ] **P1.19 Staff alerts** on new / cancelled / rescheduled bookings with Accept / Reject buttons. (#16)
 
 ### 1F. Ship
