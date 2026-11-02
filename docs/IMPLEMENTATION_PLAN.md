@@ -128,14 +128,14 @@ AuditLog        actorId, action, entity, entityId, data, createdAt
 
 ### 1E. Notifications
 
-- [ ] **P1.17 Outbox + dispatcher.** `Notification` rows + cron endpoint + retries, templates in 3 languages.
+- [x] **P1.17 Outbox + dispatcher.** `Notification` rows written in the same transaction as the booking change; `POST /api/cron/dispatch` (`CRON_SECRET`) with retries and backoff, safe against two runs at once and crashes; templates in 3 languages. First messages, to clients with a Telegram account: booked, request sent, confirmed, moved or cancelled by the shop. `npm run dev:telegram` runs the outbox locally.
 - [ ] **P1.18 Client reminders** 24h and 2h before with inline buttons (Coming / Cancel / Reschedule). (#15)
 - [ ] **P1.19 Staff alerts** on new / cancelled / rescheduled bookings with Accept / Reject buttons. (#16)
 
 ### 1F. Ship
 
 - [ ] **P1.20 Quality pass.** `/impeccable audit` on all screens, performance on a budget Android (bundle size, no heavy animations), error states, empty states. (#11)
-- [ ] **P1.21 Production setup.** Staging + prod envs, prod bot webhook, Render service, 5-minute cron trigger, photo bucket (Cloudflare R2 with a custom domain, `MEDIA_BUCKET` / `MEDIA_BASE_URL` / `R2_*`; first test the upload against real R2), DB backups, remove debug code, basic logging. (No v1 data migration — fresh start.) (#5, #6)
+- [ ] **P1.21 Production setup.** Staging + prod envs, prod bot webhook, Render service, 5-minute cron trigger (`POST /api/cron/dispatch` with `Authorization: Bearer $CRON_SECRET`), photo bucket (Cloudflare R2 with a custom domain, `MEDIA_BUCKET` / `MEDIA_BASE_URL` / `R2_*`; first test the upload against real R2), DB backups, remove debug code, basic logging. (No v1 data migration — fresh start.) (#5, #6)
 
 **Done when:** a real shop can onboard, add masters and schedules, clients book through the bot link, everyone gets reminders, and double booking is impossible.
 

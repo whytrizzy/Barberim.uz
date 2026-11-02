@@ -1,4 +1,5 @@
 import 'server-only';
+import type { BookingTemplate } from '@/bot/notifications';
 import { checkSlot } from '@/domain/availability';
 import {
   ACTIVE_STATUSES,
@@ -17,6 +18,7 @@ import { db } from '../db/client';
 import { AppError, type AppErrorCode } from '../http/errors';
 import { dayInput, loadSchedule } from './availability';
 import { mastersOffering, offeredServices, priceParties } from './catalog';
+import { cancelQueuedMessages, queueBookingMessage } from './notifications';
 
 function refuse(code: AppErrorCode, reason: BookingRefusal, extra: object = {}): never {
   throw new AppError(code, reason, { reason, ...extra });
@@ -68,6 +70,8 @@ export function toBookingDto(b: BookingWithItems): BookingDto {
  */
 async function insertBookings(
   rows: Prisma.BookingUncheckedCreateInput[],
+  /** Told once, about the first booking: a family gets one message. */
+  message?: BookingTemplate,
 ): Promise<BookingWithItems[]> {
   try {
     return await db.$transaction(async (tx) => {
@@ -85,6 +89,7 @@ async function insertBookings(
           data: { startAt: b.startAt.toISOString(), source: b.source, groupId: b.groupId },
         })),
       });
+      if (message && created[0]) await queueBookingMessage(tx, message, created[0].id);
       return created;
     });
   } catch (error) {
@@ -221,6 +226,7 @@ export async function createClientBookings(
           createdById: user.id,
           items: { create: p.items },
         })),
+        schedule.settings.requireApproval ? 'booking.requested' : 'booking.created',
       );
       return created.map(toBookingDto);
     } catch (error) {
@@ -315,24 +321,34 @@ export async function createStaffBooking(
       (await db.shopClient.create({ data: { shopId: target.shopId, name, phone } })).id;
   }
 
-  const [booking] = await insertBookings([
-    {
-      shopId: target.shopId,
-      staffId: target.id,
-      shopClientId,
-      startAt: input.startAt,
-      endAt: new Date(input.startAt.getTime() + durationMin * 60_000),
-      status: 'CONFIRMED',
-      source: input.source,
-      groupId: input.groupId ?? null,
-      totalPrice,
-      note: input.note ?? null,
-      createdById: user.id,
-      items: { create: items },
-    },
-  ]);
+  const [booking] = await insertBookings(
+    [
+      {
+        shopId: target.shopId,
+        staffId: target.id,
+        shopClientId,
+        startAt: input.startAt,
+        endAt: new Date(input.startAt.getTime() + durationMin * 60_000),
+        status: 'CONFIRMED',
+        source: input.source,
+        groupId: input.groupId ?? null,
+        totalPrice,
+        note: input.note ?? null,
+        createdById: user.id,
+        items: { create: items },
+      },
+    ],
+    // Someone standing in the shop already knows; someone who phoned gets it in writing.
+    input.source === 'PHONE' ? 'booking.created' : undefined,
+  );
   return toBookingDto(booking!);
 }
+
+const staffActionMessages: Partial<Record<BookingAction, BookingTemplate>> = {
+  confirm: 'booking.confirmed',
+  reschedule: 'booking.moved',
+  cancel: 'booking.cancelled_by_shop',
+};
 
 export type ActionInput =
   | { action: 'cancel'; as: ActorKind; reason?: string }
@@ -417,6 +433,12 @@ export async function applyBookingAction(
         throw new AppError('conflict', 'booking changed meanwhile', { reason: 'stale' });
       if (Object.keys(clientCounters).length > 0) {
         await tx.shopClient.update({ where: { id: booking.shopClientId }, data: clientCounters });
+      }
+      if (input.action === 'cancel') await cancelQueuedMessages(tx, booking.id);
+      // The client hears about what the shop did; what they did themselves is on their screen.
+      if (input.as === 'staff') {
+        const message = staffActionMessages[input.action];
+        if (message) await queueBookingMessage(tx, message, booking.id);
       }
       await tx.auditLog.create({
         data: {

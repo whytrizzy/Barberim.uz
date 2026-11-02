@@ -19,6 +19,8 @@ export const serverEnvSchema = z
     TELEGRAM_WEBHOOK_SECRET: optional(
       z.string().regex(/^[A-Za-z0-9_-]{32,256}$/, 'must be 32-256 chars of A-Z a-z 0-9 _ -'),
     ),
+    // Sent by the scheduler to /api/cron/dispatch, so only it can run the outbox.
+    CRON_SECRET: optional(z.string().min(32, 'must be at least 32 characters')),
     // Cloudflare R2 bucket for uploaded photos. Unset in development: photos are kept in .media/.
     MEDIA_BUCKET: optional(z.string().regex(/^[a-z0-9-]{3,63}$/, 'must be an R2 bucket name')),
     // Public base URL of that bucket (its custom domain), e.g. https://media.barberim.uz
@@ -33,6 +35,7 @@ export const serverEnvSchema = z
       'DATABASE_URL',
       'TELEGRAM_BOT_TOKEN',
       'TELEGRAM_WEBHOOK_SECRET',
+      'CRON_SECRET',
       'MEDIA_BUCKET',
       'MEDIA_BASE_URL',
       'R2_ACCOUNT_ID',

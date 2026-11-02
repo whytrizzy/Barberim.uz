@@ -346,6 +346,14 @@ export const ru: Messages = {
     locationDenied: 'Доступ к геолокации запрещён. Ищите по области и району.',
     locationFailed: 'Не удалось определить местоположение. Ищите по области и району.',
   },
+  notify: {
+    open: 'Открыть запись',
+    created: 'Вы записаны: {shop}, {date}, в {time}. Мастер: {master}.',
+    requested: 'Заявка отправлена: {shop}, {date}, в {time}. Сообщим, когда подтвердят.',
+    confirmed: 'Запись подтверждена: {shop}, {date}, в {time}. Мастер: {master}.',
+    moved: 'Запись перенесена: {shop}, теперь {date}, в {time}. Мастер: {master}.',
+    cancelledByShop: '{shop} отменил вашу запись: {date}, в {time}.',
+  },
   profile: {
     phoneTitle: 'Ваш номер телефона',
     phoneHint: 'Нужен, чтобы мастер мог связаться с вами, а бот присылал напоминания.',

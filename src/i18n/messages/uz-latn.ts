@@ -350,6 +350,14 @@ export const uzLatn = {
     locationDenied: 'Joylashuvga ruxsat berilmadi. Viloyat va tuman boʻyicha qidiring.',
     locationFailed: 'Joylashuvni aniqlab boʻlmadi. Viloyat va tuman boʻyicha qidiring.',
   },
+  notify: {
+    open: 'Yozuvni ochish',
+    created: 'Siz yozildingiz: {shop}, {date}, soat {time}. Usta: {master}.',
+    requested: 'Soʻrovingiz yuborildi: {shop}, {date}, soat {time}. Tasdiqlashganda xabar beramiz.',
+    confirmed: 'Yozuvingiz tasdiqlandi: {shop}, {date}, soat {time}. Usta: {master}.',
+    moved: 'Yozuvingiz koʻchirildi: {shop}, endi {date}, soat {time}. Usta: {master}.',
+    cancelledByShop: '{shop} yozuvingizni bekor qildi: {date}, soat {time}.',
+  },
   profile: {
     phoneTitle: 'Telefon raqamingiz',
     phoneHint: 'Usta siz bilan bogʻlanishi va bot eslatma yuborishi uchun kerak.',

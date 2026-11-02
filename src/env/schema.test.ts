@@ -27,6 +27,7 @@ describe('serverEnvSchema', () => {
         DATABASE_URL: 'postgresql://u:p@host:5432/db',
         TELEGRAM_BOT_TOKEN: validToken,
         TELEGRAM_WEBHOOK_SECRET: 'a'.repeat(32),
+        CRON_SECRET: 'b'.repeat(32),
         MEDIA_BUCKET: 'barberim-media-prod',
         MEDIA_BASE_URL: 'https://media.barberim.uz',
         R2_ACCOUNT_ID: 'a'.repeat(32),

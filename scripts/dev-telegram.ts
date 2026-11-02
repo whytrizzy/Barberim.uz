@@ -7,17 +7,20 @@
  * 2. writes the tunnel's https address into .env.local as NEXT_PUBLIC_APP_URL (`next dev` reloads
  *    env files on change);
  * 3. points the dev bot's menu button at it;
- * 4. runs the dev bot with long polling until Ctrl+C.
+ * 4. runs the dev bot with long polling, and the outbox, until Ctrl+C.
  * A quick tunnel gets a new address on every start, which is why this is one command.
  */
 import { spawn } from 'node:child_process';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { createBot } from '@/bot/bot';
+import { createSender } from '@/bot/notifications';
 import { serverEnv } from '@/env/server';
+import { dispatchDue } from '@/server/services/notifications';
 import { savePhoneFromBotContact } from '@/server/services/profile';
 
 const ENV_FILE = '.env.local';
 const LOCAL_URL = 'http://localhost:3000';
+const OUTBOX_EVERY_MS = 15_000;
 
 function cloudflaredCommand(): string {
   const windowsDefault = 'C:\\Program Files (x86)\\cloudflared\\cloudflared.exe';
@@ -70,6 +73,18 @@ async function main() {
   });
   writeAppUrl(tunnel.url);
   console.log(`Tunnel: ${tunnel.url} -> ${LOCAL_URL} (written to ${ENV_FILE})`);
+
+  // Stands in for the production scheduler, so messages arrive while testing.
+  const send = createSender(token, tunnel.url);
+  setInterval(() => {
+    dispatchDue(send)
+      .then((result) => {
+        if (Object.values(result).some(Boolean)) console.log('outbox', result);
+      })
+      .catch((error: unknown) =>
+        console.error('outbox failed', error instanceof Error ? error.message : error),
+      );
+  }, OUTBOX_EVERY_MS);
 
   const bot = createBot({ token, appUrl: tunnel.url, savePhone: savePhoneFromBotContact });
   await bot.api.deleteWebhook();
