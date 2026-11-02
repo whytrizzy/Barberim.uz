@@ -74,6 +74,60 @@ function transliterateSegment(text: string): string {
   });
 }
 
+const toLatin: Record<string, string> = {
+  а: 'a',
+  б: 'b',
+  в: 'v',
+  г: 'g',
+  ғ: 'gʻ',
+  д: 'd',
+  е: 'e',
+  ё: 'yo',
+  ж: 'j',
+  з: 'z',
+  и: 'i',
+  й: 'y',
+  к: 'k',
+  қ: 'q',
+  л: 'l',
+  м: 'm',
+  н: 'n',
+  о: 'o',
+  п: 'p',
+  р: 'r',
+  с: 's',
+  т: 't',
+  у: 'u',
+  ў: 'oʻ',
+  ф: 'f',
+  х: 'x',
+  ҳ: 'h',
+  ц: 's',
+  ч: 'ch',
+  ш: 'sh',
+  щ: 'sh',
+  ъ: 'ʼ',
+  ы: 'i',
+  ь: '',
+  э: 'e',
+  ю: 'yu',
+  я: 'ya',
+};
+
+/**
+ * Uzbek Cyrillic → Latin, for matching what people type against names stored in the other script.
+ * Good enough to search with, not for showing to anyone.
+ */
+export function cyrillicToLatin(text: string): string {
+  return [...text]
+    .map((ch) => {
+      const latin = toLatin[ch.toLowerCase()];
+      if (latin === undefined) return ch;
+      return ch === ch.toLowerCase() ? latin : latin.charAt(0).toUpperCase() + latin.slice(1);
+    })
+    .join('');
+}
+
 export function latinToCyrillic(text: string): string {
   return text
     .split(protectedPattern)

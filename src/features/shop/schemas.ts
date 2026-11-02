@@ -142,3 +142,38 @@ export type ShopStatusRequest = z.infer<typeof shopStatusRequestSchema>;
 
 /** `details.reason` when a shop can't go live yet. */
 export type PublishRefusal = 'no_services' | 'no_hours' | 'suspended';
+
+/** POST /api/shops/discover. A POST so that where someone stands stays out of URLs and logs. */
+export const discoverRequestSchema = z.object({
+  query: z.string().trim().max(60).optional(),
+  region: z.string().refine(isRegion, 'unknown region').optional(),
+  district: z.string().trim().max(60).optional(),
+  /** Shops with something at this price or less, in UZS. */
+  maxPrice: z.number().int().min(0).max(100_000_000).optional(),
+  freeToday: z.boolean().optional(),
+  near: coordinates.optional(),
+});
+export type DiscoverRequest = z.infer<typeof discoverRequestSchema>;
+
+export const discoverResultSchema = z.object({
+  shops: z.array(
+    z.object({
+      id: z.string(),
+      slug: z.string(),
+      name: z.string(),
+      region: z.string(),
+      district: z.string().nullable(),
+      address: z.string(),
+      landmark: z.string().nullable(),
+      coverUrl: z.string().nullable(),
+      /** The cheapest service. */
+      fromPrice: z.number(),
+      /** The next time someone can still take today, in minutes since Tashkent midnight. */
+      nextFreeToday: z.number().nullable(),
+      /** Only when searching near a place, and the shop has set its location. */
+      distanceKm: z.number().nullable(),
+    }),
+  ),
+});
+export type DiscoverResult = z.infer<typeof discoverResultSchema>;
+export type DiscoveredShop = DiscoverResult['shops'][number];

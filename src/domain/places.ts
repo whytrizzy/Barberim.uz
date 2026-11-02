@@ -90,6 +90,16 @@ const round = ({ lat, lng }: Coordinates): Coordinates => ({
   lng: Math.round(lng * 1e6) / 1e6,
 });
 
+/** Straight-line distance in kilometres (haversine). */
+export function distanceKm(a: Coordinates, b: Coordinates): number {
+  const rad = (degrees: number) => (degrees * Math.PI) / 180;
+  const dLat = rad(b.lat - a.lat);
+  const dLng = rad(b.lng - a.lng);
+  const h =
+    Math.sin(dLat / 2) ** 2 + Math.cos(rad(a.lat)) * Math.cos(rad(b.lat)) * Math.sin(dLng / 2) ** 2;
+  return 2 * 6371 * Math.asin(Math.sqrt(h));
+}
+
 /** Yandex Maps with a driving route from wherever the person is to this point. */
 export function yandexRouteLink({ lat, lng }: Coordinates): string {
   return `https://yandex.uz/maps/?rtext=~${lat},${lng}&rtt=auto`;

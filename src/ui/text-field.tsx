@@ -1,7 +1,7 @@
 import { useId, type InputHTMLAttributes, type ReactNode, type Ref } from 'react';
 import { cn } from '@/lib/cn';
 
-type TextFieldProps = Omit<InputHTMLAttributes<HTMLInputElement>, 'size'> & {
+type TextFieldProps = Omit<InputHTMLAttributes<HTMLInputElement>, 'size' | 'prefix'> & {
   ref?: Ref<HTMLInputElement>;
   label: string;
   /** Fixed text inside the field before the input, e.g. "+998". */

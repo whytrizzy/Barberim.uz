@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { latinToCyrillic } from './translit';
+import { cyrillicToLatin, latinToCyrillic } from './translit';
 
 describe('latinToCyrillic', () => {
   it.each([
@@ -35,5 +35,14 @@ describe('latinToCyrillic', () => {
     );
     expect(latinToCyrillic('Telegram ichida')).toBe('Telegram ичида');
     expect(latinToCyrillic('Yandex yoki Google xarita')).toBe('Yandex ёки Google харита');
+  });
+});
+
+describe('cyrillicToLatin', () => {
+  it('turns Uzbek Cyrillic into searchable Latin', () => {
+    expect(cyrillicToLatin('Устоз')).toBe('Ustoz');
+    expect(cyrillicToLatin('Ғолиб барбер')).toBe('Gʻolib barber');
+    expect(cyrillicToLatin('Шоҳруҳ')).toBe('Shohruh');
+    expect(cyrillicToLatin('Ustoz 12')).toBe('Ustoz 12');
   });
 });

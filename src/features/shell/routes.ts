@@ -1,8 +1,6 @@
 /** Top-level screens: no Back button there (the app's entry screens and the staff tabs). */
 const rootPaths = new Set([
   '/',
-  '/discover',
-
   '/staff/today',
   '/staff/calendar',
   '/staff/clients',
