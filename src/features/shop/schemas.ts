@@ -123,6 +123,8 @@ export const shopProfileSchema = z.object({
       durationMin: z.number(),
       price: z.number(),
       priceIsFrom: z.boolean(),
+      /** The masters who can do it, for the booking flow. */
+      staffIds: z.array(z.string()),
     }),
   ),
   masters: z.array(z.object({ id: z.string(), name: z.string(), bio: z.string().nullable() })),

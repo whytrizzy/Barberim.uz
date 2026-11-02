@@ -14,6 +14,11 @@ export const regionOptions = (locale: Locale) =>
 export const districtOptions = (locale: Locale) =>
   tashkentDistricts.map((d) => ({ value: d.key, label: placeName(d, locale) }));
 
+/** Text as a barber typed it (names, addresses); Cyrillic readers get it transliterated. */
+export function typedText(text: string, locale: Locale): string {
+  return locale === 'uz-Cyrl' ? latinToCyrillic(text) : text;
+}
+
 /** A stored district (a Tashkent key or free text) for display. */
 export function districtName(value: string | null, locale: Locale): string {
   if (!value) return '';

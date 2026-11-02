@@ -82,6 +82,25 @@ export const bookingSchema = z.object({
 });
 export type BookingDto = z.infer<typeof bookingSchema>;
 
+/** GET /api/shops/:id/availability?services=a,b&staff=any — what a client can book, by day. */
+export const availabilityQuerySchema = z.object({
+  staff: z.union([id, z.literal('any')]),
+  services: serviceIds,
+});
+
+export const bookingOptionsSchema = z.object({
+  days: z.array(
+    z.object({
+      /** "2026-11-03" in Tashkent. */
+      date: z.string(),
+      status: z.enum(['open', 'full', 'closed', 'day_off', 'past', 'beyond_horizon']),
+      /** Only the starts that can actually be taken. */
+      slots: z.array(z.object({ startMin: z.number(), startAt: z.string() })),
+    }),
+  ),
+});
+export type BookingOptions = z.infer<typeof bookingOptionsSchema>;
+
 /** POST /api/shops/:id/bookings — staff add a walk-in or a booking taken by phone. */
 export const createStaffBookingRequestSchema = z.object({
   staffId: id,

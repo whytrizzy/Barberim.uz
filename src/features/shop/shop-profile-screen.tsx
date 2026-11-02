@@ -1,18 +1,19 @@
 'use client';
 
 import { MapPin, Navigation } from 'lucide-react';
-import { yandexMapsLink, yandexRouteLink } from '@/domain/places';
-import { regions } from '@/domain/places';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { regions, yandexMapsLink, yandexRouteLink } from '@/domain/places';
 import { formatMinuteOfDay } from '@/domain/time';
 import { ApiError } from '@/features/api/client';
 import { errorText } from '@/features/api/error-text';
 import { SERVICE_CATEGORIES } from '@/features/services/schemas';
 import { formatDuration, formatMoney } from '@/i18n/format';
 import { interpolate } from '@/i18n/interpolate';
-import { districtName, placeName } from '@/i18n/places';
+import { districtName, placeName, typedText } from '@/i18n/places';
 import { useI18n } from '@/i18n/provider';
-import { latinToCyrillic } from '@/i18n/translit';
 import { openExternal } from '@/telegram/links';
+import { useMainButton } from '@/telegram/use-main-button';
 import { Button } from '@/ui/button';
 import { EnamelSign } from '@/ui/enamel-sign';
 import { SectionLabel } from '@/ui/section-label';
@@ -23,7 +24,7 @@ import { useShopProfile } from './use-shop-profile';
 /** How many free times fit the strip before it would stop being a glance. */
 const STRIP_TIMES = 12;
 
-function TodayStrip({ today }: { today: ShopProfileDto['today'] }) {
+function TodayStrip({ slug, today }: { slug: string; today: ShopProfileDto['today'] }) {
   const { t } = useI18n();
   const shown = today.freeStarts.slice(0, STRIP_TIMES);
   return (
@@ -32,11 +33,13 @@ function TodayStrip({ today }: { today: ShopProfileDto['today'] }) {
       {shown.length > 0 ? (
         <ul className="-mx-4 flex gap-1.5 overflow-x-auto px-4 pb-1">
           {shown.map((minute) => (
-            <li
-              key={minute}
-              className="shrink-0 rounded-tile border border-chrome bg-porcelain px-3 py-2 text-[15px] font-semibold tabular-nums"
-            >
-              {formatMinuteOfDay(minute)}
+            <li key={minute} className="shrink-0">
+              <Link
+                href={`/shop/${slug}/book?start=${minute}`}
+                className="block rounded-tile border border-chrome bg-porcelain px-3 py-2 text-[15px] font-semibold tabular-nums active:bg-porcelain-sunk"
+              >
+                {formatMinuteOfDay(minute)}
+              </Link>
             </li>
           ))}
         </ul>
@@ -52,7 +55,14 @@ function TodayStrip({ today }: { today: ShopProfileDto['today'] }) {
 /** /shop/:slug — where a shop's link lands. */
 export function ShopProfileScreen({ slug }: { slug: string }) {
   const { t, locale } = useI18n();
+  const router = useRouter();
   const query = useShopProfile(slug);
+
+  useMainButton(
+    query.data && !query.data.isPreview && query.data.services.length > 0
+      ? { text: t.book.start, onClick: () => router.push(`/shop/${slug}/book`) }
+      : null,
+  );
 
   if (query.isPending) {
     return <p className="px-4 pt-6 text-sm text-ink-muted">{t.common.loading}</p>;
@@ -67,8 +77,7 @@ export function ShopProfileScreen({ slug }: { slug: string }) {
   }
 
   const shop = query.data;
-  // Names are as the barber typed them; Cyrillic readers get them transliterated.
-  const typed = (text: string) => (locale === 'uz-Cyrl' ? latinToCyrillic(text) : text);
+  const typed = (text: string) => typedText(text, locale);
   const region = regions.find((candidate) => candidate.key === shop.region);
   const area = [districtName(shop.district, locale), region && placeName(region, locale)]
     .filter(Boolean)
@@ -103,7 +112,7 @@ export function ShopProfileScreen({ slug }: { slug: string }) {
         </ul>
       )}
 
-      {!shop.isPreview && <TodayStrip today={shop.today} />}
+      {!shop.isPreview && <TodayStrip slug={slug} today={shop.today} />}
 
       {SERVICE_CATEGORIES.map((category) => {
         const inCategory = shop.services.filter((service) => service.category === category);
@@ -114,11 +123,8 @@ export function ShopProfileScreen({ slug }: { slug: string }) {
             <TileList>
               {inCategory.map((service) => {
                 const price = formatMoney(service.price, locale);
-                return (
-                  <li
-                    key={service.id}
-                    className="flex min-h-14 items-center gap-2.5 bg-porcelain px-3 py-2.5"
-                  >
+                const row = (
+                  <>
                     <span className="min-w-0 flex-1">
                       <span className="block truncate text-[15px] leading-tight font-semibold">
                         {typed(service.name)}
@@ -130,6 +136,21 @@ export function ShopProfileScreen({ slug }: { slug: string }) {
                     <span className="shrink-0 text-[13px] font-semibold tabular-nums">
                       {service.priceIsFrom ? interpolate(t.services.fromPrice, { price }) : price}
                     </span>
+                  </>
+                );
+                const layout = 'flex min-h-14 items-center gap-2.5 px-3 py-2.5';
+                return (
+                  <li key={service.id} className="bg-porcelain">
+                    {shop.isPreview ? (
+                      <div className={layout}>{row}</div>
+                    ) : (
+                      <Link
+                        href={`/shop/${slug}/book?service=${service.id}`}
+                        className={`${layout} active:bg-porcelain-sunk`}
+                      >
+                        {row}
+                      </Link>
+                    )}
                   </li>
                 );
               })}

@@ -9,7 +9,14 @@ import {
   type WeeklyBlock,
 } from '@/domain/availability';
 import { combineMasters, groupDuration, type CombinedDay, type MasterDay } from '@/domain/combine';
-import { addDays, dateKey, startOfTashkentDay, type CalendarDate } from '@/domain/time';
+import {
+  addDays,
+  dateKey,
+  startOfTashkentDay,
+  tashkentDate,
+  type CalendarDate,
+} from '@/domain/time';
+import type { BookingOptions } from '@/features/booking/schemas';
 import { parseShopSettings, type ShopSettings } from '@/features/shop/schemas';
 import { db } from '../db/client';
 import { AppError } from '../http/errors';
@@ -163,6 +170,41 @@ export async function getMasterAvailability({
   if (!staff) throw new AppError('not_found', 'staff not found');
   const durationMin = groupDuration(await priceParties(staffId, staff.shopId, parties));
   return getAvailability({ staffId, from, days, durationMin, now });
+}
+
+/** How far ahead the booking flow offers days; the shop's horizon may cut it shorter. */
+const BOOKING_DAYS = 14;
+
+/** What a client can book from today on: with one master, or any free one. */
+export async function getBookingOptions(
+  shopId: string,
+  staffId: string | 'any',
+  serviceIds: string[],
+  now = new Date(),
+): Promise<BookingOptions> {
+  const from = tashkentDate(now);
+  const parties = [serviceIds];
+  const options = { parties, from, days: BOOKING_DAYS, now };
+  if (staffId !== 'any') {
+    const staff = await db.staff.findFirst({
+      where: { id: staffId, shopId },
+      select: { id: true },
+    });
+    if (!staff) throw new AppError('not_found', 'staff not found');
+  }
+  const days =
+    staffId === 'any'
+      ? await getShopAvailability({ shopId, ...options })
+      : await getMasterAvailability({ staffId, ...options });
+  return {
+    days: days.map(({ date, availability }) => ({
+      date,
+      status: availability.status,
+      slots: availability.slots
+        .filter((slot) => slot.state === 'available')
+        .map((slot) => ({ startMin: slot.startMin, startAt: slot.startAt.toISOString() })),
+    })),
+  };
 }
 
 export type CombinedDayResult = { date: string; availability: CombinedDay };

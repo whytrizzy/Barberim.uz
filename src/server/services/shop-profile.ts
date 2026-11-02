@@ -71,6 +71,7 @@ export async function getShopProfile(
         durationMin: true,
         price: true,
         priceIsFrom: true,
+        staff: { where: { staff: canTakeClients }, select: { staffId: true } },
       },
       orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
     }),
@@ -106,7 +107,10 @@ export async function getShopProfile(
     landmark: shop.landmark,
     location: shop.lat !== null && shop.lng !== null ? { lat: shop.lat, lng: shop.lng } : null,
     photos,
-    services,
+    services: services.map(({ staff: links, ...service }) => ({
+      ...service,
+      staffIds: links.map((link) => link.staffId),
+    })),
     masters: staff.map((master) => ({
       id: master.id,
       name: master.displayName,
