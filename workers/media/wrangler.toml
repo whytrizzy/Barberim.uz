@@ -1,0 +1,16 @@
+name = "barberim-media"
+main = "index.js"
+compatibility_date = "2026-10-01"
+
+[[r2_buckets]]
+binding = "MEDIA"
+bucket_name = "barberim-media-prod"
+
+[triggers]
+crons = ["*/5 * * * *"]
+
+[vars]
+# Change this if Render gave the service a different address.
+APP_URL = "https://barberim.onrender.com"
+
+# CRON_SECRET is a secret, set with: npx wrangler secret put CRON_SECRET

@@ -41,3 +41,6 @@ src/generated/
 
 # Photos stored locally in development (see src/server/storage/media.ts)
 /.media/
+
+# Cloudflare Worker tooling
+.wrangler/

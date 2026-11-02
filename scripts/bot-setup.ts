@@ -3,6 +3,7 @@
  * the webhook. Safe to re-run.
  *   npm run bot:setup                 # dev bot from .env.local
  *   npm run bot:setup -- --webhook    # also point Telegram at <NEXT_PUBLIC_APP_URL>/api/bot
+ *   npm run bot:setup:prod -- --webhook    # on the server, from its environment
  */
 import { Api } from 'grammy';
 import { canOpenMiniApp } from '@/bot/payload';

@@ -135,7 +135,7 @@ AuditLog        actorId, action, entity, entityId, data, createdAt
 ### 1F. Ship
 
 - [x] **P1.20 Quality pass.** `/impeccable audit` on all screens at phone size: every failed load offers a retry, loading shows the screen's shape, crashes and unknown pages are translated, the home screen no longer goes blank when sign-in fails; contrast and tap sizes fixed; fonts no longer preloaded (only the files a page uses are fetched). First load is about 250 KB of compressed JavaScript, most of it React and Next.js. An owner's setting for accepting bookings by hand. Not measured on a real budget Android. (#11)
-- [ ] **P1.21 Production setup.** Staging + prod envs, prod bot webhook, Render service, 5-minute cron trigger (`POST /api/cron/dispatch` with `Authorization: Bearer $CRON_SECRET`), photo bucket (Cloudflare R2 with a custom domain, `MEDIA_BUCKET` / `MEDIA_BASE_URL` / `R2_*`; first test the upload against real R2), DB backups, remove debug code, basic logging. (No v1 data migration — fresh start.) (#5, #6)
+- [ ] **P1.21 Production setup.** Staging + prod envs, prod bot webhook, Render service, 5-minute cron trigger (`POST /api/cron/dispatch` with `Authorization: Bearer $CRON_SECRET`), photo bucket (Cloudflare R2 served by the `workers/media` Worker on workers.dev until a domain is bought, `MEDIA_BUCKET` / `MEDIA_BASE_URL` / `R2_*`; first test the upload against real R2), DB backups, remove debug code, basic logging. (No v1 data migration — fresh start.) (#5, #6)
 
 **Done when:** a real shop can onboard, add masters and schedules, clients book through the bot link, everyone gets reminders, and double booking is impossible.
 
