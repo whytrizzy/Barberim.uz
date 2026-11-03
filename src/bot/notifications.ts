@@ -1,5 +1,6 @@
 import { Api, GrammyError, InlineKeyboard } from 'grammy';
 import { z } from 'zod';
+import { parseDateKey, startOfTashkentDay } from '@/domain/time';
 import { formatDayMonth, formatTime } from '@/i18n/format';
 import { interpolate } from '@/i18n/interpolate';
 import { locales, type Locale } from '@/i18n/locales';
@@ -78,6 +79,37 @@ function renderStaffAlert(template: StaffTemplate, payload: StaffPayload): Outgo
   };
 }
 
+export const WAITLIST_TEMPLATE = 'waitlist.slot_free';
+
+/** A time freed up on a day someone was waiting for. Not tied to a booking of theirs. */
+export const waitlistPayloadSchema = z.object({
+  entryId: z.string(),
+  shopName: z.string(),
+  slug: z.string(),
+  /** "2026-11-03", Tashkent. */
+  date: z.string(),
+  staffId: z.string().nullable(),
+  serviceIds: z.array(z.string()),
+  locale: z.enum(locales),
+});
+export type WaitlistPayload = z.infer<typeof waitlistPayloadSchema>;
+
+function renderWaitlistAlert(payload: WaitlistPayload): OutgoingMessage | null {
+  const { slug, date, staffId, serviceIds, shopName, locale } = payload;
+  const day = parseDateKey(date);
+  if (!day) return null;
+  const { notify } = getMessages(locale);
+  const query = new URLSearchParams({ date, services: serviceIds.join(',') });
+  if (staffId) query.set('master', staffId);
+  return {
+    text: interpolate(notify.waitlistFree, {
+      shop: typedText(shopName, locale),
+      date: formatDayMonth(startOfTashkentDay(day), locale),
+    }),
+    buttons: [[{ label: notify.waitlistOpen, path: `/shop/${slug}/book?${query.toString()}` }]],
+  };
+}
+
 /** Opens a Mini App page, or (with `data`) comes back to the bot as a tap to answer. */
 export type MessageButton = { label: string; path: string } | { label: string; data: string };
 
@@ -133,6 +165,10 @@ export function cancelAskButtons(locale: Locale, bookingId: string): MessageButt
 
 /** The message in the person's language, or null for a template or payload we can't read. */
 export function renderNotification(template: string, payload: unknown): OutgoingMessage | null {
+  if (template === WAITLIST_TEMPLATE) {
+    const waitlist = waitlistPayloadSchema.safeParse(payload);
+    return waitlist.success ? renderWaitlistAlert(waitlist.data) : null;
+  }
   if ((staffTemplates as readonly string[]).includes(template)) {
     const staff = staffPayloadSchema.safeParse(payload);
     return staff.success ? renderStaffAlert(template as StaffTemplate, staff.data) : null;

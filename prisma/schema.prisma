@@ -40,7 +40,8 @@ model User {
   staff       Staff[]
   shopClients ShopClient[]
   favorites   Favorite[]
-  invites     StaffInvite[] @relation("InviteCreatedBy")
+  waitlist    WaitlistEntry[]
+  invites     StaffInvite[]   @relation("InviteCreatedBy")
 
   @@map("users")
 }
@@ -86,6 +87,7 @@ model Shop {
   bookings  Booking[]
   reviews   Review[]
   favorites Favorite[]
+  waitlist  WaitlistEntry[]
   auditLogs AuditLog[]
 
   @@index([status, district])
@@ -125,6 +127,7 @@ model Staff {
   overrides ScheduleOverride[]
   bookings  Booking[]
   invites   StaffInvite[]
+  waitlist  WaitlistEntry[]
 
   @@unique([shopId, userId])
   @@index([shopId, isActive])
@@ -423,4 +426,38 @@ model Favorite {
   @@id([userId, shopId])
   @@index([shopId])
   @@map("favorites")
+}
+
+enum WaitlistStatus {
+  /// Waiting for a time to free up.
+  ACTIVE
+  /// Told that a time freed up; done (they can join again if it was taken).
+  NOTIFIED
+  CANCELLED
+}
+
+/// "Tell me if a time frees up that day." One per person, shop and day.
+model WaitlistEntry {
+  id            String         @id @default(uuid(7)) @db.Uuid
+  userId        String         @map("user_id") @db.Uuid
+  shopId        String         @map("shop_id") @db.Uuid
+  /// Null: any master who does the services.
+  staffId       String?        @map("staff_id") @db.Uuid
+  serviceIds    String[]       @map("service_ids")
+  /// The Tashkent calendar day they want.
+  date          DateTime       @db.Date
+  status        WaitlistStatus @default(ACTIVE)
+  /// A message is on its way; cleared if it turns out the time was taken meanwhile.
+  alertQueuedAt DateTime?      @map("alert_queued_at") @db.Timestamptz(3)
+  notifiedAt    DateTime?      @map("notified_at") @db.Timestamptz(3)
+  createdAt     DateTime       @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt     DateTime       @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  user  User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  shop  Shop   @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  staff Staff? @relation(fields: [staffId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, shopId, date])
+  @@index([shopId, date, status])
+  @@map("waitlist_entries")
 }

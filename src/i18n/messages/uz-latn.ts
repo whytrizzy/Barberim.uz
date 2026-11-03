@@ -356,6 +356,16 @@ export const uzLatn = {
     locationDenied: 'Joylashuvga ruxsat berilmadi. Viloyat va tuman boʻyicha qidiring.',
     locationFailed: 'Joylashuvni aniqlab boʻlmadi. Viloyat va tuman boʻyicha qidiring.',
   },
+  waitlist: {
+    title: 'Kutish roʻyxati',
+    offer: 'Bu kun band. Kutish roʻyxatiga yoziling — vaqt boʻshasa, bot darhol xabar beradi.',
+    onIt: 'Siz bu kun uchun kutish roʻyxatidasiz. Vaqt boʻshasa, bot xabar beradi.',
+    join: 'Kutish roʻyxatiga yozilish',
+    update: 'Shu xizmatlar bilan kutish',
+    leave: 'Roʻyxatdan chiqish',
+    tooMany: 'Bir vaqtda eng koʻpi bilan {count} kun kutish mumkin.',
+    anyMaster: 'istalgan usta',
+  },
   favorites: {
     title: 'Saqlanganlar',
     save: 'Saqlash',
@@ -402,6 +412,9 @@ export const uzLatn = {
     rebookNudge:
       'Soch oldirish vaqti keldimi? Oxirgi marta {date} kuni {shop}da boʻldingiz, usta: {master}. Xuddi shunday yozilish — bir bosishda.',
     rebookOpen: 'Yana yozilish',
+    waitlistFree:
+      'Boʻsh vaqt chiqdi: {shop}, {date}. Tezroq yoziling — bu vaqtni boshqalar ham olishi mumkin.',
+    waitlistOpen: 'Vaqtni tanlash',
     staffNew: 'Yangi yozuv: {client}, {date}, soat {time}. Usta: {master}.',
     staffRequest: 'Yangi soʻrov: {client}, {date}, soat {time}. Usta: {master}. Qabul qilasizmi?',
     staffMoved:

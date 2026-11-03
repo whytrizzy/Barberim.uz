@@ -173,7 +173,7 @@ export async function getMasterAvailability({
 }
 
 /** How far ahead the booking flow offers days; the shop's horizon may cut it shorter. */
-const BOOKING_DAYS = 14;
+export const BOOKING_DAYS = 14;
 
 /** What a client can book from today on: with one master, or any free one. */
 export async function getBookingOptions(
@@ -249,4 +249,28 @@ export async function getShopAvailability({
     }));
     return { date: dateKey(date), availability: combineMasters(masterDays) };
   });
+}
+
+/**
+ * Whether these services can still be booked on that day (with that master, or any): for telling
+ * someone on the waitlist. Services that are no longer on offer count as no.
+ */
+export async function hasFreeTime(
+  shopId: string,
+  staffId: string | null,
+  serviceIds: string[],
+  date: CalendarDate,
+  now = new Date(),
+): Promise<boolean> {
+  const options = { parties: [serviceIds], from: date, days: 1, now };
+  try {
+    const [day] =
+      staffId === null
+        ? await getShopAvailability({ shopId, ...options })
+        : await getMasterAvailability({ staffId, ...options });
+    return day?.availability.slots.some((slot) => slot.state === 'available') ?? false;
+  } catch (error) {
+    if (error instanceof AppError) return false;
+    throw error;
+  }
 }

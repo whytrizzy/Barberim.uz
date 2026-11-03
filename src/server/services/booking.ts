@@ -30,6 +30,7 @@ import {
   queueStaffAlert,
   type StaffAlert,
 } from './notifications';
+import { queueWaitlistAlerts } from './waitlist';
 
 function refuse(code: AppErrorCode, reason: BookingRefusal, extra: object = {}): never {
   throw new AppError(code, reason, { reason, ...extra });
@@ -473,6 +474,10 @@ export async function applyBookingAction(
       if (input.action === 'reschedule') {
         await cancelReminders(tx, booking.id);
         await queueReminders(tx, booking.id, input.startAt);
+      }
+      // The old time is free now: tell whoever was waiting for that day.
+      if (input.action === 'cancel' || input.action === 'reschedule') {
+        await queueWaitlistAlerts(tx, booking, now);
       }
       // The client hears about what the shop did; what they did themselves is on their screen.
       if (input.as === 'staff') {

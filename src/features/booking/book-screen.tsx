@@ -11,6 +11,7 @@ import { LoadError, ScreenLoading } from '@/features/api/load-states';
 import { useSession } from '@/features/auth/use-session';
 import { PhoneCapture } from '@/features/profile/phone-capture';
 import { useShopProfile } from '@/features/shop/use-shop-profile';
+import { WaitlistPanel } from '@/features/waitlist/waitlist-panel';
 import { formatDayMonth, formatDuration, formatMoney, formatTime } from '@/i18n/format';
 import { interpolate } from '@/i18n/interpolate';
 import type { Messages } from '@/i18n/messages';
@@ -93,12 +94,15 @@ export function BookScreen({
   slug,
   initialServices = [],
   initialMaster,
+  initialDate,
   initialStart,
 }: {
   slug: string;
   initialServices?: string[];
   /** Booking the same again: their master, if they still do the services. */
   initialMaster?: string;
+  /** "2026-11-03": the day a waitlist message was about. */
+  initialDate?: string;
   /** A time tapped on the shop page: today's, picked as soon as it's on offer. */
   initialStart?: number;
 }) {
@@ -111,7 +115,7 @@ export function BookScreen({
 
   const [serviceIds, setServiceIds] = useState<string[]>(initialServices);
   const [chosenMaster, setChosenMaster] = useState(initialMaster ?? ANY);
-  const [chosenDay, setChosenDay] = useState<string | null>(null);
+  const [chosenDay, setChosenDay] = useState<string | null>(initialDate ?? null);
   const [chosenStart, setChosenStart] = useState<number | null>(null);
   const [wantedStart, setWantedStart] = useState(initialStart ?? null);
   const [note, setNote] = useState('');
@@ -189,7 +193,7 @@ export function BookScreen({
   useMainButton(
     booked
       ? { text: t.book.done, onClick: () => router.replace(`/shop/${slug}`) }
-      : !shop || shop.isPreview
+      : !shop || shop.isPreview || day?.status === 'full'
         ? null
         : {
             text: start
@@ -312,6 +316,7 @@ export function BookScreen({
                 dayKey={dayKey}
                 startMin={start?.startMin ?? null}
                 missingTime={submitted && !start}
+                allowFull
                 onDay={(key) => {
                   setChosenDay(key);
                   setChosenStart(null);
@@ -321,6 +326,14 @@ export function BookScreen({
                   create.reset();
                 }}
               />
+              {day?.status === 'full' && (
+                <WaitlistPanel
+                  shopId={shop.id}
+                  date={day.date}
+                  staffId={master === ANY ? null : master}
+                  serviceIds={chosen.map((service) => service.id)}
+                />
+              )}
             </>
           )}
         </section>

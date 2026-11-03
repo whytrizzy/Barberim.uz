@@ -20,6 +20,7 @@ export function SlotPicker({
   dayKey,
   startMin,
   missingTime,
+  allowFull = false,
   onDay,
   onStart,
 }: {
@@ -28,6 +29,8 @@ export function SlotPicker({
   startMin: number | null;
   /** Asks for a time, after someone tried to go on without one. */
   missingTime?: boolean;
+  /** A full day can be picked too (to join its waitlist); a closed one never. */
+  allowFull?: boolean;
   onDay: (key: string) => void;
   onStart: (minute: number) => void;
 }) {
@@ -42,6 +45,7 @@ export function SlotPicker({
       >
         {days.map((option, index) => {
           const open = option.status === 'open';
+          const full = allowFull && option.status === 'full';
           const selected = option.date === dayKey;
           return (
             <button
@@ -49,7 +53,7 @@ export function SlotPicker({
               type="button"
               role="radio"
               aria-checked={selected}
-              disabled={!open}
+              disabled={!open && !full}
               onClick={() => {
                 haptic.selection();
                 onDay(option.date);
@@ -57,7 +61,7 @@ export function SlotPicker({
               className={
                 selected
                   ? 'flex min-h-14 w-14 shrink-0 flex-col items-center justify-center rounded-tile border border-pick bg-pick text-on-pick'
-                  : `flex min-h-14 w-14 shrink-0 flex-col items-center justify-center rounded-tile border border-chrome active:bg-porcelain-sunk ${open ? 'bg-porcelain' : 'bg-porcelain-sunk text-ink-faint line-through'}`
+                  : `flex min-h-14 w-14 shrink-0 flex-col items-center justify-center rounded-tile border border-chrome active:bg-porcelain-sunk ${open ? 'bg-porcelain' : full ? 'bg-porcelain-sunk text-ink-muted' : 'bg-porcelain-sunk text-ink-faint line-through'}`
               }
             >
               <span className="text-xs leading-tight">

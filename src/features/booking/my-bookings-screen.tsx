@@ -4,6 +4,7 @@ import { ChevronRight, Repeat } from 'lucide-react';
 import Link from 'next/link';
 import { useState } from 'react';
 import { LoadError } from '@/features/api/load-states';
+import { MyWaitlist } from '@/features/waitlist/my-waitlist';
 import { formatDayMonth, formatMoney, formatTime } from '@/i18n/format';
 import { typedText } from '@/i18n/places';
 import { useI18n } from '@/i18n/provider';
@@ -139,6 +140,7 @@ export function MyBookingsScreen() {
       {query.isSuccess && tab === 'upcoming' && list.length === 0 && (
         <RepeatLast past={query.data.past} />
       )}
+      {tab === 'upcoming' && <MyWaitlist />}
     </main>
   );
 }

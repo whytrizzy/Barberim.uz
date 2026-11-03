@@ -9,11 +9,14 @@ import {
   type Sender,
   type StaffPayload,
   type StaffTemplate,
+  WAITLIST_TEMPLATE,
+  waitlistPayloadSchema,
 } from '@/bot/notifications';
 import { rebookNudgeTime, reminderTimes } from '@/domain/booking';
 import { Prisma, type StaffRole } from '@/generated/prisma/client';
 import { fromDbLocale } from '../auth/auth';
 import { db } from '../db/client';
+import { checkWaitlistAlert, markWaitlistNotified } from './waitlist';
 
 /**
  * The outbox. A message is written in the same transaction as the change it announces, so it can't
@@ -246,10 +249,12 @@ type Claimed = {
  * Takes what's due for this run. SKIP LOCKED and the pushed-back send time mean two runs at once
  * can't take the same message, and one that crashes gets retried rather than lost.
  */
-function claimDue(now: Date, onlyBookings?: string[]): Promise<Claimed[]> {
-  const scope = onlyBookings
-    ? Prisma.sql`AND booking_id = ANY(${onlyBookings}::uuid[])`
-    : Prisma.empty;
+function claimDue(now: Date, only: DispatchScope): Promise<Claimed[]> {
+  const scope = only.onlyBookings
+    ? Prisma.sql`AND booking_id = ANY(${only.onlyBookings}::uuid[])`
+    : only.onlyChats
+      ? Prisma.sql`AND chat_id = ANY(${only.onlyChats}::bigint[])`
+      : Prisma.empty;
   return db.$queryRaw<Claimed[]>`
     WITH due AS (
       SELECT id FROM notifications
@@ -268,38 +273,53 @@ function claimDue(now: Date, onlyBookings?: string[]): Promise<Claimed[]> {
 
 export type DispatchResult = { sent: number; retried: number; failed: number; dropped: number };
 
-/** Sends everything due. `onlyBookings` keeps tests to their own rows. */
+/** Keeps tests to their own rows. */
+type DispatchScope = { onlyBookings?: string[]; onlyChats?: bigint[] };
+
+/** Why a message that is due shouldn't go after all, or null to send it. */
+async function staleReason(row: Claimed, now: Date): Promise<string | null> {
+  if (row.template === WAITLIST_TEMPLATE) {
+    const { entryId } = waitlistPayloadSchema.parse(row.payload);
+    const verdict = await checkWaitlistAlert(entryId, now);
+    return verdict === 'send' ? null : verdict === 'taken' ? 'taken meanwhile' : 'not waiting';
+  }
+  // A message about a visit that has already begun only confuses (the ones about a finished
+  // visit are the exception: that's the point of them).
+  // So does a day-before reminder that arrives hours before: the 2-hour one is about to go.
+  const { bookingId, startAt } = bookingPayloadSchema.parse(row.payload);
+  const left = new Date(startAt).getTime() - now.getTime();
+  if (
+    (left <= 0 && !(AFTER_VISIT_TEMPLATES as readonly string[]).includes(row.template)) ||
+    (row.template === 'booking.reminder24h' && left < DAY_REMINDER_MIN_LEFT_MS)
+  ) {
+    return 'too late';
+  }
+  if (row.template === 'booking.rebook_nudge' && (await hasBookedSince(bookingId))) {
+    return 'booked again';
+  }
+  return null;
+}
+
+/** Sends everything due. */
 export async function dispatchDue(
   send: Sender,
-  { now = new Date(), onlyBookings }: { now?: Date; onlyBookings?: string[] } = {},
+  { now = new Date(), ...only }: { now?: Date } & DispatchScope = {},
 ): Promise<DispatchResult> {
   const result: DispatchResult = { sent: 0, retried: 0, failed: 0, dropped: 0 };
 
   const finish = (id: string, status: 'FAILED' | 'CANCELLED', lastError: string) =>
     db.notification.update({ where: { id }, data: { status, lastError } });
 
-  for (const row of await claimDue(now, onlyBookings)) {
+  for (const row of await claimDue(now, only)) {
     const message = renderNotification(row.template, row.payload);
     if (!message || row.chatId === null) {
       await finish(row.id, 'FAILED', 'unreadable message');
       result.failed++;
       continue;
     }
-    // A message about a visit that has already begun only confuses (the ones about a finished
-    // visit are the exception: that's the point of them).
-    // So does a day-before reminder that arrives hours before: the 2-hour one is about to go.
-    const { bookingId, startAt } = bookingPayloadSchema.parse(row.payload);
-    const left = new Date(startAt).getTime() - now.getTime();
-    if (
-      (left <= 0 && !(AFTER_VISIT_TEMPLATES as readonly string[]).includes(row.template)) ||
-      (row.template === 'booking.reminder24h' && left < DAY_REMINDER_MIN_LEFT_MS)
-    ) {
-      await finish(row.id, 'CANCELLED', 'too late');
-      result.dropped++;
-      continue;
-    }
-    if (row.template === 'booking.rebook_nudge' && (await hasBookedSince(bookingId))) {
-      await finish(row.id, 'CANCELLED', 'booked again');
+    const stale = await staleReason(row, now);
+    if (stale) {
+      await finish(row.id, 'CANCELLED', stale);
       result.dropped++;
       continue;
     }
@@ -310,6 +330,9 @@ export async function dispatchDue(
         where: { id: row.id },
         data: { status: 'SENT', sentAt: new Date(), lastError: null },
       });
+      if (row.template === WAITLIST_TEMPLATE) {
+        await markWaitlistNotified(waitlistPayloadSchema.parse(row.payload).entryId, now);
+      }
       result.sent++;
     } catch (error) {
       const failure = classifySendError(error);
