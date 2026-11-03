@@ -17,7 +17,7 @@ import { requireStaff } from '../auth/auth';
 import { db } from '../db/client';
 import { AppError, type AppErrorCode } from '../http/errors';
 import { dayInput, loadSchedule } from './availability';
-import { mastersOffering, offeredServices, priceParties } from './catalog';
+import { mastersOffering, offeredServices, packageTerms, priceParties } from './catalog';
 import {
   cancelQueuedMessages,
   cancelReminders,
@@ -72,6 +72,8 @@ export function toBookingDto(b: BookingWithItems): BookingDto {
     clientConfirmed: b.clientConfirmedAt !== null,
     clientLateMin: b.clientLateMin,
     shopDelayMin: b.shopDelayMin,
+    peopleCount: b.peopleCount,
+    depositAmount: b.depositAmount,
     items: b.items.map((i) => ({
       name: i.nameSnapshot,
       price: i.priceSnapshot,
@@ -129,6 +131,8 @@ export type ClientBookingsInput = {
   parties: Party[];
   startAt: Date;
   note?: string;
+  /** A wedding package: how many people it's for. */
+  peopleCount?: number;
 };
 
 export const MAX_GROUP_SIZE = 5;
@@ -190,6 +194,12 @@ export async function createClientBookings(
 
   const date = tashkentDate(input.startAt);
   const { shopId, staffIds } = await resolveMasters(input, date);
+  // A wedding package: up to the people it covers, further ahead, maybe with a prepayment.
+  const terms = await packageTerms(input.parties.flatMap((p) => p.serviceIds));
+  const peopleCount = terms.maxPeople === null ? null : (input.peopleCount ?? 1);
+  if (peopleCount !== null && terms.maxPeople !== null && peopleCount > terms.maxPeople) {
+    refuse('invalid_input', 'too_many_people', { limit: terms.maxPeople });
+  }
 
   const client = await db.shopClient.upsert({
     where: { shopId_userId: { shopId, userId: user.id } },
@@ -214,7 +224,9 @@ export async function createClientBookings(
   let refusal: unknown = null;
   for (const staffId of staffIds) {
     try {
-      const schedule = await loadSchedule(staffId, date, 1);
+      const schedule = await loadSchedule(staffId, date, 1, { horizonDays: terms.bookAheadDays });
+      // A prepayment is settled with the shop, so the booking waits for them to confirm it.
+      const waits = schedule.settings.requireApproval || terms.depositAmount !== null;
       if (units >= schedule.settings.maxActiveBookingsPerClient) {
         refuse('conflict', 'too_many_bookings', {
           limit: schedule.settings.maxActiveBookingsPerClient,
@@ -238,17 +250,19 @@ export async function createClientBookings(
           shopClientId: client.id,
           startAt: spans[i]!.startAt,
           endAt: spans[i]!.endAt,
-          status: schedule.settings.requireApproval ? 'PENDING' : 'CONFIRMED',
+          status: waits ? 'PENDING' : 'CONFIRMED',
           source: 'APP',
           groupId,
           totalPrice: p.totalPrice,
+          peopleCount,
+          depositAmount: i === 0 ? terms.depositAmount : null,
           note: [input.parties[i]?.label, input.note].filter(Boolean).join(' · ') || null,
           createdById: user.id,
           items: { create: p.items },
         })),
-        schedule.settings.requireApproval ? 'booking.requested' : 'booking.created',
+        waits ? 'booking.requested' : 'booking.created',
         {
-          template: schedule.settings.requireApproval ? 'staff.request' : 'staff.new_booking',
+          template: waits ? 'staff.request' : 'staff.new_booking',
           actorUserId: user.id,
           audience: 'shop',
         },

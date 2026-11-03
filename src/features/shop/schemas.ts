@@ -128,6 +128,10 @@ export const shopProfileSchema = z.object({
       durationMin: z.number(),
       price: z.number(),
       priceIsFrom: z.boolean(),
+      /** Wedding package extras; null for ordinary services. */
+      maxPeople: z.number().nullable(),
+      bookAheadDays: z.number().nullable(),
+      depositAmount: z.number().nullable(),
       /** The masters who can do it, for the booking flow. */
       staffIds: z.array(z.string()),
     }),

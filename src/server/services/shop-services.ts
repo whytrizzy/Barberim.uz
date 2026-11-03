@@ -18,12 +18,18 @@ function refuse(reason: ServiceRefusal, code: 'conflict' | 'invalid_input'): nev
   throw new AppError(code, reason, { reason });
 }
 
+// Package extras belong to wedding services only; changing the category drops them.
+const isPackage = (input: ServiceRequest) => input.category === 'WEDDING';
+
 const fields = (input: ServiceRequest) => ({
   name: input.name,
   category: input.category,
   durationMin: input.durationMin,
   price: input.price,
   priceIsFrom: input.priceIsFrom,
+  maxPeople: isPackage(input) ? input.maxPeople : null,
+  bookAheadDays: isPackage(input) ? input.bookAheadDays : null,
+  depositAmount: isPackage(input) ? input.depositAmount : null,
 });
 
 const toDto = (service: Service, staffIds: string[]): ServiceDto => ({
@@ -34,6 +40,9 @@ const toDto = (service: Service, staffIds: string[]): ServiceDto => ({
   price: service.price,
   priceIsFrom: service.priceIsFrom,
   staffIds,
+  maxPeople: service.maxPeople,
+  bookAheadDays: service.bookAheadDays,
+  depositAmount: service.depositAmount,
 });
 
 async function checkMasters(shopId: string, staffIds: string[]): Promise<string[]> {

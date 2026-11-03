@@ -20,7 +20,7 @@ import type { BookingOptions } from '@/features/booking/schemas';
 import { parseShopSettings, type ShopSettings } from '@/features/shop/schemas';
 import { db } from '../db/client';
 import { AppError } from '../http/errors';
-import { mastersOffering, priceParties } from './catalog';
+import { mastersOffering, packageTerms, priceParties } from './catalog';
 
 const DAY_MS = 86_400_000;
 
@@ -44,7 +44,14 @@ export async function loadSchedule(
   staffId: string,
   from: CalendarDate,
   days: number,
-  { excludeBookingId }: { excludeBookingId?: string } = {},
+  {
+    excludeBookingId,
+    horizonDays,
+  }: {
+    excludeBookingId?: string;
+    /** A wedding package booked further ahead than the shop's usual limit. */
+    horizonDays?: number | null;
+  } = {},
 ): Promise<Schedule> {
   const staff = await db.staff.findUnique({
     where: { id: staffId },
@@ -89,7 +96,7 @@ export async function loadSchedule(
   return {
     shopId: staff.shopId,
     settings,
-    rules: settings,
+    rules: { ...settings, horizonDays: Math.max(settings.horizonDays, horizonDays ?? 0) },
     weekly,
     busy,
     overridesFor: (date) => {
@@ -131,15 +138,17 @@ export async function getAvailability({
   days = 1,
   durationMin,
   now = new Date(),
+  horizonDays,
 }: {
   staffId: string;
   from: CalendarDate;
   days?: number;
   durationMin: number;
   now?: Date;
+  horizonDays?: number | null;
 }): Promise<DayResult[]> {
   if (days < 1 || days > 62) throw new AppError('invalid_input', 'days must be 1–62');
-  const schedule = await loadSchedule(staffId, from, days);
+  const schedule = await loadSchedule(staffId, from, days, { horizonDays });
   return Array.from({ length: days }, (_, i) => {
     const date = addDays(from, i);
     return {
@@ -159,32 +168,42 @@ export async function getMasterAvailability({
   from,
   days = 1,
   now = new Date(),
+  horizonDays,
 }: {
   staffId: string;
   parties: string[][];
   from: CalendarDate;
   days?: number;
   now?: Date;
+  horizonDays?: number | null;
 }): Promise<DayResult[]> {
   const staff = await db.staff.findUnique({ where: { id: staffId }, select: { shopId: true } });
   if (!staff) throw new AppError('not_found', 'staff not found');
   const durationMin = groupDuration(await priceParties(staffId, staff.shopId, parties));
-  return getAvailability({ staffId, from, days, durationMin, now });
+  return getAvailability({ staffId, from, days, durationMin, now, horizonDays });
 }
 
 /** How far ahead the booking flow offers days; the shop's horizon may cut it shorter. */
 export const BOOKING_DAYS = 14;
 
-/** What a client can book from today on: with one master, or any free one. */
+/**
+ * What a client can book: two weeks from today, or (a wedding package, planned months ahead)
+ * two weeks from a later `start` day, within how far ahead the package may be booked.
+ */
 export async function getBookingOptions(
   shopId: string,
   staffId: string | 'any',
   serviceIds: string[],
   now = new Date(),
+  start?: CalendarDate,
 ): Promise<BookingOptions> {
-  const from = tashkentDate(now);
+  const today = tashkentDate(now);
+  const { bookAheadDays: horizonDays } = await packageTerms(serviceIds);
+  const last = addDays(today, Math.max(horizonDays ?? 0, BOOKING_DAYS) - 1);
+  const from =
+    start && dbDate(start) > dbDate(today) ? (dbDate(start) > dbDate(last) ? last : start) : today;
   const parties = [serviceIds];
-  const options = { parties, from, days: BOOKING_DAYS, now };
+  const options = { parties, from, days: BOOKING_DAYS, now, horizonDays };
   if (staffId !== 'any') {
     const staff = await db.staff.findFirst({
       where: { id: staffId, shopId },
@@ -219,19 +238,21 @@ export async function getShopAvailability({
   from,
   days = 1,
   now = new Date(),
+  horizonDays,
 }: {
   shopId: string;
   parties: string[][];
   from: CalendarDate;
   days?: number;
   now?: Date;
+  horizonDays?: number | null;
 }): Promise<CombinedDayResult[]> {
   if (days < 1 || days > 62) throw new AppError('invalid_input', 'days must be 1–62');
   const masters = await mastersOffering(shopId, parties.flat());
   const perMaster = await Promise.all(
     masters.map(async (m) => {
       const durationMin = groupDuration(await priceParties(m.id, shopId, parties));
-      const schedule = await loadSchedule(m.id, from, days);
+      const schedule = await loadSchedule(m.id, from, days, { horizonDays });
       return { master: m, durationMin, schedule };
     }),
   );

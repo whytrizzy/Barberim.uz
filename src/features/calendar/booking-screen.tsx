@@ -97,6 +97,21 @@ function BookingDetails({ shopId, booking }: { shopId: string; booking: BookingD
         {interpolate(t.agenda.withMaster, { name: booking.masterName })} ·{' '}
         {t.agenda.sources[booking.source]}
       </p>
+      {booking.peopleCount !== null && (
+        <p className="text-sm text-ink-muted">
+          {interpolate(t.agenda.people, { count: booking.peopleCount })}
+        </p>
+      )}
+      {booking.depositAmount !== null && booking.status === 'PENDING' && (
+        <p
+          role="status"
+          className="mt-3 rounded-tile border border-chrome bg-porcelain px-3 py-2.5 text-sm font-semibold"
+        >
+          {interpolate(t.agenda.depositWaiting, {
+            amount: formatMoney(booking.depositAmount, locale),
+          })}
+        </p>
+      )}
       {booking.clientConfirmed && (
         <p className="mt-1 text-sm font-semibold text-success">{t.agenda.clientComingFull}</p>
       )}

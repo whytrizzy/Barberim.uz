@@ -10,18 +10,39 @@ export const MAX_SERVICE_MINUTES = 720;
 export const MAX_SERVICE_PRICE = 100_000_000;
 /** More than any real price list; stops a runaway client filling the table. */
 export const MAX_SHOP_SERVICES = 100;
+/** A wedding party: the groom and his friends. */
+export const MAX_PACKAGE_PEOPLE = 50;
+/** Weddings are planned months ahead. */
+export const MAX_BOOK_AHEAD_DAYS = 365;
+
+/** Package extras of a wedding (WEDDING) service; null where not used. */
+export const packageFieldsSchema = z.object({
+  /** Covers up to this many people in its fixed block (time and price don't change). */
+  maxPeople: z.number().int().min(1).max(MAX_PACKAGE_PEOPLE).nullable().default(null),
+  /** Can be booked this many days ahead, further than the shop's usual limit. */
+  bookAheadDays: z.number().int().min(1).max(MAX_BOOK_AHEAD_DAYS).nullable().default(null),
+  /** Prepayment in UZS; bookings wait for the shop to confirm it was received. */
+  depositAmount: z.number().int().min(1000).max(MAX_SERVICE_PRICE).nullable().default(null),
+});
+export type PackageFields = z.infer<typeof packageFieldsSchema>;
 
 /** POST /api/shops/:id/services and PATCH /api/shops/:id/services/:serviceId */
-export const serviceRequestSchema = z.object({
-  name: z.string().trim().min(2).max(60),
-  category: z.enum(SERVICE_CATEGORIES),
-  durationMin: z.number().int().min(MIN_SERVICE_MINUTES).max(MAX_SERVICE_MINUTES).multipleOf(5),
-  price: z.number().int().min(0).max(MAX_SERVICE_PRICE),
-  /** Shown as "from 60 000 soʻm". */
-  priceIsFrom: z.boolean(),
-  /** The masters who do this service. */
-  staffIds: z.array(z.uuid()).min(1).max(MAX_SHOP_SERVICES),
-});
+export const serviceRequestSchema = z
+  .object({
+    name: z.string().trim().min(2).max(60),
+    category: z.enum(SERVICE_CATEGORIES),
+    durationMin: z.number().int().min(MIN_SERVICE_MINUTES).max(MAX_SERVICE_MINUTES).multipleOf(5),
+    price: z.number().int().min(0).max(MAX_SERVICE_PRICE),
+    /** Shown as "from 60 000 soʻm". */
+    priceIsFrom: z.boolean(),
+    /** The masters who do this service. */
+    staffIds: z.array(z.uuid()).min(1).max(MAX_SHOP_SERVICES),
+  })
+  .extend(packageFieldsSchema.shape)
+  .refine((s) => s.depositAmount === null || s.depositAmount <= s.price, {
+    path: ['depositAmount'],
+    message: 'prepayment is more than the price',
+  });
 export type ServiceRequest = z.infer<typeof serviceRequestSchema>;
 
 export const serviceSchema = z.object({
@@ -32,6 +53,9 @@ export const serviceSchema = z.object({
   price: z.number(),
   priceIsFrom: z.boolean(),
   staffIds: z.array(z.string()),
+  maxPeople: z.number().nullable(),
+  bookAheadDays: z.number().nullable(),
+  depositAmount: z.number().nullable(),
 });
 export type ServiceDto = z.infer<typeof serviceSchema>;
 

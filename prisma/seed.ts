@@ -101,6 +101,10 @@ async function main() {
         durationMin: 120,
         price: 250000,
         priceIsFrom: true,
+        // The groom and five friends, up to half a year ahead, 100 000 paid up front.
+        maxPeople: 6,
+        bookAheadDays: 180,
+        depositAmount: 100000,
         sortOrder: 5,
       },
     }),

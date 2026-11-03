@@ -1,3 +1,4 @@
+import { parseDateKey } from '@/domain/time';
 import { availabilityQuerySchema } from '@/features/booking/schemas';
 import { requireUser } from '@/server/auth/auth';
 import { AppError } from '@/server/http/errors';
@@ -15,12 +16,15 @@ export const GET = route(async (request, { params }: { params: Promise<{ id: str
   const query = availabilityQuerySchema.safeParse({
     staff: search.get('staff'),
     services: (search.get('services') ?? '').split(',').filter(Boolean),
+    from: search.get('from') ?? undefined,
   });
   if (!query.success) throw new AppError('invalid_input', 'bad query');
   const options = await getBookingOptions(
     uuidParam((await params).id, 'shop'),
     query.data.staff,
     query.data.services,
+    undefined,
+    query.data.from ? (parseDateKey(query.data.from) ?? undefined) : undefined,
   );
   return Response.json(options, { headers: { 'Cache-Control': 'no-store' } });
 });

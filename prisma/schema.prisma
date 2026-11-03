@@ -161,20 +161,26 @@ enum ServiceCategory {
 }
 
 model Service {
-  id          String          @id @default(uuid(7)) @db.Uuid
-  shopId      String          @map("shop_id") @db.Uuid
+  id            String          @id @default(uuid(7)) @db.Uuid
+  shopId        String          @map("shop_id") @db.Uuid
   /// As the barber typed it; Cyrillic readers see it transliterated.
-  name        String
-  category    ServiceCategory @default(ADULT)
-  durationMin Int             @map("duration_min")
+  name          String
+  category      ServiceCategory @default(ADULT)
+  durationMin   Int             @map("duration_min")
   /// Integer UZS.
-  price       Int
+  price         Int
   /// Shown as "from 60 000 soʻm".
-  priceIsFrom Boolean         @default(false) @map("price_is_from")
-  isActive    Boolean         @default(true) @map("is_active")
-  sortOrder   Int             @default(0) @map("sort_order")
-  createdAt   DateTime        @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt   DateTime        @updatedAt @map("updated_at") @db.Timestamptz(3)
+  priceIsFrom   Boolean         @default(false) @map("price_is_from")
+  /// Package (to'y): covers up to this many people (groom and friends) in one fixed block.
+  maxPeople     Int?            @map("max_people")
+  /// Package: can be booked this many days ahead, further than the shop's usual horizon.
+  bookAheadDays Int?            @map("book_ahead_days")
+  /// Package: prepayment in UZS; such bookings wait for the shop to confirm it was received.
+  depositAmount Int?            @map("deposit_amount")
+  isActive      Boolean         @default(true) @map("is_active")
+  sortOrder     Int             @default(0) @map("sort_order")
+  createdAt     DateTime        @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt     DateTime        @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   shop         Shop           @relation(fields: [shopId], references: [id], onDelete: Cascade)
   staff        StaffService[]
@@ -293,6 +299,10 @@ model Booking {
   groupId           String?       @map("group_id") @db.Uuid
   /// Integer UZS, sum of the items' price snapshots.
   totalPrice        Int           @map("total_price")
+  /// How many people a package booking is for.
+  peopleCount       Int?          @map("people_count")
+  /// Prepayment asked (UZS), frozen from the package when booked.
+  depositAmount     Int?          @map("deposit_amount")
   note              String?
   cancelledAt       DateTime?     @map("cancelled_at") @db.Timestamptz(3)
   cancelReason      String?       @map("cancel_reason")

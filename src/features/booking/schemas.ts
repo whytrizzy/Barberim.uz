@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { CLIENT_LATE_OPTIONS, SHOP_DELAY_OPTIONS } from '@/domain/notices';
+import { MAX_PACKAGE_PEOPLE } from '@/features/services/schemas';
 
 const id = z.uuid();
 const instant = z.iso.datetime({ offset: true });
@@ -25,6 +26,8 @@ export const createBookingRequestSchema = z
     serviceIds,
     startAt: instant,
     note: z.string().trim().max(500).optional(),
+    /** A wedding package: how many people it's for (up to what the package covers). */
+    peopleCount: z.number().int().min(1).max(MAX_PACKAGE_PEOPLE).optional(),
   })
   .refine(anyNeedsShop, { path: ['shopId'], message: 'shopId is required for any master' });
 export type CreateBookingRequest = z.infer<typeof createBookingRequestSchema>;
@@ -81,6 +84,9 @@ export const bookingSchema = z.object({
   clientConfirmed: z.boolean(),
   /** The client said they're running this many minutes late. */
   clientLateMin: z.number().int().nullable(),
+  /** A wedding package: how many people, and the prepayment the shop waits for. */
+  peopleCount: z.number().int().nullable(),
+  depositAmount: z.number().int().nullable(),
   /** The shop said the master is running this many minutes late. */
   shopDelayMin: z.number().int().nullable(),
   items: z.array(
@@ -93,6 +99,11 @@ export type BookingDto = z.infer<typeof bookingSchema>;
 export const availabilityQuerySchema = z.object({
   staff: z.union([id, z.literal('any')]),
   services: serviceIds,
+  /** "2026-11-03": two weeks from this day instead of today (a wedding planned ahead). */
+  from: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .optional(),
 });
 
 export const bookingOptionsSchema = z.object({
@@ -173,6 +184,7 @@ export type BookingRefusal =
   | 'phone_required'
   | 'client_blocked'
   | 'too_many_bookings'
+  | 'too_many_people' // more than the wedding package covers
   | 'transition_refused'; // see details.transition
 
 /** POST /api/bookings/:id/notice — a live notice about a visit on the day. */

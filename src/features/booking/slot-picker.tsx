@@ -1,6 +1,12 @@
 'use client';
 
-import { formatMinuteOfDay, parseDateKey, startOfTashkentDay } from '@/domain/time';
+import {
+  dateKey,
+  formatMinuteOfDay,
+  parseDateKey,
+  startOfTashkentDay,
+  tashkentDate,
+} from '@/domain/time';
 import { formatWeekday } from '@/i18n/format';
 import { useI18n } from '@/i18n/provider';
 import { haptic } from '@/telegram/haptics';
@@ -36,6 +42,8 @@ export function SlotPicker({
 }) {
   const { t, locale } = useI18n();
   const day = days.find((option) => option.date === dayKey);
+  // The strip can start on a later day (a wedding planned ahead), so "today" is checked, not assumed.
+  const today = dateKey(tashkentDate(new Date()));
   return (
     <>
       <div
@@ -43,7 +51,7 @@ export function SlotPicker({
         aria-label={t.book.day}
         className="-mx-4 flex gap-1.5 overflow-x-auto px-4 pb-1"
       >
-        {days.map((option, index) => {
+        {days.map((option) => {
           const open = option.status === 'open';
           const full = allowFull && option.status === 'full';
           const selected = option.date === dayKey;
@@ -65,7 +73,9 @@ export function SlotPicker({
               }
             >
               <span className="text-xs leading-tight">
-                {index === 0 ? t.calendar.today : formatWeekday(dateOf(option.date), locale, true)}
+                {option.date === today
+                  ? t.calendar.today
+                  : formatWeekday(dateOf(option.date), locale, true)}
               </span>
               <span className="text-sm leading-tight font-semibold tabular-nums">
                 {parseDateKey(option.date)?.day}

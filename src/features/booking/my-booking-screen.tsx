@@ -192,6 +192,19 @@ function Details({ booking }: { booking: MyBookingDto }) {
           {t.myBookings.moved}
         </p>
       )}
+      {booking.peopleCount !== null && (
+        <p className="text-sm text-ink-muted">
+          {interpolate(t.agenda.people, { count: booking.peopleCount })}
+        </p>
+      )}
+      {booking.depositAmount !== null && booking.status === 'PENDING' && (
+        <p
+          role="status"
+          className="mt-3 rounded-tile border border-chrome bg-porcelain px-3 py-2.5 text-sm"
+        >
+          {interpolate(t.book.depositNote, { amount: formatMoney(booking.depositAmount, locale) })}
+        </p>
+      )}
       <ClientLatePanel booking={booking} />
 
       <SectionLabel className="mt-5">{t.agenda.services}</SectionLabel>

@@ -17,6 +17,8 @@ import { TextField } from '@/ui/text-field';
 import { Tick } from '@/ui/tick';
 import { TileList } from '@/ui/tile-list';
 import {
+  MAX_BOOK_AHEAD_DAYS,
+  MAX_PACKAGE_PEOPLE,
   MAX_SERVICE_MINUTES,
   MAX_SHOP_SERVICES,
   MIN_SERVICE_MINUTES,
@@ -54,6 +56,16 @@ export function ServiceForm({ shopId, service, masters }: ServiceFormProps) {
   const [priceIsFrom, setPriceIsFrom] = useState(service?.priceIsFrom ?? false);
   // A new service starts with everyone: most shops' masters all cut hair.
   const [staffIds, setStaffIds] = useState(service?.staffIds ?? masters.map((m) => m.id));
+  const [maxPeople, setMaxPeople] = useState(service?.maxPeople ? String(service.maxPeople) : '');
+  const [bookAhead, setBookAhead] = useState(
+    service?.bookAheadDays ? String(service.bookAheadDays) : '',
+  );
+  const [deposit, setDeposit] = useState(
+    service?.depositAmount ? String(service.depositAmount) : '',
+  );
+  const isPackage = category === 'WEDDING';
+  // Empty means "not used"; package extras only count for wedding services.
+  const optional = (value: string) => (isPackage && value !== '' ? Number(value) : null);
   const [submitted, setSubmitted] = useState(false);
   const { save, remove } = useServiceActions(shopId, service?.id ?? null);
 
@@ -64,6 +76,9 @@ export function ServiceForm({ shopId, service, masters }: ServiceFormProps) {
     price: price === '' ? null : Number(price),
     priceIsFrom,
     staffIds,
+    maxPeople: optional(maxPeople),
+    bookAheadDays: optional(bookAhead),
+    depositAmount: optional(deposit),
   });
   const invalid = new Set(parsed.success ? [] : parsed.error.issues.map((i) => i.path[0]));
   const show = (field: string) => submitted && invalid.has(field);
@@ -170,6 +185,48 @@ export function ServiceForm({ shopId, service, masters }: ServiceFormProps) {
           {t.services.priceFrom}
         </label>
       </div>
+
+      {isPackage && (
+        <fieldset className="grid gap-3 rounded-tile border border-chrome bg-porcelain p-3">
+          <legend className="px-1 text-sm font-semibold">{t.services.packageTitle}</legend>
+          <p className="-mt-1 text-sm text-ink-muted">{t.services.packageHint}</p>
+          <TextField
+            label={t.services.maxPeople}
+            placeholder={t.services.notUsed}
+            inputMode="numeric"
+            autoComplete="off"
+            value={maxPeople}
+            onChange={(e) => setMaxPeople(e.target.value.replace(/\D/g, '').slice(0, 2))}
+            error={
+              show('maxPeople')
+                ? interpolate(t.services.maxPeopleInvalid, { max: MAX_PACKAGE_PEOPLE })
+                : null
+            }
+          />
+          <TextField
+            label={t.services.bookAhead}
+            placeholder={t.services.notUsed}
+            inputMode="numeric"
+            autoComplete="off"
+            value={bookAhead}
+            onChange={(e) => setBookAhead(e.target.value.replace(/\D/g, '').slice(0, 3))}
+            error={
+              show('bookAheadDays')
+                ? interpolate(t.services.bookAheadInvalid, { max: MAX_BOOK_AHEAD_DAYS })
+                : null
+            }
+          />
+          <TextField
+            label={`${t.services.deposit}, ${t.units.currency}`}
+            placeholder={t.services.notUsed}
+            inputMode="numeric"
+            autoComplete="off"
+            value={deposit === '' ? '' : groupDigits(Number(deposit))}
+            onChange={(e) => setDeposit(e.target.value.replace(/\D/g, '').slice(0, 9))}
+            error={show('depositAmount') ? t.services.depositInvalid : null}
+          />
+        </fieldset>
+      )}
 
       <fieldset>
         <legend className="mb-1.5 text-sm font-semibold">{t.services.masters}</legend>

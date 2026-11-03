@@ -4,12 +4,19 @@ import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tansta
 import { api } from '@/features/api/client';
 import { bookingOptionsSchema, bookingSchema, type CreateBookingRequest } from './schemas';
 
-export function useBookingOptions(shopId: string | undefined, staff: string, services: string[]) {
+export function useBookingOptions(
+  shopId: string | undefined,
+  staff: string,
+  services: string[],
+  /** "2026-11-03": two weeks from that day (a wedding planned ahead); null: from today. */
+  from: string | null = null,
+) {
   const list = [...services].sort().join(',');
+  const query = `staff=${staff}&services=${services.join(',')}${from ? `&from=${from}` : ''}`;
   return useQuery({
-    queryKey: ['booking-options', shopId, staff, list],
+    queryKey: ['booking-options', shopId, staff, list, from],
     queryFn: ({ signal }) =>
-      api(`/api/shops/${shopId}/availability?staff=${staff}&services=${services.join(',')}`, {
+      api(`/api/shops/${shopId}/availability?${query}`, {
         schema: bookingOptionsSchema,
         signal,
       }),

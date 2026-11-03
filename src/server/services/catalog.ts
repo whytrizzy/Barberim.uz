@@ -58,3 +58,30 @@ export async function mastersOffering(shopId: string, serviceIds: string[]) {
     orderBy: { sortOrder: 'asc' },
   });
 }
+
+export type PackageTerms = {
+  /** The furthest any chosen package may be booked ahead; null: the shop's usual limit. */
+  bookAheadDays: number | null;
+  /** The most people the chosen packages cover; null: not a package (one person). */
+  maxPeople: number | null;
+  /** Prepayment for all chosen packages together; null: none. */
+  depositAmount: number | null;
+};
+
+/** What the chosen services' wedding-package extras add up to. */
+export async function packageTerms(serviceIds: string[]): Promise<PackageTerms> {
+  const rows = await db.service.findMany({
+    where: { id: { in: serviceIds }, category: 'WEDDING' },
+    select: { maxPeople: true, bookAheadDays: true, depositAmount: true },
+  });
+  const values = (pick: (r: (typeof rows)[number]) => number | null) =>
+    rows.map(pick).filter((v): v is number => v !== null);
+  const ahead = values((r) => r.bookAheadDays);
+  const people = values((r) => r.maxPeople);
+  const deposit = values((r) => r.depositAmount);
+  return {
+    bookAheadDays: ahead.length ? Math.max(...ahead) : null,
+    maxPeople: people.length ? Math.min(...people) : null,
+    depositAmount: deposit.length ? deposit.reduce((sum, v) => sum + v, 0) : null,
+  };
+}

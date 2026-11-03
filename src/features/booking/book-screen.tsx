@@ -1,15 +1,16 @@
 'use client';
 
-import { CircleCheck } from 'lucide-react';
+import { CircleCheck, Minus, Plus } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useRef, useState } from 'react';
-import { formatMinuteOfDay } from '@/domain/time';
+import { addDays, dateKey, formatMinuteOfDay, tashkentDate } from '@/domain/time';
 import { ApiError } from '@/features/api/client';
 import { errorText } from '@/features/api/error-text';
 import { LoadError, ScreenLoading } from '@/features/api/load-states';
 import { useSession } from '@/features/auth/use-session';
 import { PhoneCapture } from '@/features/profile/phone-capture';
+import type { ShopProfileDto } from '@/features/shop/schemas';
 import { useShopProfile } from '@/features/shop/use-shop-profile';
 import { WaitlistPanel } from '@/features/waitlist/waitlist-panel';
 import { formatDayMonth, formatDuration, formatMoney, formatTime } from '@/i18n/format';
@@ -30,6 +31,28 @@ import { dateOf, SlotPicker } from './slot-picker';
 import { useBookingOptions, useCreateBooking } from './use-book';
 
 const ANY = 'any';
+/** Days in the strip at once (the server's BOOKING_DAYS). */
+const BOOKING_STRIP_DAYS = 14;
+
+const stepper =
+  'grid min-h-12 place-items-center bg-porcelain text-ink active:bg-porcelain-sunk disabled:text-ink-faint focus-visible:ring-2 focus-visible:ring-pick focus-visible:ring-inset';
+
+type ChosenService = ShopProfileDto['services'][number];
+
+/** What the chosen wedding packages add up to (the server works it out the same way). */
+function packageTerms(chosen: ChosenService[]) {
+  const packages = chosen.filter((service) => service.category === 'WEDDING');
+  const values = (pick: (s: ChosenService) => number | null) =>
+    packages.map(pick).filter((v): v is number => v !== null);
+  const people = values((s) => s.maxPeople);
+  const ahead = values((s) => s.bookAheadDays);
+  const deposit = values((s) => s.depositAmount);
+  return {
+    maxPeople: people.length ? Math.min(...people) : null,
+    bookAheadDays: ahead.length ? Math.max(...ahead) : null,
+    depositAmount: deposit.length ? deposit.reduce((sum, v) => sum + v, 0) : null,
+  };
+}
 
 function bookError(t: Messages, error: unknown): string {
   if (error instanceof ApiError) {
@@ -46,6 +69,8 @@ function bookError(t: Messages, error: unknown): string {
         return t.book.serviceGone;
       case 'phone_required':
         return t.book.phoneNeeded;
+      case 'too_many_people':
+        return interpolate(t.book.tooManyPeople, { limit: details.limit ?? 1 });
     }
   }
   return errorText(t, error);
@@ -63,6 +88,11 @@ function Booked({ booking, shopName }: { booking: BookingDto; shopName: string }
         <CircleCheck className="mt-0.5 size-5 shrink-0 text-success" aria-hidden />
         {booking.status === 'PENDING' ? t.book.pending : t.book.confirmed}
       </p>
+      {booking.depositAmount !== null && booking.status === 'PENDING' && (
+        <p className="mt-2 rounded-tile border border-chrome bg-porcelain px-3 py-2.5 text-sm">
+          {interpolate(t.book.depositNote, { amount: formatMoney(booking.depositAmount, locale) })}
+        </p>
+      )}
       <TileList className="mt-4">
         {booking.items.map((item, index) => (
           <li key={index} className="flex items-center gap-3 bg-porcelain px-3 py-2.5">
@@ -78,7 +108,9 @@ function Booked({ booking, shopName }: { booking: BookingDto; shopName: string }
       <p className="mt-2 text-right text-[15px] font-semibold tabular-nums">
         {interpolate(t.agenda.total, { total: formatMoney(booking.totalPrice, locale) })}
       </p>
-      <p className="mt-3 text-sm text-ink-muted">{t.book.payAtShop}</p>
+      <p className="mt-3 text-sm text-ink-muted">
+        {booking.depositAmount !== null ? t.book.restAtShop : t.book.payAtShop}
+      </p>
       <Link
         href="/bookings"
         className="mt-2 flex min-h-11 items-center text-sm font-semibold text-enamel-text"
@@ -121,6 +153,9 @@ export function BookScreen({
   const [note, setNote] = useState('');
   const [submitted, setSubmitted] = useState(false);
   const [booked, setBooked] = useState<BookingDto | null>(null);
+  const [people, setPeople] = useState(1);
+  /** A wedding planned ahead: the strip of days starts here instead of today. */
+  const [from, setFrom] = useState<string | null>(null);
 
   const shop = profile.data;
   const chosen = (shop?.services ?? []).filter((service) => serviceIds.includes(service.id));
@@ -129,17 +164,20 @@ export function BookScreen({
     chosen.every((service) => service.staffIds.includes(master.id)),
   );
   const master = masters.some((m) => m.id === chosenMaster) ? chosenMaster : ANY;
+  const terms = packageTerms(chosen);
+  const today = dateKey(tashkentDate(new Date()));
   const options = useBookingOptions(
     shop?.id,
     master,
     chosen.map((service) => service.id),
+    terms.bookAheadDays ? from : null,
   );
 
   const days = options.data?.days ?? [];
   const firstOpen = days.find((day) => day.status === 'open');
   const dayKey = days.some((d) => d.date === chosenDay) ? chosenDay : (firstOpen?.date ?? null);
   const day = days.find((d) => d.date === dayKey);
-  const isToday = dayKey !== null && dayKey === days[0]?.date;
+  const isToday = dayKey === today;
   const start =
     day?.slots.find((slot) => slot.startMin === chosenStart) ??
     (isToday ? day?.slots.find((slot) => slot.startMin === wantedStart) : undefined);
@@ -174,6 +212,7 @@ export function BookScreen({
         serviceIds: chosen.map((service) => service.id),
         startAt: start.startAt,
         note: note.trim() || undefined,
+        ...(terms.maxPeople !== null && { peopleCount: Math.min(people, terms.maxPeople) }),
       },
       {
         onSuccess: (booking) => {
@@ -264,6 +303,49 @@ export function BookScreen({
         )}
       </section>
 
+      {terms.maxPeople !== null && (
+        <section className="mt-5">
+          <SectionLabel className="mt-0">{t.book.people}</SectionLabel>
+          <div className="flex items-center gap-3">
+            <div className="grid w-40 shrink-0 grid-cols-3 gap-px overflow-hidden rounded-tile border border-chrome bg-chrome">
+              <button
+                type="button"
+                aria-label={`${t.book.people} −`}
+                disabled={people <= 1}
+                className={stepper}
+                onClick={() => {
+                  haptic.selection();
+                  setPeople((n) => Math.max(1, n - 1));
+                }}
+              >
+                <Minus className="size-4" aria-hidden />
+              </button>
+              <output
+                aria-live="polite"
+                className="flex min-h-12 items-center justify-center bg-porcelain text-[17px] font-semibold tabular-nums"
+              >
+                {Math.min(people, terms.maxPeople)}
+              </output>
+              <button
+                type="button"
+                aria-label={`${t.book.people} +`}
+                disabled={people >= terms.maxPeople}
+                className={stepper}
+                onClick={() => {
+                  haptic.selection();
+                  setPeople((n) => Math.min(terms.maxPeople ?? 1, n + 1));
+                }}
+              >
+                <Plus className="size-4" aria-hidden />
+              </button>
+            </div>
+            <p className="min-w-0 flex-1 text-sm text-ink-muted">
+              {interpolate(t.book.peopleHint, { max: terms.maxPeople })}
+            </p>
+          </div>
+        </section>
+      )}
+
       {chosen.length > 0 && masters.length === 0 && (
         <p role="alert" className="mt-4 text-sm text-enamel-text">
           {t.book.noMaster}
@@ -295,6 +377,22 @@ export function BookScreen({
       {chosen.length > 0 && masters.length > 0 && (
         <section className="mt-5">
           <SectionLabel className="mt-0">{t.book.day}</SectionLabel>
+          {terms.bookAheadDays !== null && terms.bookAheadDays > BOOKING_STRIP_DAYS && (
+            <TextField
+              className="mb-3"
+              label={t.book.otherDate}
+              type="date"
+              min={today}
+              max={dateKey(addDays(tashkentDate(new Date()), terms.bookAheadDays - 1))}
+              value={from ?? today}
+              onChange={(e) => {
+                const picked = e.target.value || null;
+                setFrom(picked);
+                setChosenDay(picked);
+                setChosenStart(null);
+              }}
+            />
+          )}
           {options.isPending ? (
             <div aria-hidden className="grid grid-cols-4 gap-1.5">
               {Array.from({ length: 8 }, (_, i) => (
@@ -370,6 +468,13 @@ export function BookScreen({
               ? interpolate(t.services.fromPrice, { price: formatMoney(total, locale) })
               : formatMoney(total, locale)}
           </p>
+          {terms.depositAmount !== null && (
+            <p className="mt-2 rounded-tile border border-chrome bg-porcelain px-3 py-2.5 text-sm">
+              {interpolate(t.book.depositNote, {
+                amount: formatMoney(terms.depositAmount, locale),
+              })}
+            </p>
+          )}
         </>
       )}
 
