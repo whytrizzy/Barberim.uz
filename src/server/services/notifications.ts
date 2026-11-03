@@ -10,7 +10,7 @@ import {
   type StaffPayload,
   type StaffTemplate,
 } from '@/bot/notifications';
-import { reminderTimes } from '@/domain/booking';
+import { rebookNudgeTime, reminderTimes } from '@/domain/booking';
 import { Prisma, type StaffRole } from '@/generated/prisma/client';
 import { fromDbLocale } from '../auth/auth';
 import { db } from '../db/client';
@@ -28,6 +28,8 @@ const LEASE_MS = 5 * 60_000;
 const BATCH_SIZE = 100;
 const DAY_REMINDER_MIN_LEFT_MS = 3 * 3_600_000;
 const REVIEW_ASK_DELAY_MS = 3_600_000;
+/** Sent after the visit, so a start time in the past doesn't make them stale. */
+const AFTER_VISIT_TEMPLATES = ['booking.review_ask', 'booking.rebook_nudge'] as const;
 
 /**
  * Queues a message to the person a booking is for. People with no Telegram account behind their
@@ -174,6 +176,56 @@ export async function cancelReviewAsk(tx: Prisma.TransactionClient, bookingId: s
   });
 }
 
+/**
+ * "Time for a haircut?" some weeks after a finished visit. Only the latest visit counts: an
+ * earlier one's nudge at the same shop is dropped. If they book again first, it isn't sent.
+ */
+export async function queueRebookNudge(
+  tx: Prisma.TransactionClient,
+  bookingId: string,
+  now = new Date(),
+): Promise<void> {
+  const booking = await tx.booking.findUniqueOrThrow({
+    where: { id: bookingId },
+    select: { shopClientId: true, startAt: true },
+  });
+  await tx.notification.updateMany({
+    where: {
+      status: 'PENDING',
+      template: 'booking.rebook_nudge',
+      booking: { shopClientId: booking.shopClientId },
+    },
+    data: { status: 'CANCELLED' },
+  });
+  const sendAt = rebookNudgeTime(booking.startAt, now);
+  if (sendAt) await queueBookingMessage(tx, 'booking.rebook_nudge', bookingId, sendAt);
+}
+
+export async function cancelRebookNudge(tx: Prisma.TransactionClient, bookingId: string) {
+  await tx.notification.updateMany({
+    where: { bookingId, status: 'PENDING', template: 'booking.rebook_nudge' },
+    data: { status: 'CANCELLED' },
+  });
+}
+
+/** A nudge is pointless once they've booked again there (even one they later missed). */
+async function hasBookedSince(bookingId: string): Promise<boolean> {
+  const visit = await db.booking.findUnique({
+    where: { id: bookingId },
+    select: { shopClientId: true, startAt: true, status: true },
+  });
+  if (visit?.status !== 'COMPLETED') return true;
+  const later = await db.booking.count({
+    where: {
+      shopClientId: visit.shopClientId,
+      id: { not: bookingId },
+      startAt: { gt: visit.startAt },
+      status: { notIn: ['CANCELLED_CLIENT', 'CANCELLED_SHOP'] },
+    },
+  });
+  return later > 0;
+}
+
 /** Whatever hasn't gone out yet is out of date once the booking is cancelled. */
 export async function cancelQueuedMessages(tx: Prisma.TransactionClient, bookingId: string) {
   await tx.notification.updateMany({
@@ -233,16 +285,21 @@ export async function dispatchDue(
       result.failed++;
       continue;
     }
-    // A message about a visit that has already begun only confuses (asking for a review is the
-    // exception: that's the point of it).
+    // A message about a visit that has already begun only confuses (the ones about a finished
+    // visit are the exception: that's the point of them).
     // So does a day-before reminder that arrives hours before: the 2-hour one is about to go.
-    const { startAt } = bookingPayloadSchema.parse(row.payload);
+    const { bookingId, startAt } = bookingPayloadSchema.parse(row.payload);
     const left = new Date(startAt).getTime() - now.getTime();
     if (
-      (left <= 0 && row.template !== 'booking.review_ask') ||
+      (left <= 0 && !(AFTER_VISIT_TEMPLATES as readonly string[]).includes(row.template)) ||
       (row.template === 'booking.reminder24h' && left < DAY_REMINDER_MIN_LEFT_MS)
     ) {
       await finish(row.id, 'CANCELLED', 'too late');
+      result.dropped++;
+      continue;
+    }
+    if (row.template === 'booking.rebook_nudge' && (await hasBookedSince(bookingId))) {
+      await finish(row.id, 'CANCELLED', 'booked again');
       result.dropped++;
       continue;
     }

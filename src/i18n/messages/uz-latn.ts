@@ -336,6 +336,7 @@ export const uzLatn = {
     cancelConfirm: 'Yozuv bekor qilinsinmi?',
     changed: 'Bu yozuv oʻzgardi. Yangi holatini tekshiring.',
     again: 'Yana yozilish',
+    repeatLast: 'Oxirgi tashrifni takrorlash',
     shopPage: 'Sartaroshxona',
     notFound: 'Bu yozuv topilmadi.',
   },
@@ -354,6 +355,14 @@ export const uzLatn = {
     empty: 'Hech narsa topilmadi. Filtrlarni oʻzgartirib koʻring.',
     locationDenied: 'Joylashuvga ruxsat berilmadi. Viloyat va tuman boʻyicha qidiring.',
     locationFailed: 'Joylashuvni aniqlab boʻlmadi. Viloyat va tuman boʻyicha qidiring.',
+  },
+  favorites: {
+    title: 'Saqlanganlar',
+    save: 'Saqlash',
+    saved: 'Saqlangan',
+    empty: 'Hali saqlangan sartaroshxona yoʻq. Yoqqan sartaroshxona sahifasida «Saqlash»ni bosing.',
+    lastVisit: 'Oxirgi tashrif: {date}, usta {master}',
+    repeat: 'Xuddi shunday yozilish',
   },
   portfolio: {
     title: 'Ishlar namunasi',
@@ -390,6 +399,9 @@ export const uzLatn = {
   notify: {
     reviewAsk: '{shop}ga tashrifingiz qanday oʻtdi? Usta: {master}. Sharh qoldiring.',
     reviewOpen: 'Sharh qoldirish',
+    rebookNudge:
+      'Soch oldirish vaqti keldimi? Oxirgi marta {date} kuni {shop}da boʻldingiz, usta: {master}. Xuddi shunday yozilish — bir bosishda.',
+    rebookOpen: 'Yana yozilish',
     staffNew: 'Yangi yozuv: {client}, {date}, soat {time}. Usta: {master}.',
     staffRequest: 'Yangi soʻrov: {client}, {date}, soat {time}. Usta: {master}. Qabul qilasizmi?',
     staffMoved:

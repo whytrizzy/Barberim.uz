@@ -106,6 +106,8 @@ export type BookingOptions = z.infer<typeof bookingOptionsSchema>;
 /** GET /api/me/bookings/:id — a client's own booking, with where to go. */
 export const myBookingSchema = bookingSchema.extend({
   masterName: z.string(),
+  /** The services, for booking the same again (ones the shop has since removed are left out). */
+  serviceIds: z.array(z.string()),
   shop: z.object({
     slug: z.string(),
     name: z.string(),

@@ -332,6 +332,7 @@ export const ru: Messages = {
     cancelConfirm: 'Отменить запись?',
     changed: 'Эта запись изменилась. Проверьте новое состояние.',
     again: 'Записаться снова',
+    repeatLast: 'Повторить последний визит',
     shopPage: 'Барбершоп',
     notFound: 'Эта запись не найдена.',
   },
@@ -350,6 +351,14 @@ export const ru: Messages = {
     empty: 'Ничего не найдено. Попробуйте изменить фильтры.',
     locationDenied: 'Доступ к геолокации запрещён. Ищите по области и району.',
     locationFailed: 'Не удалось определить местоположение. Ищите по области и району.',
+  },
+  favorites: {
+    title: 'Избранное',
+    save: 'Сохранить',
+    saved: 'Сохранено',
+    empty: 'Пока ничего не сохранено. Нажмите «Сохранить» на странице понравившегося барбершопа.',
+    lastVisit: 'Последний визит: {date}, мастер {master}',
+    repeat: 'Записаться так же',
   },
   portfolio: {
     title: 'Примеры работ',
@@ -386,6 +395,9 @@ export const ru: Messages = {
   notify: {
     reviewAsk: 'Как прошёл визит: {shop}? Мастер: {master}. Оставьте отзыв.',
     reviewOpen: 'Оставить отзыв',
+    rebookNudge:
+      'Пора подстричься? Последний раз вы были в {shop} {date}, мастер: {master}. Записаться так же — в одно касание.',
+    rebookOpen: 'Записаться снова',
     staffNew: 'Новая запись: {client}, {date}, в {time}. Мастер: {master}.',
     staffRequest: 'Новая заявка: {client}, {date}, в {time}. Мастер: {master}. Принять?',
     staffMoved:

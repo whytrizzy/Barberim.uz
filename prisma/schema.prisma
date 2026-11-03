@@ -39,6 +39,7 @@ model User {
 
   staff       Staff[]
   shopClients ShopClient[]
+  favorites   Favorite[]
   invites     StaffInvite[] @relation("InviteCreatedBy")
 
   @@map("users")
@@ -84,6 +85,7 @@ model Shop {
   clients   ShopClient[]
   bookings  Booking[]
   reviews   Review[]
+  favorites Favorite[]
   auditLogs AuditLog[]
 
   @@index([status, district])
@@ -406,4 +408,19 @@ model Review {
 
   @@index([shopId, createdAt])
   @@map("reviews")
+}
+
+/// A shop someone saved to find again. Kept apart from ShopClient: saving a shop doesn't make
+/// you one of its clients.
+model Favorite {
+  userId    String   @map("user_id") @db.Uuid
+  shopId    String   @map("shop_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  shop Shop @relation(fields: [shopId], references: [id], onDelete: Cascade)
+
+  @@id([userId, shopId])
+  @@index([shopId])
+  @@map("favorites")
 }

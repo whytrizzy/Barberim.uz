@@ -7,6 +7,7 @@ import { regions, yandexMapsLink, yandexRouteLink } from '@/domain/places';
 import { formatMinuteOfDay } from '@/domain/time';
 import { ApiError } from '@/features/api/client';
 import { LoadError, ScreenLoading } from '@/features/api/load-states';
+import { FavoriteButton } from '@/features/favorites/favorite-button';
 import { MasterWork } from '@/features/portfolio/master-work';
 import { RatingLine, ReviewCard } from '@/features/reviews/reviews-screens';
 import { SERVICE_CATEGORIES } from '@/features/services/schemas';
@@ -91,10 +92,15 @@ export function ShopProfileScreen({ slug }: { slug: string }) {
   return (
     <main className="mx-auto max-w-[390px] px-4 pt-4 pb-6">
       <EnamelSign overline={area}>{typed(shop.name)}</EnamelSign>
-      {shop.rating.average !== null && (
-        <p className="mt-2 text-sm">
-          <RatingLine summary={shop.rating} />
-        </p>
+      {(shop.rating.average !== null || !shop.isPreview) && (
+        <div className="mt-2 flex min-h-11 items-center justify-between gap-3">
+          <p className="text-sm">
+            <RatingLine summary={shop.rating} />
+          </p>
+          {!shop.isPreview && (
+            <FavoriteButton slug={slug} shopId={shop.id} saved={shop.isFavorite} />
+          )}
+        </div>
       )}
       {shop.isPreview && (
         <p

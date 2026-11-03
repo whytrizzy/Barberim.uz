@@ -112,6 +112,8 @@ export const shopProfileSchema = z.object({
   name: z.string(),
   /** A draft or suspended shop, shown only to its own staff. */
   isPreview: z.boolean(),
+  /** The person looking has saved it. */
+  isFavorite: z.boolean(),
   region: z.string(),
   district: z.string().nullable(),
   address: z.string(),
@@ -173,26 +175,24 @@ export const discoverRequestSchema = z.object({
 });
 export type DiscoverRequest = z.infer<typeof discoverRequestSchema>;
 
-export const discoverResultSchema = z.object({
-  shops: z.array(
-    z.object({
-      id: z.string(),
-      slug: z.string(),
-      name: z.string(),
-      region: z.string(),
-      district: z.string().nullable(),
-      address: z.string(),
-      landmark: z.string().nullable(),
-      coverUrl: z.string().nullable(),
-      /** The cheapest service. */
-      fromPrice: z.number(),
-      rating: ratingSummarySchema,
-      /** The next time someone can still take today, in minutes since Tashkent midnight. */
-      nextFreeToday: z.number().nullable(),
-      /** Only when searching near a place, and the shop has set its location. */
-      distanceKm: z.number().nullable(),
-    }),
-  ),
+export const discoveredShopSchema = z.object({
+  id: z.string(),
+  slug: z.string(),
+  name: z.string(),
+  region: z.string(),
+  district: z.string().nullable(),
+  address: z.string(),
+  landmark: z.string().nullable(),
+  coverUrl: z.string().nullable(),
+  /** The cheapest service. */
+  fromPrice: z.number(),
+  rating: ratingSummarySchema,
+  /** The next time someone can still take today, in minutes since Tashkent midnight. */
+  nextFreeToday: z.number().nullable(),
+  /** Only when searching near a place, and the shop has set its location. */
+  distanceKm: z.number().nullable(),
 });
+export type DiscoveredShop = z.infer<typeof discoveredShopSchema>;
+
+export const discoverResultSchema = z.object({ shops: z.array(discoveredShopSchema) });
 export type DiscoverResult = z.infer<typeof discoverResultSchema>;
-export type DiscoveredShop = DiscoverResult['shops'][number];

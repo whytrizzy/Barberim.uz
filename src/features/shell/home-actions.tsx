@@ -1,6 +1,6 @@
 'use client';
 
-import { CalendarCheck, ChevronRight, Search, Store } from 'lucide-react';
+import { CalendarCheck, ChevronRight, Heart, Search, Store } from 'lucide-react';
 import Link from 'next/link';
 import { LoadError } from '@/features/api/load-states';
 import { useSession } from '@/features/auth/use-session';
@@ -32,6 +32,13 @@ export function HomeActions() {
         <Link href="/bookings" className="flex items-center gap-3 px-3 py-3">
           <CalendarCheck className="size-5 shrink-0 text-enamel-text" aria-hidden />
           <span className="flex-1 text-[15px] font-semibold">{t.myBookings.title}</span>
+          <ChevronRight className="size-5 text-ink-muted" aria-hidden />
+        </Link>
+      </li>
+      <li className="bg-porcelain">
+        <Link href="/favorites" className="flex items-center gap-3 px-3 py-3">
+          <Heart className="size-5 shrink-0 text-enamel-text" aria-hidden />
+          <span className="flex-1 text-[15px] font-semibold">{t.favorites.title}</span>
           <ChevronRight className="size-5 text-ink-muted" aria-hidden />
         </Link>
       </li>

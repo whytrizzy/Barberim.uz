@@ -91,11 +91,14 @@ function Booked({ booking, shopName }: { booking: BookingDto; shopName: string }
 /** /shop/:slug/book — services, master, day and time on one screen; the big button books. */
 export function BookScreen({
   slug,
-  initialService,
+  initialServices = [],
+  initialMaster,
   initialStart,
 }: {
   slug: string;
-  initialService?: string;
+  initialServices?: string[];
+  /** Booking the same again: their master, if they still do the services. */
+  initialMaster?: string;
   /** A time tapped on the shop page: today's, picked as soon as it's on offer. */
   initialStart?: number;
 }) {
@@ -106,8 +109,8 @@ export function BookScreen({
   const create = useCreateBooking(slug);
   const phoneRef = useRef<HTMLElement>(null);
 
-  const [serviceIds, setServiceIds] = useState<string[]>(initialService ? [initialService] : []);
-  const [chosenMaster, setChosenMaster] = useState(ANY);
+  const [serviceIds, setServiceIds] = useState<string[]>(initialServices);
+  const [chosenMaster, setChosenMaster] = useState(initialMaster ?? ANY);
   const [chosenDay, setChosenDay] = useState<string | null>(null);
   const [chosenStart, setChosenStart] = useState<number | null>(null);
   const [wantedStart, setWantedStart] = useState(initialStart ?? null);

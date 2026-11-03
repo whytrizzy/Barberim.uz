@@ -47,6 +47,8 @@ function textFilter(query: string): Prisma.ShopWhereInput {
 export async function discoverShops(
   input: DiscoverRequest,
   now = new Date(),
+  /** Only these shops (someone's favorites), whatever they match. */
+  shopIds?: string[],
 ): Promise<DiscoverResult> {
   const today = tashkentDate(now);
   const dayStart = startOfTashkentDay(today);
@@ -54,6 +56,7 @@ export async function discoverShops(
   const candidates = await db.shop.findMany({
     where: {
       status: 'ACTIVE',
+      ...(shopIds && { id: { in: shopIds } }),
       staff: { some: { ...canTakeClients, services: { some: { service: { isActive: true } } } } },
       ...(input.region && { region: input.region }),
       ...(input.district && { district: { equals: input.district, mode: 'insensitive' } }),

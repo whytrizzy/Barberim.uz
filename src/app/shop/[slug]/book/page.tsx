@@ -8,15 +8,19 @@ export default async function BookPage({
   searchParams,
 }: {
   params: Promise<{ slug: string }>;
-  searchParams: Promise<{ service?: string; start?: string }>;
+  /** `service` (one, from the shop page) or `services` and `master` (booking the same again). */
+  searchParams: Promise<{ service?: string; services?: string; master?: string; start?: string }>;
 }) {
   const { slug } = await params;
-  const { service, start } = await searchParams;
+  const { service, services, master, start } = await searchParams;
   const startMin = start === undefined ? NaN : Number(start);
+  // Unknown ids are harmless: the screen only picks what the shop actually offers.
+  const serviceIds = (services ?? service ?? '').split(',').filter(Boolean).slice(0, 10);
   return (
     <BookScreen
       slug={slug}
-      initialService={service}
+      initialServices={serviceIds}
+      initialMaster={master}
       initialStart={Number.isInteger(startMin) ? startMin : undefined}
     />
   );

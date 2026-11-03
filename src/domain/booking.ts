@@ -3,6 +3,8 @@
  * and how a booking's items and total are frozen from the services. Pure and fully unit-tested.
  */
 
+import { addDays, fromTashkent, tashkentDate } from './time';
+
 export type BookingStatus =
   'PENDING' | 'CONFIRMED' | 'COMPLETED' | 'NO_SHOW' | 'CANCELLED_CLIENT' | 'CANCELLED_SHOP';
 
@@ -72,6 +74,21 @@ export function reminderTimes(startAt: Date, now: Date): { kind: ReminderKind; s
       { kind: '2h', sendAt: new Date(startAt.getTime() - 2 * HOUR_MS) },
     ] as const
   ).filter(({ sendAt }) => sendAt.getTime() - now.getTime() >= REMINDER_MARGIN_MS);
+}
+
+/** A haircut grows out in three to four weeks. */
+export const REBOOK_NUDGE_DAYS = 24;
+/** Late morning: awake, not yet busy, and nowhere near the night. */
+const REBOOK_NUDGE_HOUR = 11;
+
+/**
+ * When to ask "time for a haircut?" after a visit: late morning, Tashkent time, some weeks on.
+ * Null when that's already past (a visit marked done long after it happened).
+ */
+export function rebookNudgeTime(visitStart: Date, now: Date): Date | null {
+  const day = addDays(tashkentDate(visitStart), REBOOK_NUDGE_DAYS);
+  const sendAt = fromTashkent(day.year, day.month, day.day, REBOOK_NUDGE_HOUR);
+  return sendAt.getTime() - now.getTime() >= REMINDER_MARGIN_MS ? sendAt : null;
 }
 
 /** A service as one master offers it: their own price/duration override the shop's. */

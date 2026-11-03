@@ -20,6 +20,7 @@ export const bookingTemplates = [
   'booking.reminder24h',
   'booking.reminder2h',
   'booking.review_ask',
+  'booking.rebook_nudge',
 ] as const;
 export type BookingTemplate = (typeof bookingTemplates)[number];
 
@@ -153,8 +154,13 @@ export function renderNotification(template: string, payload: unknown): Outgoing
     'booking.reminder24h': notify.reminder24h,
     'booking.reminder2h': notify.reminder2h,
     'booking.review_ask': notify.reviewAsk,
+    'booking.rebook_nudge': notify.rebookNudge,
   };
   const isReminder = (REMINDER_TEMPLATES as readonly string[]).includes(template);
+  const buttonLabel: Partial<Record<BookingTemplate, string>> = {
+    'booking.review_ask': notify.reviewOpen,
+    'booking.rebook_nudge': notify.rebookOpen,
+  };
   return {
     text: interpolate(body[template as BookingTemplate], {
       shop: typedText(shopName, locale),
@@ -167,7 +173,7 @@ export function renderNotification(template: string, payload: unknown): Outgoing
       : [
           [
             {
-              label: template === 'booking.review_ask' ? notify.reviewOpen : notify.open,
+              label: buttonLabel[template as BookingTemplate] ?? notify.open,
               path: `/booking/${bookingId}`,
             },
           ],

@@ -3,7 +3,7 @@
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { Clock, LoaderCircle, LocateFixed, Search, Store } from 'lucide-react';
 import Link from 'next/link';
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { regions, type Coordinates } from '@/domain/places';
 import { formatMinuteOfDay } from '@/domain/time';
 import { api } from '@/features/api/client';
@@ -27,7 +27,8 @@ function formatKm(km: number): string {
   return km < 10 ? km.toFixed(1) : String(Math.round(km));
 }
 
-function ShopCard({ shop }: { shop: DiscoveredShop }) {
+/** A shop in a list: search results, saved shops (`footer` goes under the card). */
+export function ShopCard({ shop, footer }: { shop: DiscoveredShop; footer?: ReactNode }) {
   const { t, locale } = useI18n();
   const region = regions.find((candidate) => candidate.key === shop.region);
   const area = [districtName(shop.district, locale), region && placeName(region, locale)]
@@ -85,6 +86,7 @@ function ShopCard({ shop }: { shop: DiscoveredShop }) {
           </span>
         </span>
       </Link>
+      {footer}
     </li>
   );
 }

@@ -15,6 +15,7 @@ import { db } from '../db/client';
 import { AppError } from '../http/errors';
 import { photoDtos } from '../storage/media';
 import { dayInput, loadSchedule } from './availability';
+import { isFavorite } from './favorites';
 import { latestReviews, ratingSummary } from './reviews';
 import { toShopDto } from './shop';
 
@@ -99,8 +100,13 @@ export async function getShopProfile(
   ]);
 
   const { photos } = toShopDto(shop);
-  const [rating, reviews] = await Promise.all([ratingSummary(shop.id), latestReviews(shop.id)]);
+  const [rating, reviews, saved] = await Promise.all([
+    ratingSummary(shop.id),
+    latestReviews(shop.id),
+    isFavorite(user, shop.id),
+  ]);
   return {
+    isFavorite: saved,
     rating,
     reviews,
     id: shop.id,

@@ -24,6 +24,7 @@ import { Button } from '@/ui/button';
 import { EnamelSign } from '@/ui/enamel-sign';
 import { SectionLabel } from '@/ui/section-label';
 import { TileList } from '@/ui/tile-list';
+import { repeatBookingPath } from './repeat';
 import type { MyBookingDto } from './schemas';
 import { SlotPicker } from './slot-picker';
 import { useMoveOptions, useMyBooking, useMyBookingAction } from './use-my-bookings';
@@ -137,10 +138,14 @@ function MovePanel({
 }
 
 /** Once a booking is over or cancelled, the useful next step is coming back. */
-function BookAgainButton({ slug }: { slug: string }) {
+/** The same services with the same master, ready to pick a time. */
+function BookAgainButton({ booking }: { booking: MyBookingDto }) {
   const { t } = useI18n();
   const router = useRouter();
-  useMainButton({ text: t.myBookings.again, onClick: () => router.push(`/shop/${slug}/book`) });
+  useMainButton({
+    text: t.myBookings.again,
+    onClick: () => router.push(repeatBookingPath(booking.shop.slug, booking)),
+  });
   return null;
 }
 
@@ -180,7 +185,7 @@ function Details({ booking }: { booking: MyBookingDto }) {
         {formatDuration((end.getTime() - start.getTime()) / 60_000, locale)} ·{' '}
         {interpolate(t.agenda.withMaster, { name: typed(booking.masterName) })}
       </p>
-      {!canMove && <BookAgainButton slug={booking.shop.slug} />}
+      {!canMove && <BookAgainButton booking={booking} />}
       {moved && (
         <p role="status" className="mt-2 text-sm font-semibold text-success">
           {t.myBookings.moved}

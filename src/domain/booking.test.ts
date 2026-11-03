@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { checkTransition, priceBooking, reminderTimes, type BookingStatus } from './booking';
+import {
+  checkTransition,
+  priceBooking,
+  rebookNudgeTime,
+  reminderTimes,
+  type BookingStatus,
+} from './booking';
 
 describe('reminderTimes', () => {
   const visit = new Date('2030-01-08T05:00:00Z');
@@ -139,5 +145,24 @@ describe('priceBooking', () => {
       priceBooking([{ id: 'a', name: 'X', price: 10000, durationMin: 10, priceOverride: 0 }])
         .totalPrice,
     ).toBe(0);
+  });
+});
+
+describe('rebookNudgeTime', () => {
+  // 18:30 in Tashkent on 8 January.
+  const visit = new Date('2030-01-08T13:30:00Z');
+
+  it('asks at 11:00 Tashkent time, 24 days after the visit', () => {
+    expect(rebookNudgeTime(visit, visit)).toEqual(new Date('2030-02-01T06:00:00Z'));
+  });
+
+  it('counts days in Tashkent, not UTC', () => {
+    // 01:00 on 9 January in Tashkent is still 8 January in UTC.
+    const lateNight = new Date('2030-01-08T20:00:00Z');
+    expect(rebookNudgeTime(lateNight, lateNight)).toEqual(new Date('2030-02-02T06:00:00Z'));
+  });
+
+  it('skips a visit marked done too long after it happened', () => {
+    expect(rebookNudgeTime(visit, new Date('2030-02-01T05:30:00Z'))).toBeNull();
   });
 });

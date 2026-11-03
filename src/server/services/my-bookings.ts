@@ -29,6 +29,7 @@ function toMyBooking(row: Row): MyBookingDto {
   return {
     ...toBookingDto(row),
     masterName: row.staff.displayName,
+    serviceIds: row.items.flatMap((item) => (item.serviceId ? [item.serviceId] : [])),
     shop: {
       slug: shop.slug,
       name: shop.name,
