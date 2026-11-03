@@ -25,6 +25,7 @@ import {
   cancelReviewAsk,
   queueBookingMessage,
   queueReminders,
+  queueNextUp,
   queueRebookNudge,
   queueReviewAsk,
   queueStaffAlert,
@@ -69,6 +70,8 @@ export function toBookingDto(b: BookingWithItems): BookingDto {
     totalPrice: b.totalPrice,
     note: b.note,
     clientConfirmed: b.clientConfirmedAt !== null,
+    clientLateMin: b.clientLateMin,
+    shopDelayMin: b.shopDelayMin,
     items: b.items.map((i) => ({
       name: i.nameSnapshot,
       price: i.priceSnapshot,
@@ -444,6 +447,8 @@ export async function applyBookingAction(
       data.endAt = new Date(input.startAt.getTime() + durationMs);
       // They said they'd come at the old time, not this one.
       data.clientConfirmedAt = null;
+      data.clientLateMin = null;
+      data.shopDelayMin = null;
       break;
     }
   }
@@ -466,6 +471,10 @@ export async function applyBookingAction(
       if (input.action === 'complete') {
         await queueReviewAsk(tx, booking.id, now);
         await queueRebookNudge(tx, booking.id, now);
+      }
+      // The master is free: their next client may want to set off.
+      if (input.action === 'complete' || input.action === 'no_show') {
+        await queueNextUp(tx, booking, now);
       }
       if (input.action === 'no_show') {
         await cancelReviewAsk(tx, booking.id);

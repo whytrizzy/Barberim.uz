@@ -356,6 +356,23 @@ export const uzLatn = {
     locationDenied: 'Joylashuvga ruxsat berilmadi. Viloyat va tuman boʻyicha qidiring.',
     locationFailed: 'Joylashuvni aniqlab boʻlmadi. Viloyat va tuman boʻyicha qidiring.',
   },
+  notices: {
+    title: 'Mijozga xabar',
+    nextUp: 'Navbatingiz keldi',
+    nextUpSent: 'Mijozga «navbatingiz keldi» deb yuborildi.',
+    weAreLate: 'Kechikyapmiz…',
+    delayPick: 'Taxminan qancha kechikasiz?',
+    delaySent: 'Mijozga {minutes} daqiqa kechikish haqida yuborildi.',
+    minutes: '{minutes} daq',
+    noTelegram: 'Bu mijozda Telegram yoʻq — xabar yetib bormaydi. Qoʻngʻiroq qiling.',
+    clientLate: 'Mijoz taxminan {minutes} daqiqa kechikmoqda',
+    shopDelay: 'Usta taxminan {minutes} daqiqa kechikmoqda',
+    imLate: 'Kechikyapman',
+    lateShort: '+{minutes} daq kechikadi',
+    latePick: 'Taxminan qancha kechikasiz?',
+    lateSent: 'Sartaroshxonaga {minutes} daqiqa kechikishingiz haqida yuborildi.',
+    tooMany: 'Bu yozuv boʻyicha yetarlicha xabar yuborildi.',
+  },
   waitlist: {
     title: 'Kutish roʻyxati',
     offer: 'Bu kun band. Kutish roʻyxatiga yoziling — vaqt boʻshasa, bot darhol xabar beradi.',
@@ -412,6 +429,12 @@ export const uzLatn = {
     rebookNudge:
       'Soch oldirish vaqti keldimi? Oxirgi marta {date} kuni {shop}da boʻldingiz, usta: {master}. Xuddi shunday yozilish — bir bosishda.',
     rebookOpen: 'Yana yozilish',
+    nextUp:
+      '{shop}: navbatingiz keyingi! Usta {master} tez orada boʻshaydi — soat {time} dagi yozuvingizga hozir yoʻlga chiqing.',
+    runningLate:
+      '{shop}: usta {master} taxminan {minutes} daqiqa kechikmoqda. Yozuvingiz: {date}, soat {time}. Uzr soʻraymiz!',
+    staffClientLate:
+      'Mijoz kechikmoqda: {client}, taxminan {minutes} daqiqa. Yozuv: {date}, soat {time}. Usta: {master}.',
     waitlistFree:
       'Boʻsh vaqt chiqdi: {shop}, {date}. Tezroq yoziling — bu vaqtni boshqalar ham olishi mumkin.',
     waitlistOpen: 'Vaqtni tanlash',

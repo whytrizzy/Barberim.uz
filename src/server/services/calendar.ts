@@ -99,7 +99,9 @@ export async function getBookingForStaff(
     where: { id: bookingId, shopId },
     include: {
       items: { orderBy: { sortOrder: 'asc' } },
-      client: { select: { name: true, phone: true, visitCount: true, noShowCount: true } },
+      client: {
+        select: { name: true, phone: true, visitCount: true, noShowCount: true, userId: true },
+      },
       staff: { select: { displayName: true } },
     },
   });
@@ -110,7 +112,13 @@ export async function getBookingForStaff(
   return {
     ...toBookingDto(booking),
     masterName: booking.staff.displayName,
-    client: booking.client,
+    client: {
+      name: booking.client.name,
+      phone: booking.client.phone,
+      visitCount: booking.client.visitCount,
+      noShowCount: booking.client.noShowCount,
+      canMessage: booking.client.userId !== null,
+    },
     cancelReason: booking.cancelReason,
   };
 }

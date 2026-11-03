@@ -28,6 +28,7 @@ import { EnamelSign } from '@/ui/enamel-sign';
 import { SectionLabel } from '@/ui/section-label';
 import { TextField } from '@/ui/text-field';
 import { TileList } from '@/ui/tile-list';
+import { ShopNoticePanel } from './notice-panel';
 import type { BookingDetailDto } from './schemas';
 import { useBookingAction, useBookingDetail } from './use-calendar';
 
@@ -99,6 +100,16 @@ function BookingDetails({ shopId, booking }: { shopId: string; booking: BookingD
       {booking.clientConfirmed && (
         <p className="mt-1 text-sm font-semibold text-success">{t.agenda.clientComingFull}</p>
       )}
+      {booking.clientLateMin !== null && (
+        <p className="mt-1 text-sm font-semibold text-warning">
+          {interpolate(t.notices.clientLate, { minutes: booking.clientLateMin })}
+        </p>
+      )}
+      {booking.shopDelayMin !== null && (
+        <p className="mt-1 text-sm text-ink-muted">
+          {interpolate(t.notices.shopDelay, { minutes: booking.shopDelayMin })}
+        </p>
+      )}
 
       <SectionLabel className="mt-5">{t.agenda.client}</SectionLabel>
       <div className="flex items-center gap-3 rounded-tile border border-chrome bg-porcelain px-3 py-2.5">
@@ -121,6 +132,8 @@ function BookingDetails({ shopId, booking }: { shopId: string; booking: BookingD
           </a>
         )}
       </div>
+
+      <ShopNoticePanel shopId={shopId} booking={booking} />
 
       <SectionLabel className="mt-5">{t.agenda.services}</SectionLabel>
       <TileList>

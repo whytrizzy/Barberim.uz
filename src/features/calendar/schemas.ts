@@ -32,6 +32,8 @@ export const bookingDetailSchema = calendarBookingSchema.extend({
     phone: z.string().nullable(),
     visitCount: z.number(),
     noShowCount: z.number(),
+    /** Has Telegram behind their record, so messages reach them. */
+    canMessage: z.boolean(),
   }),
   cancelReason: z.string().nullable(),
 });

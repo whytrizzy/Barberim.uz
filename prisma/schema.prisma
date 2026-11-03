@@ -298,6 +298,10 @@ model Booking {
   cancelReason      String?       @map("cancel_reason")
   /// The client tapped "Coming" on a reminder. Cleared when the time changes.
   clientConfirmedAt DateTime?     @map("client_confirmed_at") @db.Timestamptz(3)
+  /// The client said they're running this many minutes late. Cleared when the time changes.
+  clientLateMin     Int?          @map("client_late_min")
+  /// The shop said the master is running this many minutes late. Cleared when the time changes.
+  shopDelayMin      Int?          @map("shop_delay_min")
   createdById       String?       @map("created_by_id") @db.Uuid
   createdAt         DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt         DateTime      @updatedAt @map("updated_at") @db.Timestamptz(3)

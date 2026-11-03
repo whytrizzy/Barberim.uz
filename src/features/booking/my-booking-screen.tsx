@@ -24,6 +24,7 @@ import { Button } from '@/ui/button';
 import { EnamelSign } from '@/ui/enamel-sign';
 import { SectionLabel } from '@/ui/section-label';
 import { TileList } from '@/ui/tile-list';
+import { ClientLatePanel } from './client-late-panel';
 import { repeatBookingPath } from './repeat';
 import type { MyBookingDto } from './schemas';
 import { SlotPicker } from './slot-picker';
@@ -191,6 +192,7 @@ function Details({ booking }: { booking: MyBookingDto }) {
           {t.myBookings.moved}
         </p>
       )}
+      <ClientLatePanel booking={booking} />
 
       <SectionLabel className="mt-5">{t.agenda.services}</SectionLabel>
       <TileList>

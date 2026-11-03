@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { CLIENT_LATE_OPTIONS, SHOP_DELAY_OPTIONS } from '@/domain/notices';
 
 const id = z.uuid();
 const instant = z.iso.datetime({ offset: true });
@@ -78,6 +79,10 @@ export const bookingSchema = z.object({
   note: z.string().nullable(),
   /** The client tapped "Coming" on a reminder for this time. */
   clientConfirmed: z.boolean(),
+  /** The client said they're running this many minutes late. */
+  clientLateMin: z.number().int().nullable(),
+  /** The shop said the master is running this many minutes late. */
+  shopDelayMin: z.number().int().nullable(),
   items: z.array(
     z.object({ name: z.string(), price: z.number().int(), durationMin: z.number().int() }),
   ),
@@ -169,3 +174,17 @@ export type BookingRefusal =
   | 'client_blocked'
   | 'too_many_bookings'
   | 'transition_refused'; // see details.transition
+
+/** POST /api/bookings/:id/notice — a live notice about a visit on the day. */
+export const bookingNoticeRequestSchema = z.discriminatedUnion('kind', [
+  /** "Your turn is next", from the shop. */
+  z.object({ kind: z.literal('next_up') }),
+  /** The master is running late, from the shop. */
+  z.object({ kind: z.literal('shop_delay'), minutes: z.literal(SHOP_DELAY_OPTIONS) }),
+  /** The client is running late. */
+  z.object({ kind: z.literal('client_late'), minutes: z.literal(CLIENT_LATE_OPTIONS) }),
+]);
+export type BookingNoticeRequest = z.infer<typeof bookingNoticeRequestSchema>;
+
+/** `details.reason` when a notice is refused. */
+export type NoticeRefusal = 'not_now' | 'too_many_notices';

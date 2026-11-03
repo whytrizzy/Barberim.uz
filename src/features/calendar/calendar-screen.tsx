@@ -48,7 +48,12 @@ function BookingRow({
   const { booking } = row;
   const services = booking.items.map((item) => item.name).join(', ');
   const status =
-    t.agenda.statusShort[booking.status] || (booking.clientConfirmed ? t.agenda.clientComing : '');
+    t.agenda.statusShort[booking.status] ||
+    (booking.clientLateMin !== null
+      ? interpolate(t.notices.lateShort, { minutes: booking.clientLateMin })
+      : booking.clientConfirmed
+        ? t.agenda.clientComing
+        : '');
   return (
     <TileRow
       className={`relative active:bg-porcelain-sunk ${booking.status === 'NO_SHOW' ? 'opacity-70' : ''}`}

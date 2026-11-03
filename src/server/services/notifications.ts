@@ -2,6 +2,7 @@ import 'server-only';
 import {
   bookingPayloadSchema,
   classifySendError,
+  LIVE_TEMPLATES,
   REMINDER_TEMPLATES,
   renderNotification,
   type BookingPayload,
@@ -13,6 +14,7 @@ import {
   waitlistPayloadSchema,
 } from '@/bot/notifications';
 import { rebookNudgeTime, reminderTimes } from '@/domain/booking';
+import { AUTO_NEXT_UP_WITHIN_MIN, noticeStillUseful } from '@/domain/notices';
 import { Prisma, type StaffRole } from '@/generated/prisma/client';
 import { fromDbLocale } from '../auth/auth';
 import { db } from '../db/client';
@@ -43,6 +45,7 @@ export async function queueBookingMessage(
   template: BookingTemplate,
   bookingId: string,
   sendAt = new Date(),
+  extra: Pick<BookingPayload, 'minutes'> = {},
 ): Promise<void> {
   const booking = await tx.booking.findUniqueOrThrow({
     where: { id: bookingId },
@@ -61,6 +64,7 @@ export async function queueBookingMessage(
     masterName: booking.staff.displayName,
     startAt: booking.startAt.toISOString(),
     locale: fromDbLocale(person.locale),
+    ...extra,
   };
   await tx.notification.create({
     data: { chatId: person.telegramId, template, payload, sendAt, bookingId },
@@ -77,13 +81,15 @@ export type StaffAlert = {
    */
   audience: 'shop' | 'master';
   oldStartAt?: Date;
+  /** How late the client said they are running. */
+  minutes?: number;
 };
 
 /** Tells the shop's people about a change, each in their own language. */
 export async function queueStaffAlert(
   tx: Prisma.TransactionClient,
   bookingId: string,
-  { template, actorUserId, audience, oldStartAt }: StaffAlert,
+  { template, actorUserId, audience, oldStartAt, minutes }: StaffAlert,
 ): Promise<void> {
   const booking = await tx.booking.findUniqueOrThrow({
     where: { id: bookingId },
@@ -121,6 +127,7 @@ export async function queueStaffAlert(
         clientName: booking.client.name,
         startAt: booking.startAt.toISOString(),
         ...(oldStartAt && { oldStartAt: oldStartAt.toISOString() }),
+        ...(minutes !== undefined && { minutes }),
         locale: fromDbLocale(user.locale),
       };
       return [{ chatId: user.telegramId, template, payload, sendAt, bookingId }];
@@ -211,6 +218,36 @@ export async function cancelRebookNudge(tx: Prisma.TransactionClient, bookingId:
   });
 }
 
+/**
+ * The master just finished a visit (or the client didn't come): if their next client is due soon,
+ * tell them their turn is next. Once per booking, however it was sent.
+ */
+export async function queueNextUp(
+  tx: Prisma.TransactionClient,
+  finished: { id: string; staffId: string; startAt: Date },
+  now = new Date(),
+): Promise<void> {
+  const next = await tx.booking.findFirst({
+    where: {
+      staffId: finished.staffId,
+      id: { not: finished.id },
+      status: 'CONFIRMED',
+      startAt: {
+        gt: finished.startAt,
+        gte: new Date(now.getTime() - 30 * 60_000),
+        lte: new Date(now.getTime() + AUTO_NEXT_UP_WITHIN_MIN * 60_000),
+      },
+    },
+    orderBy: { startAt: 'asc' },
+    select: { id: true },
+  });
+  if (!next) return;
+  const told = await tx.notification.count({
+    where: { bookingId: next.id, template: 'booking.next_up' },
+  });
+  if (told === 0) await queueBookingMessage(tx, 'booking.next_up', next.id, now);
+}
+
 /** A nudge is pointless once they've booked again there (even one they later missed). */
 async function hasBookedSince(bookingId: string): Promise<boolean> {
   const visit = await db.booking.findUnique({
@@ -288,6 +325,9 @@ async function staleReason(row: Claimed, now: Date): Promise<string | null> {
   // So does a day-before reminder that arrives hours before: the 2-hour one is about to go.
   const { bookingId, startAt } = bookingPayloadSchema.parse(row.payload);
   const left = new Date(startAt).getTime() - now.getTime();
+  if ((LIVE_TEMPLATES as readonly string[]).includes(row.template)) {
+    return noticeStillUseful(new Date(startAt), now) ? null : 'too late';
+  }
   if (
     (left <= 0 && !(AFTER_VISIT_TEMPLATES as readonly string[]).includes(row.template)) ||
     (row.template === 'booking.reminder24h' && left < DAY_REMINDER_MIN_LEFT_MS)
