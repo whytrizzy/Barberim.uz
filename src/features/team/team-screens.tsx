@@ -362,6 +362,13 @@ function MemberForm({
         <span className="flex-1 text-[15px] font-semibold">{t.schedule.open}</span>
         <ChevronRight className="size-5 text-ink-muted" aria-hidden />
       </Link>
+      <Link
+        href={`/staff/shop/${shopId}/team/${member.id}/portfolio`}
+        className="flex min-h-12 items-center gap-3 rounded-tile border border-chrome bg-porcelain px-3 active:bg-porcelain-sunk"
+      >
+        <span className="flex-1 text-[15px] font-semibold">{t.portfolio.title}</span>
+        <ChevronRight className="size-5 text-ink-muted" aria-hidden />
+      </Link>
       {!member.linked && <InvitePanel shopId={shopId} member={member} />}
       {failure && (
         <p role="alert" className="text-sm text-enamel-text">

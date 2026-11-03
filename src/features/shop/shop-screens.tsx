@@ -5,6 +5,7 @@ import {
   CalendarDays,
   ChevronRight,
   CircleCheck,
+  Images,
   Scissors,
   Star,
   Users,
@@ -97,6 +98,11 @@ export function ShopEditScreen({ shopId, justCreated }: { shopId: string; justCr
                   href: `/staff/shop/${shopId}/team/${membership.staffId}/schedule` as const,
                   label: t.schedule.mine,
                   Icon: CalendarClock,
+                },
+                {
+                  href: `/staff/shop/${shopId}/team/${membership.staffId}/portfolio` as const,
+                  label: t.portfolio.mine,
+                  Icon: Images,
                 },
               ]
             : []),

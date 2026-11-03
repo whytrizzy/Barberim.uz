@@ -13,6 +13,7 @@ import type { User } from '@/generated/prisma/client';
 import { requireStaff } from '../auth/auth';
 import { db } from '../db/client';
 import { AppError } from '../http/errors';
+import { photoDtos } from '../storage/media';
 import { dayInput, loadSchedule } from './availability';
 import { latestReviews, ratingSummary } from './reviews';
 import { toShopDto } from './shop';
@@ -86,6 +87,7 @@ export async function getShopProfile(
         id: true,
         displayName: true,
         bio: true,
+        portfolio: true,
         sortOrder: true,
         services: {
           where: { service: { isActive: true } },
@@ -119,6 +121,7 @@ export async function getShopProfile(
       id: master.id,
       name: master.displayName,
       bio: master.bio,
+      portfolio: photoDtos(master.portfolio),
     })),
     // A shop that isn't live can't be booked, so it has no free times to show.
     today: isPreview

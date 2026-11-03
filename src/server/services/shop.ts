@@ -13,7 +13,7 @@ import type { Prisma, Shop, User } from '@/generated/prisma/client';
 import { requireStaff } from '../auth/auth';
 import { db } from '../db/client';
 import { AppError } from '../http/errors';
-import { media, photoIdOf } from '../storage/media';
+import { photoDtos } from '../storage/media';
 
 function refuse(reason: ShopRefusal, code: 'conflict' = 'conflict'): never {
   throw new AppError(code, reason, { reason });
@@ -31,10 +31,7 @@ export function toShopDto(shop: Shop): ShopDto {
     landmark: shop.landmark,
     location: shop.lat !== null && shop.lng !== null ? { lat: shop.lat, lng: shop.lng } : null,
     requireApproval: parseShopSettings(shop.settings).requireApproval,
-    photos: shop.photos.flatMap((key) => {
-      const id = photoIdOf(key);
-      return id ? [{ id, url: media.url(key) }] : [];
-    }),
+    photos: photoDtos(shop.photos),
   };
 }
 

@@ -130,7 +130,15 @@ export const shopProfileSchema = z.object({
       staffIds: z.array(z.string()),
     }),
   ),
-  masters: z.array(z.object({ id: z.string(), name: z.string(), bio: z.string().nullable() })),
+  masters: z.array(
+    z.object({
+      id: z.string(),
+      name: z.string(),
+      bio: z.string().nullable(),
+      /** Photos of their work. */
+      portfolio: z.array(z.object({ id: z.string(), url: z.string() })),
+    }),
+  ),
   rating: ratingSummarySchema,
   /** The latest few. */
   reviews: z.array(publicReviewSchema),

@@ -7,6 +7,7 @@ import { regions, yandexMapsLink, yandexRouteLink } from '@/domain/places';
 import { formatMinuteOfDay } from '@/domain/time';
 import { ApiError } from '@/features/api/client';
 import { LoadError, ScreenLoading } from '@/features/api/load-states';
+import { MasterWork } from '@/features/portfolio/master-work';
 import { RatingLine, ReviewCard } from '@/features/reviews/reviews-screens';
 import { SERVICE_CATEGORIES } from '@/features/services/schemas';
 import { formatDuration, formatMoney } from '@/i18n/format';
@@ -178,6 +179,7 @@ export function ShopProfileScreen({ slug }: { slug: string }) {
                 {master.bio && (
                   <span className="block text-xs text-ink-muted">{typed(master.bio)}</span>
                 )}
+                <MasterWork name={typed(master.name)} photos={master.portfolio} />
               </li>
             ))}
           </TileList>

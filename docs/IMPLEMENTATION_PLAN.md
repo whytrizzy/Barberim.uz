@@ -144,7 +144,7 @@ AuditLog        actorId, action, entity, entityId, data, createdAt
 ## Phase 2 — Retention + revenue (feature #13–14, 17, 21–25, 27–28, 30, 32–33)
 
 - [x] **P2.1 Reviews & ratings** only after COMPLETED bookings, once per visit, first names only; an hour after a finished visit the bot asks (once). Average on the shop page and in search, latest 10 on the shop page. Staff answer (masters their own) and flag for moderation at `/staff/shop/:id/reviews`; flagging never hides a review, so a shop cannot remove one it dislikes. Hiding comes with the admin panel (P3.6). (#25)
-- [ ] **P2.2 Portfolio** photos per master, shown on profile. (#20)
+- [x] **P2.2 Portfolio** up to 12 photos of their work per master, managed by the master (or the owner/admin who manages them) at `/staff/shop/:id/team/:staffId/portfolio`; shown as thumbnails under each master on the shop page, opening a full-screen swipe viewer. Stored beside the shop photos, so the photo worker is unchanged. (#20)
 - [ ] **P2.3 Favorites** + "Repeat last booking" + "time for a haircut?" nudge after 3–4 weeks. (#21, #22)
 - [ ] **P2.4 Waitlist** with automatic bot message when a slot frees up. (#23)
 - [ ] **P2.5 "Your turn is next" / running-late messages.** (#17)

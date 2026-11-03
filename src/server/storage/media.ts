@@ -106,3 +106,10 @@ export const media: MediaStore =
   serverEnv.MEDIA_BUCKET && serverEnv.MEDIA_BASE_URL
     ? r2Store(serverEnv.MEDIA_BUCKET, serverEnv.MEDIA_BASE_URL)
     : localStore();
+
+/** Stored keys as the app shows them; a key the app didn't write is left out. */
+export const photoDtos = (keys: string[]) =>
+  keys.flatMap((key) => {
+    const id = photoIdOf(key);
+    return id ? [{ id, url: media.url(key) }] : [];
+  });

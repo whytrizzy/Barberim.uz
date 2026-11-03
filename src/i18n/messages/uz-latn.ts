@@ -355,6 +355,15 @@ export const uzLatn = {
     locationDenied: 'Joylashuvga ruxsat berilmadi. Viloyat va tuman boʻyicha qidiring.',
     locationFailed: 'Joylashuvni aniqlab boʻlmadi. Viloyat va tuman boʻyicha qidiring.',
   },
+  portfolio: {
+    title: 'Ishlar namunasi',
+    mine: 'Mening ishlarim',
+    hint: 'Qilgan soch turmaklaringiz rasmlari. Mijozlar ularni sartaroshxona sahifasida koʻradi. Oʻzgarishlar darhol saqlanadi.',
+    notFound: 'Bu xodim topilmadi yoki uning rasmlarini oʻzgartirishga ruxsatingiz yoʻq.',
+    open: 'Ishlarini koʻrish',
+    close: 'Yopish',
+    position: '{number} / {count}',
+  },
   reviews: {
     title: 'Sharhlar',
     count: '({count})',

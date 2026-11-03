@@ -104,6 +104,8 @@ model Staff {
   displayName   String    @map("display_name")
   photoUrl      String?   @map("photo_url")
   bio           String?
+  /// Storage keys of photos of their work, in display order (shops/<shopId>/<photoId>.<ext>).
+  portfolio     String[]  @default([])
   role          StaffRole @default(MASTER)
   /// False for an owner/admin who doesn't take clients.
   isBookable    Boolean   @default(true) @map("is_bookable")
