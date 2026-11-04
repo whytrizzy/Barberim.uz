@@ -1,14 +1,13 @@
 'use client';
 
 import Link from 'next/link';
-import { clientEnv } from '@/env/client';
 import { ApiError } from '@/features/api/client';
 import { errorText } from '@/features/api/error-text';
 import type { Messages } from '@/i18n/messages';
 import { useI18n } from '@/i18n/provider';
 import { confirmAction } from '@/telegram/confirm';
 import { haptic } from '@/telegram/haptics';
-import { shareViaTelegram } from '@/telegram/links';
+import { shareViaTelegram, shopBotLink } from '@/telegram/links';
 import { Button } from '@/ui/button';
 import { Tick } from '@/ui/tick';
 import type { ShopDto } from './schemas';
@@ -30,8 +29,7 @@ export function PublishCard({ shop }: { shop: ShopDto }) {
   const status = useShopStatus(shop.id);
   const approval = useShopRules(shop.id);
   const live = shop.status === 'ACTIVE';
-  const bot = clientEnv.NEXT_PUBLIC_BOT_USERNAME ?? 'barberim_bot';
-  const link = `https://t.me/${bot}?start=shop_${shop.slug}`;
+  const link = shopBotLink(shop.slug);
 
   function change(next: 'ACTIVE' | 'DRAFT') {
     status.mutate(
@@ -54,9 +52,17 @@ export function PublishCard({ shop }: { shop: ShopDto }) {
         </p>
       </div>
       {live ? (
-        <Button onClick={() => shareViaTelegram(link, t.shopProfile.shareMessage)}>
-          {t.shopProfile.share}
-        </Button>
+        <>
+          <Button onClick={() => shareViaTelegram(link, t.shopProfile.shareMessage)}>
+            {t.shopProfile.share}
+          </Button>
+          <Link
+            href={`/staff/shop/${shop.id}/share`}
+            className="flex min-h-11 items-center justify-center text-sm font-semibold text-enamel-text"
+          >
+            {t.share.openKit}
+          </Link>
+        </>
       ) : (
         <Button
           loading={status.isPending}

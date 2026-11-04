@@ -74,6 +74,8 @@ export type TelegramWebApp = {
   setBottomBarColor(color: string): void; // 7.10+
   disableVerticalSwipes(): void; // 7.7+
   showConfirm(message: string, callback: (ok: boolean) => void): void; // 6.2+
+  /** Asks the person to save a file from an HTTPS address. */
+  downloadFile(params: { url: string; file_name: string }, callback?: (ok: boolean) => void): void; // 8.0+
   onEvent(event: WebAppEvent, callback: () => void): void;
   offEvent(event: WebAppEvent, callback: () => void): void;
   MainButton: BottomButton;

@@ -8,6 +8,7 @@ import {
   ChevronRight,
   CircleCheck,
   Images,
+  QrCode,
   Scissors,
   Star,
   Users,
@@ -97,6 +98,11 @@ export function ShopEditScreen({ shopId, justCreated }: { shopId: string; justCr
             href: `/staff/shop/${shopId}/earnings` as const,
             label: t.earnings.title,
             Icon: ChartColumn,
+          },
+          {
+            href: `/staff/shop/${shopId}/share` as const,
+            label: t.share.title,
+            Icon: QrCode,
           },
           {
             href: `/staff/shop/${shopId}/clients` as const,

@@ -26,6 +26,15 @@ const cyrillicOverrides: Record<string, string | string[]> = {
     'ноябр',
     'декабр',
   ],
+  // "QR" and "Instagram" stay in Latin letters, as Uzbek Cyrillic writes them.
+  'share.storyTitle': 'Instagram сторис',
+  'share.storyHint': 'Сторис учун расм. Юклаб олинг ва Instagramга жойланг.',
+  'share.qrTitle': 'QR код',
+  'share.qrHint': 'Фақат QR код — визитка, нархлар рўйхати ёки ойна учун.',
+  'share.intro': 'Мижозлар сизни топиши учун: Instagram сторис, эшикдаги плакат ёки QR код.',
+  'share.scan': 'Камерани QR кодга қаратинг',
+  'share.step1': 'Телефон камерасини QR кодга қаратинг',
+  'share.openKit': 'QR код, сторис ва плакат',
 };
 
 function toCyrillic<T>(value: T, path: string): T {
