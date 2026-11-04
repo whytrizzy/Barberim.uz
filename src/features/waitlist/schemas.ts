@@ -41,4 +41,4 @@ export type WaitlistDto = z.infer<typeof waitlistSchema>;
 export const leftWaitlistSchema = z.object({ removed: z.literal(true) });
 
 /** `details.reason` when joining is refused. */
-export type WaitlistRefusal = 'too_many_entries' | 'outside_booking_window';
+export type WaitlistRefusal = 'too_many_entries' | 'outside_booking_window' | 'client_blocked';

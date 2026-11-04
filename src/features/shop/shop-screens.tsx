@@ -1,6 +1,7 @@
 'use client';
 
 import {
+  BookUser,
   CalendarClock,
   CalendarDays,
   ChevronRight,
@@ -91,6 +92,11 @@ export function ShopEditScreen({ shopId, justCreated }: { shopId: string; justCr
             Icon: Scissors,
           },
           { href: `/staff/shop/${shopId}/team` as const, label: t.team.title, Icon: Users },
+          {
+            href: `/staff/shop/${shopId}/clients` as const,
+            label: t.clients.title,
+            Icon: BookUser,
+          },
           { href: `/staff/shop/${shopId}/reviews` as const, label: t.reviews.title, Icon: Star },
           ...(membership
             ? [

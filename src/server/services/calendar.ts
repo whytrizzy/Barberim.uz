@@ -100,7 +100,15 @@ export async function getBookingForStaff(
     include: {
       items: { orderBy: { sortOrder: 'asc' } },
       client: {
-        select: { name: true, phone: true, visitCount: true, noShowCount: true, userId: true },
+        select: {
+          id: true,
+          name: true,
+          phone: true,
+          visitCount: true,
+          noShowCount: true,
+          isBlocked: true,
+          userId: true,
+        },
       },
       staff: { select: { displayName: true } },
     },
@@ -113,10 +121,12 @@ export async function getBookingForStaff(
     ...toBookingDto(booking),
     masterName: booking.staff.displayName,
     client: {
+      id: booking.client.id,
       name: booking.client.name,
       phone: booking.client.phone,
       visitCount: booking.client.visitCount,
       noShowCount: booking.client.noShowCount,
+      isBlocked: booking.client.isBlocked,
       canMessage: booking.client.userId !== null,
     },
     cancelReason: booking.cancelReason,

@@ -28,9 +28,12 @@ export type CalendarMasterDto = CalendarDayDto['masters'][number];
 export const bookingDetailSchema = calendarBookingSchema.extend({
   masterName: z.string(),
   client: z.object({
+    id: z.string(),
     name: z.string(),
     phone: z.string().nullable(),
     visitCount: z.number(),
+    /** The shop has blacklisted them. */
+    isBlocked: z.boolean(),
     noShowCount: z.number(),
     /** Has Telegram behind their record, so messages reach them. */
     canMessage: z.boolean(),

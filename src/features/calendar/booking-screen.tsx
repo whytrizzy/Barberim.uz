@@ -1,6 +1,7 @@
 'use client';
 
-import { Phone } from 'lucide-react';
+import { ChevronRight, Phone } from 'lucide-react';
+import Link from 'next/link';
 import { useState } from 'react';
 import { isCancelled, staffActions } from '@/domain/agenda';
 import {
@@ -128,15 +129,24 @@ function BookingDetails({ shopId, booking }: { shopId: string; booking: BookingD
 
       <SectionLabel className="mt-5">{t.agenda.client}</SectionLabel>
       <div className="flex items-center gap-3 rounded-tile border border-chrome bg-porcelain px-3 py-2.5">
-        <span className="min-w-0 flex-1">
-          <span className="block truncate text-[15px] font-semibold">{booking.client.name}</span>
-          <span className="block text-xs text-ink-muted tabular-nums">
-            {interpolate(t.agenda.history, {
-              visits: booking.client.visitCount,
-              noShows: booking.client.noShowCount,
-            })}
+        {/* The client's page: notes, history, blacklist. The phone stays its own tap target. */}
+        <Link
+          href={`/staff/shop/${shopId}/clients/${booking.client.id}`}
+          className="flex min-h-11 min-w-0 flex-1 items-center gap-1"
+        >
+          <span className="min-w-0">
+            <span className="block truncate text-[15px] font-semibold">{booking.client.name}</span>
+            <span className="block text-xs text-ink-muted tabular-nums">
+              {booking.client.isBlocked
+                ? t.clients.blockedBadge
+                : interpolate(t.agenda.history, {
+                    visits: booking.client.visitCount,
+                    noShows: booking.client.noShowCount,
+                  })}
+            </span>
           </span>
-        </span>
+          <ChevronRight className="size-4 shrink-0 text-ink-muted" aria-hidden />
+        </Link>
         {booking.client.phone && (
           <a
             href={`tel:${booking.client.phone}`}

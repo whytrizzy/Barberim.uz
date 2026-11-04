@@ -25,7 +25,10 @@ import { BOOKING_DAYS, dbDate, hasFreeTime } from './availability';
 // people waiting for that day get a message, but only after the dispatcher has checked there is
 // still a time that fits them (someone else may have taken it, or it may be too short).
 
-function refuse(reason: WaitlistRefusal, code: 'conflict' | 'invalid_input' = 'conflict'): never {
+function refuse(
+  reason: WaitlistRefusal,
+  code: 'conflict' | 'invalid_input' | 'forbidden' = 'conflict',
+): never {
   throw new AppError(code, reason, { reason });
 }
 
@@ -86,6 +89,11 @@ export async function joinWaitlist(
 
   const shop = await db.shop.findFirst({ where: { id: input.shopId, status: 'ACTIVE' } });
   if (!shop) throw new AppError('not_found', 'no such shop');
+  // Someone the shop has blacklisted can't book online, so can't wait online either.
+  const blocked = await db.shopClient.count({
+    where: { shopId: shop.id, userId: user.id, isBlocked: true },
+  });
+  if (blocked > 0) refuse('client_blocked', 'forbidden');
   const offered = await db.service.count({
     where: { id: { in: input.serviceIds }, shopId: shop.id, isActive: true },
   });
