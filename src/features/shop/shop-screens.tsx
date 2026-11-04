@@ -4,6 +4,7 @@ import {
   BookUser,
   CalendarClock,
   CalendarDays,
+  ChartColumn,
   ChevronRight,
   CircleCheck,
   Images,
@@ -92,6 +93,11 @@ export function ShopEditScreen({ shopId, justCreated }: { shopId: string; justCr
             Icon: Scissors,
           },
           { href: `/staff/shop/${shopId}/team` as const, label: t.team.title, Icon: Users },
+          {
+            href: `/staff/shop/${shopId}/earnings` as const,
+            label: t.earnings.title,
+            Icon: ChartColumn,
+          },
           {
             href: `/staff/shop/${shopId}/clients` as const,
             label: t.clients.title,
