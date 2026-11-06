@@ -414,6 +414,13 @@ export const uzLatn = {
     everyonePro:
       'Hozircha barcha sartaroshxonalar PRO tarifida — bepul. Toʻlov yoqilishidan oldin xabar beramiz.',
     upgradeSoon: 'PRO ga oʻtish — tez orada',
+    paidUntil: 'PRO {date} gacha toʻlangan.',
+    price: '{price} — {days} kun',
+    payWith: '{provider} orqali toʻlash',
+    afterPay: 'Toʻlovdan soʻng bot sizga xabar yuboradi, PRO darhol uzayadi.',
+    ownerOnly: 'Tarifni sartaroshxona egasi toʻlaydi.',
+    history: 'Toʻlovlar',
+    statuses: { PENDING: 'Kutilmoqda', PAID: 'Toʻlandi', CANCELLED: 'Bekor qilindi' },
     locked: 'Bu imkoniyat PRO tarifida.',
     lockedTitle: 'PRO imkoniyati',
     lockedHint:
@@ -589,6 +596,8 @@ export const uzLatn = {
     waitlistFree:
       'Boʻsh vaqt chiqdi: {shop}, {date}. Tezroq yoziling — bu vaqtni boshqalar ham olishi mumkin.',
     waitlistOpen: 'Vaqtni tanlash',
+    billingPaid: '{shop}: toʻlov qabul qilindi. PRO tarifi {date} gacha. Rahmat!',
+    billingOpen: 'Tarifni ochish',
     staffNew: 'Yangi yozuv: {client}, {date}, soat {time}. Usta: {master}.',
     staffRequest: 'Yangi soʻrov: {client}, {date}, soat {time}. Usta: {master}. Qabul qilasizmi?',
     staffMoved:

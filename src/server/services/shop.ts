@@ -14,6 +14,7 @@ import { requireStaff } from '../auth/auth';
 import { db } from '../db/client';
 import { AppError } from '../http/errors';
 import { photoDtos } from '../storage/media';
+import { planOf } from './plans';
 
 function refuse(reason: ShopRefusal, code: 'conflict' = 'conflict'): never {
   throw new AppError(code, reason, { reason });
@@ -31,7 +32,8 @@ export function toShopDto(shop: Shop): ShopDto {
     landmark: shop.landmark,
     location: shop.lat !== null && shop.lng !== null ? { lat: shop.lat, lng: shop.lng } : null,
     requireApproval: parseShopSettings(shop.settings).requireApproval,
-    plan: shop.plan,
+    plan: planOf(shop),
+    planUntil: shop.planUntil?.toISOString() ?? null,
     photos: photoDtos(shop.photos),
   };
 }

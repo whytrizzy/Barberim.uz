@@ -31,3 +31,26 @@ export function hasFeature(plan: ShopPlan, feature: ProFeature): boolean {
 export function planLimits(plan: ShopPlan) {
   return PLAN_LIMITS[plan];
 }
+
+/** What a PRO payment buys. */
+export const PRO_PERIOD_DAYS = 30;
+const DAY_MS = 86_400_000;
+
+/**
+ * The plan a shop has right now. Until billing is switched on, the stored plan (PRO for everyone);
+ * once it is, PRO only while paid up.
+ */
+export function effectivePlan(
+  shop: { plan: ShopPlan; planUntil: Date | null },
+  billingEnforced: boolean,
+  now: Date,
+): ShopPlan {
+  if (!billingEnforced) return shop.plan;
+  return shop.planUntil && shop.planUntil.getTime() > now.getTime() ? 'PRO' : 'FREE';
+}
+
+/** A payment adds its days after any time already paid, never before today. */
+export function extendPlan(planUntil: Date | null, now: Date, days = PRO_PERIOD_DAYS): Date {
+  const from = planUntil && planUntil.getTime() > now.getTime() ? planUntil : now;
+  return new Date(from.getTime() + days * DAY_MS);
+}

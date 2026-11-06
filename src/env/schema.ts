@@ -28,6 +28,18 @@ export const serverEnvSchema = z
     R2_ACCOUNT_ID: optional(z.string().regex(/^[0-9a-f]{32}$/, 'must be a Cloudflare account id')),
     R2_ACCESS_KEY_ID: optional(z.string().min(1)),
     R2_SECRET_ACCESS_KEY: optional(z.string().min(1)),
+    // Subscription billing (P2.11). Off: every shop is PRO. On: PRO only while paid up.
+    BILLING_ENFORCED: optional(z.stringbool()),
+    // PRO per month, in UZS.
+    PRO_PRICE_UZS: optional(z.coerce.number().int().min(1000).max(10_000_000)),
+    // Payme Business: merchant (cashbox) id and its key; PAYME_TEST uses Payme's test checkout.
+    PAYME_MERCHANT_ID: optional(z.string().regex(/^[0-9a-f]{24}$/, 'must be a Payme merchant id')),
+    PAYME_KEY: optional(z.string().min(10)),
+    PAYME_TEST: optional(z.stringbool()),
+    // Click Merchant: service id, merchant id and the secret key that signs its requests.
+    CLICK_SERVICE_ID: optional(z.string().regex(/^\d+$/, 'must be a number')),
+    CLICK_MERCHANT_ID: optional(z.string().regex(/^\d+$/, 'must be a number')),
+    CLICK_SECRET_KEY: optional(z.string().min(6)),
   })
   .superRefine((env, ctx) => {
     if (env.APP_ENV === 'development') return;

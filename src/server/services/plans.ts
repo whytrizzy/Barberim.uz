@@ -1,11 +1,23 @@
 import 'server-only';
-import { hasFeature, type ProFeature, type ShopPlan } from '@/domain/plans';
+import { effectivePlan, hasFeature, type ProFeature, type ShopPlan } from '@/domain/plans';
+import { serverEnv } from '@/env/server';
 import { db } from '../db/client';
 import { AppError } from '../http/errors';
 
+/** Subscription billing switched on: PRO only while paid up. */
+export const billingEnforced = () => serverEnv.BILLING_ENFORCED === true;
+
+/** The plan in force for this shop right now (see domain/plans effectivePlan). */
+export function planOf(shop: { plan: ShopPlan; planUntil: Date | null }, now = new Date()) {
+  return effectivePlan(shop, billingEnforced(), now);
+}
+
 export async function shopPlan(shopId: string): Promise<ShopPlan> {
-  const shop = await db.shop.findUnique({ where: { id: shopId }, select: { plan: true } });
-  return shop?.plan ?? 'FREE';
+  const shop = await db.shop.findUnique({
+    where: { id: shopId },
+    select: { plan: true, planUntil: true },
+  });
+  return shop ? planOf(shop) : 'FREE';
 }
 
 /** The app shows "this is a PRO feature" for `details.reason` plan_limit, naming the feature. */

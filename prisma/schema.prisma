@@ -60,24 +60,26 @@ enum Plan {
 }
 
 model Shop {
-  id       String     @id @default(uuid(7)) @db.Uuid
+  id        String     @id @default(uuid(7)) @db.Uuid
   /// Used in links: t.me/<bot>?start=shop_<slug>
-  slug     String     @unique
-  name     String
-  about    String?
-  address  String
+  slug      String     @unique
+  name      String
+  about     String?
+  address   String
   /// "Chorsu bozori yonida" — how people actually find places.
-  landmark String?
-  district String?
-  region   String     @default("Toshkent")
-  lat      Float?
-  lng      Float?
-  photos   String[]   @default([])
-  status   ShopStatus @default(DRAFT)
+  landmark  String?
+  district  String?
+  region    String     @default("Toshkent")
+  lat       Float?
+  lng       Float?
+  photos    String[]   @default([])
+  status    ShopStatus @default(DRAFT)
   /// PRO for everyone until subscription billing (P2.11) exists; see src/domain/plans.ts.
-  plan     Plan       @default(PRO)
+  plan      Plan       @default(PRO)
+  /// PRO is paid up to here (subscription billing). Null: never paid.
+  planUntil DateTime?  @map("plan_until") @db.Timestamptz(3)
   /// Booking rules: { slotStepMin, minNoticeMin, horizonDays, bufferMin }
-  settings Json       @default("{}")
+  settings  Json       @default("{}")
 
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
@@ -89,6 +91,7 @@ model Shop {
   reviews   Review[]
   favorites Favorite[]
   waitlist  WaitlistEntry[]
+  payments  Payment[]
   auditLogs AuditLog[]
 
   @@index([status, district])
@@ -475,4 +478,47 @@ model WaitlistEntry {
   @@unique([userId, shopId, date])
   @@index([shopId, date, status])
   @@map("waitlist_entries")
+}
+
+enum PaymentProvider {
+  PAYME
+  CLICK
+}
+
+enum PaymentStatus {
+  /// Checkout opened; the provider hasn't confirmed anything yet.
+  PENDING
+  PAID
+  CANCELLED
+}
+
+/// One PRO subscription payment (an order), and the provider's transaction behind it.
+model Payment {
+  id              String          @id @default(uuid(7)) @db.Uuid
+  shopId          String          @map("shop_id") @db.Uuid
+  /// Who started it: the shop's owner.
+  userId          String?         @map("user_id") @db.Uuid
+  provider        PaymentProvider
+  /// UZS.
+  amount          Int
+  /// How long it extends PRO.
+  days            Int             @default(30)
+  status          PaymentStatus   @default(PENDING)
+  /// Payme's transaction id, or Click's click_trans_id.
+  providerTransId String?         @map("provider_trans_id")
+  /// Payme's own transaction state (1 created, 2 performed, -1/-2 cancelled) and times, in ms.
+  providerState   Int?            @map("provider_state")
+  providerTime    BigInt?         @map("provider_time")
+  performTime     BigInt?         @map("perform_time")
+  cancelTime      BigInt?         @map("cancel_time")
+  cancelReason    Int?            @map("cancel_reason")
+  paidAt          DateTime?       @map("paid_at") @db.Timestamptz(3)
+  createdAt       DateTime        @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt       DateTime        @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  shop Shop @relation(fields: [shopId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerTransId])
+  @@index([shopId, createdAt])
+  @@map("payments")
 }

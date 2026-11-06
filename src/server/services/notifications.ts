@@ -10,6 +10,7 @@ import {
   type Sender,
   type StaffPayload,
   type StaffTemplate,
+  BILLING_TEMPLATE,
   WAITLIST_TEMPLATE,
   waitlistPayloadSchema,
 } from '@/bot/notifications';
@@ -315,6 +316,8 @@ type DispatchScope = { onlyBookings?: string[]; onlyChats?: bigint[] };
 
 /** Why a message that is due shouldn't go after all, or null to send it. */
 async function staleReason(row: Claimed, now: Date): Promise<string | null> {
+  // A receipt is never out of date.
+  if (row.template === BILLING_TEMPLATE) return null;
   if (row.template === WAITLIST_TEMPLATE) {
     const { entryId } = waitlistPayloadSchema.parse(row.payload);
     const verdict = await checkWaitlistAlert(entryId, now);

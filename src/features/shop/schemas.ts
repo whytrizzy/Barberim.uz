@@ -67,6 +67,8 @@ export const shopSchema = z.object({
   status: z.enum(['DRAFT', 'ACTIVE', 'SUSPENDED']),
   /** FREE or PRO: which features the shop has (see domain/plans). */
   plan: z.enum(['FREE', 'PRO']),
+  /** PRO is paid up to here; null: never paid. */
+  planUntil: z.string().nullable(),
   region: z.string(),
   district: z.string().nullable(),
   address: z.string(),

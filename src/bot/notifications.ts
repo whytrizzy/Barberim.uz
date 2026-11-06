@@ -94,6 +94,29 @@ function renderStaffAlert(template: StaffTemplate, payload: StaffPayload): Outgo
   };
 }
 
+export const BILLING_TEMPLATE = 'billing.paid';
+
+/** A PRO payment went through: to the owner who paid. */
+export const billingPayloadSchema = z.object({
+  shopId: z.string(),
+  shopName: z.string(),
+  /** PRO is now paid up to here. */
+  until: z.string(),
+  locale: z.enum(locales),
+});
+export type BillingPayload = z.infer<typeof billingPayloadSchema>;
+
+function renderBillingPaid({ shopId, shopName, until, locale }: BillingPayload): OutgoingMessage {
+  const { notify } = getMessages(locale);
+  return {
+    text: interpolate(notify.billingPaid, {
+      shop: typedText(shopName, locale),
+      date: formatDayMonth(new Date(until), locale),
+    }),
+    buttons: [[{ label: notify.billingOpen, path: `/staff/shop/${shopId}/plan` }]],
+  };
+}
+
 export const WAITLIST_TEMPLATE = 'waitlist.slot_free';
 
 /** A time freed up on a day someone was waiting for. Not tied to a booking of theirs. */
@@ -180,6 +203,10 @@ export function cancelAskButtons(locale: Locale, bookingId: string): MessageButt
 
 /** The message in the person's language, or null for a template or payload we can't read. */
 export function renderNotification(template: string, payload: unknown): OutgoingMessage | null {
+  if (template === BILLING_TEMPLATE) {
+    const billing = billingPayloadSchema.safeParse(payload);
+    return billing.success ? renderBillingPaid(billing.data) : null;
+  }
   if (template === WAITLIST_TEMPLATE) {
     const waitlist = waitlistPayloadSchema.safeParse(payload);
     return waitlist.success ? renderWaitlistAlert(waitlist.data) : null;

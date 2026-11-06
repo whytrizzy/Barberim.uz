@@ -37,6 +37,7 @@ const cyrillicOverrides: Record<string, string | string[]> = {
   'share.openKit': 'QR код, сторис ва плакат',
   // The plan's name stays "PRO", like a brand.
   'plans.badge': 'PRO',
+  'notify.billingPaid': '{shop}: тўлов қабул қилинди. PRO тарифи {date} гача. Раҳмат!',
   'plans.proTitle': 'PRO',
   'plans.freeItems': [
     'Битта уста — сиз',
@@ -48,6 +49,7 @@ const cyrillicOverrides: Record<string, string | string[]> = {
   'plans.everyonePro':
     'Ҳозирча барча сартарошхоналар PRO тарифида — бепул. Тўлов ёқилишидан олдин хабар берамиз.',
   'plans.upgradeSoon': 'PRO га ўтиш — тез орада',
+  'plans.paidUntil': 'PRO {date} гача тўланган.',
   'plans.locked': 'Бу имконият PRO тарифида.',
   'plans.lockedTitle': 'PRO имконияти',
   'plans.lockedHint':

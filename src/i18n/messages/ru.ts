@@ -410,6 +410,13 @@ export const ru: Messages = {
     everyonePro:
       'Пока все барбершопы на тарифе PRO — бесплатно. Предупредим заранее, прежде чем включить оплату.',
     upgradeSoon: 'Перейти на PRO — скоро',
+    paidUntil: 'PRO оплачен до {date}.',
+    price: '{price} — {days} дней',
+    payWith: 'Оплатить через {provider}',
+    afterPay: 'После оплаты бот пришлёт сообщение, PRO продлится сразу.',
+    ownerOnly: 'Тариф оплачивает владелец барбершопа.',
+    history: 'Платежи',
+    statuses: { PENDING: 'Ожидает', PAID: 'Оплачено', CANCELLED: 'Отменено' },
     locked: 'Эта возможность есть в тарифе PRO.',
     lockedTitle: 'Возможность PRO',
     lockedHint: '{feature} — в тарифе PRO. На бесплатном тарифе сохранённые данные не удаляются.',
@@ -584,6 +591,8 @@ export const ru: Messages = {
       'Клиент опаздывает: {client}, примерно на {minutes} мин. Запись: {date}, в {time}. Мастер: {master}.',
     waitlistFree: 'Освободилось время: {shop}, {date}. Записывайтесь скорее — его могут занять.',
     waitlistOpen: 'Выбрать время',
+    billingPaid: '{shop}: оплата получена. Тариф PRO до {date}. Спасибо!',
+    billingOpen: 'Открыть тариф',
     staffNew: 'Новая запись: {client}, {date}, в {time}. Мастер: {master}.',
     staffRequest: 'Новая заявка: {client}, {date}, в {time}. Мастер: {master}. Принять?',
     staffMoved:
