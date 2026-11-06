@@ -74,7 +74,8 @@ model Shop {
   lng      Float?
   photos   String[]   @default([])
   status   ShopStatus @default(DRAFT)
-  plan     Plan       @default(FREE)
+  /// PRO for everyone until subscription billing (P2.11) exists; see src/domain/plans.ts.
+  plan     Plan       @default(PRO)
   /// Booking rules: { slotStepMin, minNoticeMin, horizonDays, bufferMin }
   settings Json       @default("{}")
 

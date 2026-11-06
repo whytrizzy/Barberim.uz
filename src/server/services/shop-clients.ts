@@ -13,6 +13,7 @@ import type { Prisma, User } from '@/generated/prisma/client';
 import { requireStaff } from '../auth/auth';
 import { db } from '../db/client';
 import { AppError } from '../http/errors';
+import { requireFeature } from './plans';
 
 /**
  * Clients matching what's typed: by name, or by phone when it's mostly digits. Owners and admins
@@ -45,6 +46,7 @@ export async function searchClients(
 /** Owners and admins see every client; a master only those they have served. */
 async function clientScope(user: User, shopId: string) {
   const me = await requireStaff(user.id, shopId);
+  await requireFeature(shopId, 'clients');
   const scope: Prisma.ShopClientWhereInput = {
     shopId,
     ...(me.role === 'MASTER' && { bookings: { some: { staffId: me.id } } }),

@@ -31,6 +31,7 @@ export function toShopDto(shop: Shop): ShopDto {
     landmark: shop.landmark,
     location: shop.lat !== null && shop.lng !== null ? { lat: shop.lat, lng: shop.lng } : null,
     requireApproval: parseShopSettings(shop.settings).requireApproval,
+    plan: shop.plan,
     photos: photoDtos(shop.photos),
   };
 }

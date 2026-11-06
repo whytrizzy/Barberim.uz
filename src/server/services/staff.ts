@@ -1,5 +1,6 @@
 import 'server-only';
 import { createHash, randomBytes } from 'node:crypto';
+import { planLimits } from '@/domain/plans';
 import { canAssignRole, canManageStaff } from '@/domain/staff';
 import {
   INVITE_DAYS,
@@ -15,6 +16,7 @@ import {
 } from '@/features/team/schemas';
 import type { User } from '@/generated/prisma/client';
 import { requireStaff } from '../auth/auth';
+import { refusePlan, shopPlan } from './plans';
 import { db } from '../db/client';
 import { AppError } from '../http/errors';
 
@@ -77,6 +79,8 @@ export async function addStaff(user: User, shopId: string, input: AddStaffReques
   if (!canAssignRole(me.role, input.role)) throw new AppError('forbidden', 'cannot assign role');
   const existing = await db.staff.count({ where: { shopId, isActive: true } });
   if (existing >= MAX_SHOP_STAFF) refuse('too_many_staff');
+  // FREE is a solo barber: a team is PRO.
+  if (existing >= planLimits(await shopPlan(shopId)).staff) refusePlan('team');
 
   const staff = await db.$transaction(async (tx) => {
     const { _max } = await tx.staff.aggregate({ where: { shopId }, _max: { sortOrder: true } });

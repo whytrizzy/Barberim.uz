@@ -4,7 +4,6 @@ import { LoadError, ScreenLoading } from '@/features/api/load-states';
 import { PhotoGrid } from '@/features/shop/photo-grid';
 import { useI18n } from '@/i18n/provider';
 import { useMainButton } from '@/telegram/use-main-button';
-import { MAX_PORTFOLIO_PHOTOS } from './schemas';
 import { usePortfolio, usePortfolioPhotos } from './use-portfolio';
 
 /** /staff/shop/:id/team/:staffId/portfolio */
@@ -33,7 +32,7 @@ export function PortfolioScreen({ shopId, staffId }: { shopId: string; staffId: 
       </h1>
       <PhotoGrid
         photos={query.data.photos}
-        max={MAX_PORTFOLIO_PHOTOS}
+        max={query.data.max}
         title={t.portfolio.title}
         hint={t.portfolio.hint}
         actions={actions}

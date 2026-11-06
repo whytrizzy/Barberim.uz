@@ -17,6 +17,7 @@ import type { EarningsDto } from '@/features/earnings/schemas';
 import type { User } from '@/generated/prisma/client';
 import { requireStaff } from '../auth/auth';
 import { db } from '../db/client';
+import { requireFeature } from './plans';
 
 const during = ({ from, days }: PeriodRange) => ({
   gte: startOfTashkentDay(from),
@@ -34,6 +35,7 @@ export async function getEarnings(
   date: CalendarDate = tashkentDate(new Date()),
 ): Promise<EarningsDto> {
   const me = await requireStaff(user.id, shopId);
+  await requireFeature(shopId, 'earnings');
   const onlyMine = me.role === 'MASTER';
   const scope = { shopId, ...(onlyMine && { staffId: me.id }) };
   const range = periodRange(period, date);

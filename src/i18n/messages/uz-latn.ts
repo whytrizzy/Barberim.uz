@@ -391,6 +391,42 @@ export const uzLatn = {
     lateSent: 'Sartaroshxonaga {minutes} daqiqa kechikishingiz haqida yuborildi.',
     tooMany: 'Bu yozuv boʻyicha yetarlicha xabar yuborildi.',
   },
+  plans: {
+    title: 'Tarif',
+    current: 'Hozirgi tarif: {plan}',
+    badge: 'PRO',
+    freeTitle: 'Bepul',
+    proTitle: 'PRO',
+    freeItems: [
+      'Bitta usta — siz',
+      'Onlayn yozilish va kalendar',
+      'Eslatmalar va kutish roʻyxati',
+      'Sharhlar va ulashish (QR, plakat)',
+      'Ishlar namunasi: 3 ta rasm',
+    ],
+    proItems: [
+      'Jamoa: ustalar va administratorlar',
+      'Daromad hisoboti',
+      'Mijozlar: eslatmalar va qora roʻyxat',
+      'Toʻy paketlari: guruh, oldindan yozilish, oldindan toʻlov',
+      'Ishlar namunasi: 12 ta rasm',
+    ],
+    everyonePro:
+      'Hozircha barcha sartaroshxonalar PRO tarifida — bepul. Toʻlov yoqilishidan oldin xabar beramiz.',
+    upgradeSoon: 'PRO ga oʻtish — tez orada',
+    locked: 'Bu imkoniyat PRO tarifida.',
+    lockedTitle: 'PRO imkoniyati',
+    lockedHint:
+      '{feature} PRO tarifida ochiladi. Bepul tarifda saqlangan maʼlumotlaringiz oʻchmaydi.',
+    seePlans: 'Tariflarni koʻrish',
+    features: {
+      team: 'Jamoa',
+      earnings: 'Daromad hisoboti',
+      clients: 'Mijozlar bazasi',
+      wedding_packages: 'Toʻy paketlari',
+      portfolio: 'Toʻliq ishlar namunasi',
+    },
+  },
   share: {
     title: 'Ulashish',
     intro: 'Mijozlar sizni topishi uchun: Instagram story, eshikdagi plakat yoki QR kod.',

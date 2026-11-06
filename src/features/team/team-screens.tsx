@@ -4,9 +4,12 @@ import { ChevronRight, Copy, Send, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
+import { planLimits } from '@/domain/plans';
 import { ApiError } from '@/features/api/client';
 import { errorText } from '@/features/api/error-text';
 import { LoadError, ScreenLoading } from '@/features/api/load-states';
+import { ProLock } from '@/features/plans/pro-lock';
+import { useShop } from '@/features/shop/use-shop';
 import { clientEnv } from '@/env/client';
 import { formatDayMonth } from '@/i18n/format';
 import { interpolate } from '@/i18n/interpolate';
@@ -88,9 +91,14 @@ export function TeamListScreen({ shopId }: { shopId: string }) {
   const { t } = useI18n();
   const router = useRouter();
   const query = useTeam(shopId);
+  const shop = useShop(shopId);
+  // FREE is a solo barber: the owner alone, a team is PRO.
+  const atPlanLimit =
+    shop.data !== undefined &&
+    (query.data?.members.length ?? 0) >= planLimits(shop.data.plan).staff;
 
   useMainButton(
-    query.data?.canAdd
+    query.data?.canAdd && !atPlanLimit
       ? { text: t.team.add, onClick: () => router.push(`/staff/shop/${shopId}/team/new`) }
       : null,
   );
@@ -115,6 +123,9 @@ export function TeamListScreen({ shopId }: { shopId: string }) {
           <MemberRow key={member.id} shopId={shopId} member={member} />
         ))}
       </TileList>
+      {query.data.canAdd && atPlanLimit && (
+        <ProLock className="mt-4" shopId={shopId} feature="team" />
+      )}
     </main>
   );
 }

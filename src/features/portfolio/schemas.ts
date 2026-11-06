@@ -12,6 +12,8 @@ export const portfolioSchema = z.object({
   /** The master themself, or an owner/admin who manages them. */
   canEdit: z.boolean(),
   photos: z.array(photo),
+  /** How many photos the shop's plan allows. */
+  max: z.number(),
 });
 export type PortfolioDto = z.infer<typeof portfolioSchema>;
 

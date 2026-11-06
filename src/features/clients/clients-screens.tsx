@@ -5,7 +5,8 @@ import Link from 'next/link';
 import { useState } from 'react';
 import { formatUzPhone } from '@/domain/phone';
 import { LoadError, ScreenLoading } from '@/features/api/load-states';
-import { errorText } from '@/features/api/error-text';
+import { errorText, isPlanLimit } from '@/features/api/error-text';
+import { ProLock } from '@/features/plans/pro-lock';
 import { useDebounced } from '@/features/shop/use-shop';
 import { formatDayMonth, formatMoney, formatTime } from '@/i18n/format';
 import { interpolate } from '@/i18n/interpolate';
@@ -107,7 +108,11 @@ export function ClientsScreen({ shopId }: { shopId: string }) {
           ))}
         </div>
       ) : list.isError ? (
-        <LoadError className="mt-4" error={list.error} onRetry={() => void list.refetch()} />
+        isPlanLimit(list.error) ? (
+          <ProLock className="mt-4" shopId={shopId} feature="clients" />
+        ) : (
+          <LoadError className="mt-4" error={list.error} onRetry={() => void list.refetch()} />
+        )
       ) : clients.length === 0 ? (
         <p className="mt-4 rounded-tile border border-chrome bg-porcelain-sunk px-3 py-3 text-sm text-ink-muted">
           {q || filter !== 'all' ? t.clients.emptyFiltered : t.clients.empty}
@@ -260,6 +265,13 @@ export function ClientScreen({ shopId, clientId }: { shopId: string; clientId: s
 
   if (query.isPending) return <ScreenLoading />;
   if (query.isError) {
+    if (isPlanLimit(query.error)) {
+      return (
+        <main className={screen}>
+          <ProLock shopId={shopId} feature="clients" />
+        </main>
+      );
+    }
     return (
       <LoadError
         className="mx-auto max-w-[390px] px-4 pt-6"

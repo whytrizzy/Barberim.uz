@@ -10,6 +10,7 @@ import type { Service, User } from '@/generated/prisma/client';
 import { requireStaff } from '../auth/auth';
 import { db } from '../db/client';
 import { AppError } from '../http/errors';
+import { requireFeature } from './plans';
 
 const editors = ['OWNER', 'ADMIN'] as const;
 const canTakeClients = { isActive: true, isBookable: true } as const;
@@ -31,6 +32,14 @@ const fields = (input: ServiceRequest) => ({
   bookAheadDays: isPackage(input) ? input.bookAheadDays : null,
   depositAmount: isPackage(input) ? input.depositAmount : null,
 });
+
+/** Package extras (people, booking far ahead, prepayment) are PRO; a plain wedding service isn't. */
+async function checkPackagePlan(shopId: string, input: ServiceRequest) {
+  const extras = fields(input);
+  const usesPackage =
+    extras.maxPeople !== null || extras.bookAheadDays !== null || extras.depositAmount !== null;
+  if (usesPackage) await requireFeature(shopId, 'wedding_packages');
+}
 
 const toDto = (service: Service, staffIds: string[]): ServiceDto => ({
   id: service.id,
@@ -89,6 +98,7 @@ export async function createService(
   input: ServiceRequest,
 ): Promise<ServiceDto> {
   await requireStaff(user.id, shopId, [...editors]);
+  await checkPackagePlan(shopId, input);
   const staffIds = await checkMasters(shopId, input.staffIds);
   const existing = await db.service.count({ where: { shopId, isActive: true } });
   if (existing >= MAX_SHOP_SERVICES) refuse('too_many_services', 'conflict');
@@ -124,6 +134,7 @@ export async function updateService(
   input: ServiceRequest,
 ): Promise<ServiceDto> {
   await requireStaff(user.id, shopId, [...editors]);
+  await checkPackagePlan(shopId, input);
   const staffIds = await checkMasters(shopId, input.staffIds);
 
   const service = await db.$transaction(async (tx) => {

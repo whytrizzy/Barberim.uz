@@ -4,7 +4,9 @@ import { ArrowDownRight, ArrowUpRight, ChevronLeft, ChevronRight } from 'lucide-
 import { useState } from 'react';
 import { EARNINGS_PERIODS, periodRange, type EarningsPeriod } from '@/domain/earnings';
 import { addDays, dateKey, parseDateKey, startOfTashkentDay, tashkentDate } from '@/domain/time';
+import { isPlanLimit } from '@/features/api/error-text';
 import { LoadError, ScreenLoading } from '@/features/api/load-states';
+import { ProLock } from '@/features/plans/pro-lock';
 import { formatDayMonth, formatMoney, formatWeekday } from '@/i18n/format';
 import { interpolate } from '@/i18n/interpolate';
 import type { Messages } from '@/i18n/messages';
@@ -139,6 +141,16 @@ export function EarningsScreen({ shopId }: { shopId: string }) {
 
   if (query.isPending) return <ScreenLoading />;
   if (query.isError) {
+    if (isPlanLimit(query.error)) {
+      return (
+        <main className="mx-auto max-w-[390px] px-4 pt-4 pb-6">
+          <h1 className="font-sign text-[30px] leading-none font-bold uppercase">
+            {t.earnings.title}
+          </h1>
+          <ProLock className="mt-4" shopId={shopId} feature="earnings" />
+        </main>
+      );
+    }
     return (
       <LoadError
         className="mx-auto max-w-[390px] px-4 pt-6"

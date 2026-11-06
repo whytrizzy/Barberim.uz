@@ -1,6 +1,7 @@
 'use client';
 
 import {
+  BadgeCheck,
   BookUser,
   CalendarClock,
   CalendarDays,
@@ -16,8 +17,10 @@ import {
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
+import { hasFeature } from '@/domain/plans';
 import { LoadError, ScreenLoading } from '@/features/api/load-states';
 import { useSession } from '@/features/auth/use-session';
+import { ProBadge } from '@/features/plans/pro-lock';
 import { useI18n } from '@/i18n/provider';
 import { EnamelSign } from '@/ui/enamel-sign';
 import { TileList } from '@/ui/tile-list';
@@ -68,6 +71,7 @@ export function ShopEditScreen({ shopId, justCreated }: { shopId: string; justCr
       />
     );
   }
+  const { plan } = shop.data;
 
   return (
     <main className="mx-auto max-w-[390px] px-4 pt-4 pb-6">
@@ -93,11 +97,17 @@ export function ShopEditScreen({ shopId, justCreated }: { shopId: string; justCr
             label: t.services.title,
             Icon: Scissors,
           },
-          { href: `/staff/shop/${shopId}/team` as const, label: t.team.title, Icon: Users },
+          {
+            href: `/staff/shop/${shopId}/team` as const,
+            label: t.team.title,
+            Icon: Users,
+            pro: 'team' as const,
+          },
           {
             href: `/staff/shop/${shopId}/earnings` as const,
             label: t.earnings.title,
             Icon: ChartColumn,
+            pro: 'earnings' as const,
           },
           {
             href: `/staff/shop/${shopId}/share` as const,
@@ -108,6 +118,7 @@ export function ShopEditScreen({ shopId, justCreated }: { shopId: string; justCr
             href: `/staff/shop/${shopId}/clients` as const,
             label: t.clients.title,
             Icon: BookUser,
+            pro: 'clients' as const,
           },
           { href: `/staff/shop/${shopId}/reviews` as const, label: t.reviews.title, Icon: Star },
           ...(membership
@@ -124,7 +135,12 @@ export function ShopEditScreen({ shopId, justCreated }: { shopId: string; justCr
                 },
               ]
             : []),
-        ].map(({ href, label, Icon }) => (
+          {
+            href: `/staff/shop/${shopId}/plan` as const,
+            label: `${t.plans.title}: ${plan === 'PRO' ? t.plans.proTitle : t.plans.freeTitle}`,
+            Icon: BadgeCheck,
+          },
+        ].map(({ href, label, Icon, ...tile }) => (
           <li key={href} className="bg-porcelain">
             <Link
               href={href}
@@ -132,6 +148,7 @@ export function ShopEditScreen({ shopId, justCreated }: { shopId: string; justCr
             >
               <Icon className="size-5 shrink-0 text-enamel-text" aria-hidden />
               <span className="flex-1 text-[15px] font-semibold">{label}</span>
+              {'pro' in tile && tile.pro && !hasFeature(plan, tile.pro) && <ProBadge />}
               <ChevronRight className="size-5 text-ink-muted" aria-hidden />
             </Link>
           </li>

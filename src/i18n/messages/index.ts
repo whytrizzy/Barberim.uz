@@ -35,6 +35,23 @@ const cyrillicOverrides: Record<string, string | string[]> = {
   'share.scan': 'Камерани QR кодга қаратинг',
   'share.step1': 'Телефон камерасини QR кодга қаратинг',
   'share.openKit': 'QR код, сторис ва плакат',
+  // The plan's name stays "PRO", like a brand.
+  'plans.badge': 'PRO',
+  'plans.proTitle': 'PRO',
+  'plans.freeItems': [
+    'Битта уста — сиз',
+    'Онлайн ёзилиш ва календар',
+    'Эслатмалар ва кутиш рўйхати',
+    'Шарҳлар ва улашиш (QR, плакат)',
+    'Ишлар намунаси: 3 та расм',
+  ],
+  'plans.everyonePro':
+    'Ҳозирча барча сартарошхоналар PRO тарифида — бепул. Тўлов ёқилишидан олдин хабар берамиз.',
+  'plans.upgradeSoon': 'PRO га ўтиш — тез орада',
+  'plans.locked': 'Бу имконият PRO тарифида.',
+  'plans.lockedTitle': 'PRO имконияти',
+  'plans.lockedHint':
+    '{feature} PRO тарифида очилади. Бепул тарифда сақланган маълумотларингиз ўчмайди.',
 };
 
 function toCyrillic<T>(value: T, path: string): T {

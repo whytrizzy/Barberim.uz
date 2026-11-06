@@ -3,8 +3,11 @@
 import { Trash2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
+import { hasFeature } from '@/domain/plans';
 import { ApiError } from '@/features/api/client';
 import { errorText } from '@/features/api/error-text';
+import { ProLock } from '@/features/plans/pro-lock';
+import { useShop } from '@/features/shop/use-shop';
 import { formatDuration, groupDigits } from '@/i18n/format';
 import { interpolate } from '@/i18n/interpolate';
 import { useI18n } from '@/i18n/provider';
@@ -63,7 +66,10 @@ export function ServiceForm({ shopId, service, masters }: ServiceFormProps) {
   const [deposit, setDeposit] = useState(
     service?.depositAmount ? String(service.depositAmount) : '',
   );
-  const isPackage = category === 'WEDDING';
+  const shop = useShop(shopId);
+  // Package extras are PRO; a FREE shop's wedding service is a plain service.
+  const packagesAllowed = !shop.data || hasFeature(shop.data.plan, 'wedding_packages');
+  const isPackage = category === 'WEDDING' && packagesAllowed;
   // Empty means "not used"; package extras only count for wedding services.
   const optional = (value: string) => (isPackage && value !== '' ? Number(value) : null);
   const [submitted, setSubmitted] = useState(false);
@@ -186,6 +192,9 @@ export function ServiceForm({ shopId, service, masters }: ServiceFormProps) {
         </label>
       </div>
 
+      {category === 'WEDDING' && !packagesAllowed && (
+        <ProLock shopId={shopId} feature="wedding_packages" />
+      )}
       {isPackage && (
         <fieldset className="grid gap-3 rounded-tile border border-chrome bg-porcelain p-3">
           <legend className="px-1 text-sm font-semibold">{t.services.packageTitle}</legend>

@@ -1,7 +1,8 @@
 import 'server-only';
 import { randomUUID } from 'node:crypto';
 import { canManageStaff } from '@/domain/staff';
-import { MAX_PORTFOLIO_PHOTOS, type PortfolioDto } from '@/features/portfolio/schemas';
+import { planLimits } from '@/domain/plans';
+import type { PortfolioDto } from '@/features/portfolio/schemas';
 import type { PhotoRefusal } from '@/features/shop/schemas';
 import type { Staff, User } from '@/generated/prisma/client';
 import { requireStaff } from '../auth/auth';
@@ -9,6 +10,7 @@ import { db } from '../db/client';
 import { AppError } from '../http/errors';
 import { cleanImage, imageContentType, imageExtension } from '../storage/image';
 import { media, photoDtos, photoIdOf, shopPhotoKey } from '../storage/media';
+import { refusePlan, shopPlan } from './plans';
 
 // Staff.portfolio holds storage keys of a master's work in display order. The files sit beside the
 // shop's own photos (same key format), so the photo worker serves them without a change.
@@ -34,11 +36,12 @@ async function editAccess(user: User, shopId: string, staffId: string) {
   return member;
 }
 
-const toDto = (member: Staff, editable: boolean): PortfolioDto => ({
+const toDto = async (member: Staff, editable: boolean): Promise<PortfolioDto> => ({
   staffId: member.id,
   name: member.displayName,
   canEdit: editable,
   photos: photoDtos(member.portfolio),
+  max: planLimits(await shopPlan(member.shopId)).portfolioPhotos,
 });
 
 async function finish(user: User, member: Staff, action: string, key: string) {
@@ -70,17 +73,21 @@ export async function addPortfolioPhoto(
   const member = await editAccess(user, shopId, staffId);
   const image = cleanImage(upload);
   if (!image) refuse('not_an_image', 'invalid_input');
-  if (member.portfolio.length >= MAX_PORTFOLIO_PHOTOS) refuse('too_many_photos');
+  // FREE keeps a few photos; the full portfolio is PRO.
+  const plan = await shopPlan(shopId);
+  const max = planLimits(plan).portfolioPhotos;
+  const full = () => (plan === 'FREE' ? refusePlan('portfolio') : refuse('too_many_photos'));
+  if (member.portfolio.length >= max) full();
 
   const key = shopPhotoKey(shopId, randomUUID(), imageExtension[image.type]);
   await media.put(key, image.bytes, imageContentType[image.type]);
   // Appends only while there is room, so two uploads at once can't go past the limit.
   const added = await db.$executeRaw`
     UPDATE staff SET portfolio = array_append(portfolio, ${key}), updated_at = now()
-    WHERE id = ${member.id}::uuid AND cardinality(portfolio) < ${MAX_PORTFOLIO_PHOTOS}`;
+    WHERE id = ${member.id}::uuid AND cardinality(portfolio) < ${max}`;
   if (added === 0) {
     await media.remove(key).catch(() => {});
-    refuse('too_many_photos');
+    full();
   }
   return finish(user, member, 'staff.portfolio.add', key);
 }
