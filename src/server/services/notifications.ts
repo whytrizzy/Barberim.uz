@@ -46,7 +46,7 @@ export async function queueBookingMessage(
   template: BookingTemplate,
   bookingId: string,
   sendAt = new Date(),
-  extra: Pick<BookingPayload, 'minutes'> = {},
+  extra: Pick<BookingPayload, 'minutes' | 'amount'> = {},
 ): Promise<void> {
   const booking = await tx.booking.findUniqueOrThrow({
     where: { id: bookingId },
@@ -84,13 +84,15 @@ export type StaffAlert = {
   oldStartAt?: Date;
   /** How late the client said they are running. */
   minutes?: number;
+  /** UZS, for a deposit to refund. */
+  amount?: number;
 };
 
 /** Tells the shop's people about a change, each in their own language. */
 export async function queueStaffAlert(
   tx: Prisma.TransactionClient,
   bookingId: string,
-  { template, actorUserId, audience, oldStartAt, minutes }: StaffAlert,
+  { template, actorUserId, audience, oldStartAt, minutes, amount }: StaffAlert,
 ): Promise<void> {
   const booking = await tx.booking.findUniqueOrThrow({
     where: { id: bookingId },
@@ -129,6 +131,7 @@ export async function queueStaffAlert(
         startAt: booking.startAt.toISOString(),
         ...(oldStartAt && { oldStartAt: oldStartAt.toISOString() }),
         ...(minutes !== undefined && { minutes }),
+        ...(amount !== undefined && { amount }),
         locale: fromDbLocale(user.locale),
       };
       return [{ chatId: user.telegramId, template, payload, sendAt, bookingId }];

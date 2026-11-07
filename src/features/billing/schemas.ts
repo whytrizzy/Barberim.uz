@@ -20,7 +20,7 @@ export const billingSchema = z.object({
   payments: z.array(
     z.object({
       id: z.string(),
-      provider: z.enum(PAYMENT_PROVIDERS),
+      provider: z.enum(['PAYME', 'CLICK', 'UZUM']),
       amount: z.number(),
       status: z.enum(['PENDING', 'PAID', 'CANCELLED']),
       at: z.string(),

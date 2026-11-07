@@ -16,6 +16,7 @@ import { createBot } from '@/bot/bot';
 import { createSender } from '@/bot/notifications';
 import { serverEnv } from '@/env/server';
 import { bookingReplies } from '@/server/services/booking-replies';
+import { expireDeposits } from '@/server/services/deposits';
 import { dispatchDue } from '@/server/services/notifications';
 import { savePhoneFromBotContact } from '@/server/services/profile';
 
@@ -78,7 +79,8 @@ async function main() {
   // Stands in for the production scheduler, so messages arrive while testing.
   const send = createSender(token, tunnel.url);
   setInterval(() => {
-    dispatchDue(send)
+    expireDeposits()
+      .then(() => dispatchDue(send))
       .then((result) => {
         if (Object.values(result).some(Boolean)) console.log('outbox', result);
       })

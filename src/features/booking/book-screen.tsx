@@ -12,6 +12,7 @@ import { useSession } from '@/features/auth/use-session';
 import { PhoneCapture } from '@/features/profile/phone-capture';
 import type { ShopProfileDto } from '@/features/shop/schemas';
 import { useShopProfile } from '@/features/shop/use-shop-profile';
+import { ClientDepositPanel } from '@/features/deposits/deposit-panel';
 import { WaitlistPanel } from '@/features/waitlist/waitlist-panel';
 import { formatDayMonth, formatDuration, formatMoney, formatTime } from '@/i18n/format';
 import { interpolate } from '@/i18n/interpolate';
@@ -76,9 +77,18 @@ function bookError(t: Messages, error: unknown): string {
   return errorText(t, error);
 }
 
-function Booked({ booking, shopName }: { booking: BookingDto; shopName: string }) {
+function Booked({
+  booking,
+  shopName,
+  slug,
+}: {
+  booking: BookingDto;
+  shopName: string;
+  slug: string;
+}) {
   const { t, locale } = useI18n();
   const start = new Date(booking.startAt);
+  const awaitingDeposit = booking.deposit?.status === 'AWAITING';
   return (
     <main className="mx-auto max-w-[390px] px-4 pt-4 pb-6">
       <EnamelSign overline={shopName}>
@@ -86,8 +96,15 @@ function Booked({ booking, shopName }: { booking: BookingDto; shopName: string }
       </EnamelSign>
       <p role="status" className="mt-4 flex items-start gap-2 text-[15px] font-semibold">
         <CircleCheck className="mt-0.5 size-5 shrink-0 text-success" aria-hidden />
-        {booking.status === 'PENDING' ? t.book.pending : t.book.confirmed}
+        {awaitingDeposit
+          ? t.deposits.payTitle
+          : booking.status === 'PENDING'
+            ? t.book.pending
+            : t.book.confirmed}
       </p>
+      {booking.deposit && (
+        <ClientDepositPanel bookingId={booking.id} shopSlug={slug} deposit={booking.deposit} />
+      )}
       {booking.depositAmount !== null && booking.status === 'PENDING' && (
         <p className="mt-2 rounded-tile border border-chrome bg-porcelain px-3 py-2.5 text-sm">
           {interpolate(t.book.depositNote, { amount: formatMoney(booking.depositAmount, locale) })}
@@ -109,7 +126,7 @@ function Booked({ booking, shopName }: { booking: BookingDto; shopName: string }
         {interpolate(t.agenda.total, { total: formatMoney(booking.totalPrice, locale) })}
       </p>
       <p className="mt-3 text-sm text-ink-muted">
-        {booking.depositAmount !== null ? t.book.restAtShop : t.book.payAtShop}
+        {booking.depositAmount !== null || booking.deposit ? t.book.restAtShop : t.book.payAtShop}
       </p>
       <Link
         href="/bookings"
@@ -165,6 +182,16 @@ export function BookScreen({
   );
   const master = masters.some((m) => m.id === chosenMaster) ? chosenMaster : ANY;
   const terms = packageTerms(chosen);
+  // An online deposit (P3.1): this master asks for one, or this client owes one (a missed visit).
+  const pickedMaster = masters.find((m) => m.id === master);
+  const onlineDeposit =
+    shop?.deposit &&
+    (shop.deposit.youOwe ||
+      (master === ANY
+        ? masters.length > 0 && masters.every((m) => m.requiresDeposit)
+        : pickedMaster?.requiresDeposit))
+      ? shop.deposit.amount
+      : null;
   const today = dateKey(tashkentDate(new Date()));
   const options = useBookingOptions(
     shop?.id,
@@ -261,7 +288,7 @@ export function BookScreen({
     return <p className="px-4 pt-6 text-sm text-ink-muted">{t.shopProfile.preview}</p>;
   }
   if (booked) {
-    return <Booked booking={booked} shopName={typedText(shop.name, locale)} />;
+    return <Booked booking={booked} shopName={typedText(shop.name, locale)} slug={slug} />;
   }
 
   return (
@@ -468,6 +495,11 @@ export function BookScreen({
               ? interpolate(t.services.fromPrice, { price: formatMoney(total, locale) })
               : formatMoney(total, locale)}
           </p>
+          {onlineDeposit && (
+            <p className="mt-2 rounded-tile border border-chrome bg-porcelain px-3 py-2.5 text-sm">
+              {interpolate(t.deposits.required, { amount: formatMoney(onlineDeposit, locale) })}
+            </p>
+          )}
           {terms.depositAmount !== null && (
             <p className="mt-2 rounded-tile border border-chrome bg-porcelain px-3 py-2.5 text-sm">
               {interpolate(t.book.depositNote, {

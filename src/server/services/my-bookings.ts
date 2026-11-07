@@ -16,6 +16,7 @@ const MOVE_DAYS = 14;
 
 const myBookingInclude = {
   items: { orderBy: { sortOrder: 'asc' } },
+  deposit: true,
   staff: { select: { displayName: true } },
   shop: {
     select: { slug: true, name: true, address: true, landmark: true, lat: true, lng: true },

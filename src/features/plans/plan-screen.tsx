@@ -17,7 +17,11 @@ import { EnamelSign } from '@/ui/enamel-sign';
 import { SectionLabel } from '@/ui/section-label';
 import { TileList } from '@/ui/tile-list';
 
-const PROVIDER_NAMES: Record<PaymentProviderName, string> = { PAYME: 'Payme', CLICK: 'Click' };
+const PROVIDER_NAMES: Record<PaymentProviderName | 'UZUM', string> = {
+  PAYME: 'Payme',
+  CLICK: 'Click',
+  UZUM: 'Uzum',
+};
 
 function PlanCard({
   title,

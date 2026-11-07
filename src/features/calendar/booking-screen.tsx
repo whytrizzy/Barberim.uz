@@ -29,6 +29,7 @@ import { EnamelSign } from '@/ui/enamel-sign';
 import { SectionLabel } from '@/ui/section-label';
 import { TextField } from '@/ui/text-field';
 import { TileList } from '@/ui/tile-list';
+import { StaffDeposit } from '@/features/deposits/staff-deposit';
 import { ShopNoticePanel } from './notice-panel';
 import type { BookingDetailDto } from './schemas';
 import { useBookingAction, useBookingDetail } from './use-calendar';
@@ -157,6 +158,10 @@ function BookingDetails({ shopId, booking }: { shopId: string; booking: BookingD
           </a>
         )}
       </div>
+
+      {booking.deposit && (
+        <StaffDeposit shopId={shopId} bookingId={booking.id} deposit={booking.deposit} />
+      )}
 
       <ShopNoticePanel shopId={shopId} booking={booking} />
 

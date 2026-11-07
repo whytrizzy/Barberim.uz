@@ -8,6 +8,8 @@ import type { Prisma, User } from '@/generated/prisma/client';
 import { fromDbLocale, requireStaff } from '../auth/auth';
 import { clickConfig, paymeConfig, proPrice } from '../billing/config';
 import { db } from '../db/client';
+import { clickCheckoutUrl } from '../payments/click';
+import { paymeCheckoutUrl } from '../payments/payme';
 import { AppError } from '../http/errors';
 import { billingEnforced, planOf } from './plans';
 
@@ -52,29 +54,32 @@ export async function getBilling(user: User, shopId: string): Promise<BillingDto
   };
 }
 
-/** Where the provider sends the owner back: the bot's chat, where the receipt message arrives. */
-function returnUrl(): string {
+/** Where the provider sends the payer back: the bot's chat, where the receipt message arrives. */
+export function returnUrl(): string {
   return `https://t.me/${clientEnv.NEXT_PUBLIC_BOT_USERNAME ?? 'barberim_bot'}`;
 }
 
 function paymeUrl(paymentId: string, amount: number, locale: Locale): string {
   const config = paymeConfig()!;
-  const lang = locale === 'ru' ? 'ru' : 'uz';
-  const query = `m=${config.merchantId};ac.order_id=${paymentId};a=${amount * 100};c=${returnUrl()};l=${lang}`;
-  const host = config.test ? 'https://checkout.test.paycom.uz' : 'https://checkout.paycom.uz';
-  return `${host}/${Buffer.from(query).toString('base64')}`;
+  return paymeCheckoutUrl({
+    merchantId: config.merchantId,
+    test: config.test,
+    orderId: paymentId,
+    amount,
+    returnUrl: returnUrl(),
+    lang: locale === 'ru' ? 'ru' : 'uz',
+  });
 }
 
 function clickUrl(paymentId: string, amount: number): string {
   const config = clickConfig()!;
-  const query = new URLSearchParams({
-    service_id: config.serviceId,
-    merchant_id: config.merchantId,
-    amount: String(amount),
-    transaction_param: paymentId,
-    return_url: returnUrl(),
+  return clickCheckoutUrl({
+    serviceId: config.serviceId,
+    merchantId: config.merchantId,
+    orderId: paymentId,
+    amount,
+    returnUrl: returnUrl(),
   });
-  return `https://my.click.uz/services/pay?${query.toString()}`;
 }
 
 /** A month of PRO: a new order, and the provider's checkout to pay it. Owners only. */

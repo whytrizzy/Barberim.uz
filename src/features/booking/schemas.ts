@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { CLIENT_LATE_OPTIONS, SHOP_DELAY_OPTIONS } from '@/domain/notices';
+import { bookingDepositSchema } from '@/features/deposits/schemas';
 import { MAX_PACKAGE_PEOPLE } from '@/features/services/schemas';
 
 const id = z.uuid();
@@ -87,6 +88,8 @@ export const bookingSchema = z.object({
   /** A wedding package: how many people, and the prepayment the shop waits for. */
   peopleCount: z.number().int().nullable(),
   depositAmount: z.number().int().nullable(),
+  /** An online deposit (P3.1), when one was asked for. */
+  deposit: bookingDepositSchema.nullable(),
   /** The shop said the master is running this many minutes late. */
   shopDelayMin: z.number().int().nullable(),
   items: z.array(

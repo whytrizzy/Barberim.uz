@@ -12,7 +12,8 @@ import { groupDuration, rankMasters, splitGroup } from '@/domain/combine';
 import { normalizeUzPhone } from '@/domain/phone';
 import { startOfTashkentDay, tashkentDate, type CalendarDate } from '@/domain/time';
 import type { BookingDto, BookingRefusal } from '@/features/booking/schemas';
-import type { Prisma, User } from '@/generated/prisma/client';
+import type { BookingDepositDto } from '@/features/deposits/schemas';
+import type { Deposit, Prisma, User } from '@/generated/prisma/client';
 import { requireStaff } from '../auth/auth';
 import { db } from '../db/client';
 import { AppError, type AppErrorCode } from '../http/errors';
@@ -31,6 +32,7 @@ import {
   queueStaffAlert,
   type StaffAlert,
 } from './notifications';
+import { applyDepositRules, depositNeeded, holdForDeposit } from './deposits';
 import { queueWaitlistAlerts } from './waitlist';
 
 function refuse(code: AppErrorCode, reason: BookingRefusal, extra: object = {}): never {
@@ -53,9 +55,24 @@ export function isOverlapViolation(error: unknown): boolean {
 
 const bookingInclude = {
   items: { orderBy: { sortOrder: 'asc' } },
+  deposit: true,
 } satisfies Prisma.BookingInclude;
 
-type BookingWithItems = Prisma.BookingGetPayload<{ include: typeof bookingInclude }>;
+/** A booking with its items, and its deposit where the query loaded it. */
+type BookingWithItems = Prisma.BookingGetPayload<{
+  include: { items: { orderBy: { sortOrder: 'asc' } } };
+}> & { deposit?: Deposit | null };
+
+export function toDepositDto(deposit: Deposit | null | undefined): BookingDepositDto | null {
+  if (!deposit) return null;
+  return {
+    amount: deposit.amount,
+    status: deposit.status,
+    provider: deposit.provider,
+    expiresAt: deposit.expiresAt.toISOString(),
+    code: deposit.provider === 'UZUM' ? deposit.code : null,
+  };
+}
 
 export function toBookingDto(b: BookingWithItems): BookingDto {
   return {
@@ -74,6 +91,7 @@ export function toBookingDto(b: BookingWithItems): BookingDto {
     shopDelayMin: b.shopDelayMin,
     peopleCount: b.peopleCount,
     depositAmount: b.depositAmount,
+    deposit: toDepositDto(b.deposit),
     items: b.items.map((i) => ({
       name: i.nameSnapshot,
       price: i.priceSnapshot,
@@ -92,12 +110,20 @@ async function insertBookings(
   message?: BookingTemplate,
   /** Likewise told once. */
   alert?: StaffAlert,
+  /**
+   * An online deposit (UZS): the bookings are held for it, and nobody is told or reminded until
+   * it's paid (services/deposits settleDeposit).
+   */
+  deposit?: number | null,
 ): Promise<BookingWithItems[]> {
   try {
     return await db.$transaction(async (tx) => {
       const created: BookingWithItems[] = [];
       for (const data of rows) {
         created.push(await tx.booking.create({ data, include: bookingInclude }));
+      }
+      if (deposit && created[0]) {
+        created[0] = { ...created[0], deposit: await holdForDeposit(tx, created[0], deposit) };
       }
       await tx.auditLog.createMany({
         data: created.map((b) => ({
@@ -109,9 +135,11 @@ async function insertBookings(
           data: { startAt: b.startAt.toISOString(), source: b.source, groupId: b.groupId },
         })),
       });
-      if (message && created[0]) await queueBookingMessage(tx, message, created[0].id);
-      if (alert && created[0]) await queueStaffAlert(tx, created[0].id, alert);
-      if (created[0]) await queueReminders(tx, created[0].id, created[0].startAt);
+      if (!deposit) {
+        if (message && created[0]) await queueBookingMessage(tx, message, created[0].id);
+        if (alert && created[0]) await queueStaffAlert(tx, created[0].id, alert);
+        if (created[0]) await queueReminders(tx, created[0].id, created[0].startAt);
+      }
       return created;
     });
   } catch (error) {
@@ -225,8 +253,11 @@ export async function createClientBookings(
   for (const staffId of staffIds) {
     try {
       const schedule = await loadSchedule(staffId, date, 1, { horizonDays: terms.bookAheadDays });
+      // An online deposit holds the booking until it's paid (P3.1).
+      const deposit = await depositNeeded(shopId, staffId, user.id, schedule.settings);
       // A prepayment is settled with the shop, so the booking waits for them to confirm it.
-      const waits = schedule.settings.requireApproval || terms.depositAmount !== null;
+      const waits =
+        schedule.settings.requireApproval || terms.depositAmount !== null || deposit !== null;
       if (units >= schedule.settings.maxActiveBookingsPerClient) {
         refuse('conflict', 'too_many_bookings', {
           limit: schedule.settings.maxActiveBookingsPerClient,
@@ -266,6 +297,7 @@ export async function createClientBookings(
           actorUserId: user.id,
           audience: 'shop',
         },
+        deposit,
       );
       return created.map(toBookingDto);
     } catch (error) {
@@ -479,6 +511,9 @@ export async function applyBookingAction(
         await tx.shopClient.update({ where: { id: booking.shopClientId }, data: clientCounters });
       }
       if (input.action === 'cancel') await cancelQueuedMessages(tx, booking.id);
+      // Any online deposit: refunded, kept or waived by what just happened (after the line above,
+      // so its own messages aren't swept away).
+      await applyDepositRules(tx, booking, input.action, input.as, user.id, now);
       if (input.action === 'complete' || input.action === 'no_show') {
         await cancelReminders(tx, booking.id);
       }

@@ -13,6 +13,7 @@ import {
   Scissors,
   Star,
   Users,
+  Wallet,
 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -132,6 +133,16 @@ export function ShopEditScreen({ shopId, justCreated }: { shopId: string; justCr
                   href: `/staff/shop/${shopId}/team/${membership.staffId}/portfolio` as const,
                   label: t.portfolio.mine,
                   Icon: Images,
+                },
+              ]
+            : []),
+          // Deposits are the owner's: they connect the shop's own payment accounts.
+          ...(role === 'OWNER'
+            ? [
+                {
+                  href: `/staff/shop/${shopId}/deposits` as const,
+                  label: t.deposits.title,
+                  Icon: Wallet,
                 },
               ]
             : []),

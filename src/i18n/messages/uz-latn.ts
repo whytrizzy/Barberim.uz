@@ -391,6 +391,53 @@ export const uzLatn = {
     lateSent: 'Sartaroshxonaga {minutes} daqiqa kechikishingiz haqida yuborildi.',
     tooMany: 'Bu yozuv boʻyicha yetarlicha xabar yuborildi.',
   },
+  deposits: {
+    title: 'Depozit',
+    intro:
+      'Mijoz yozilayotganda oldindan toʻlaydi — pul toʻgʻridan-toʻgʻri sartaroshxonangiz hisobiga tushadi. Kelmay qolishlar kamayadi.',
+    amount: 'Depozit miqdori',
+    amountHint: '0 — depozit olinmaydi.',
+    afterNoShow: 'Kelmay qolgan mijozdan keyingi safar depozit olish',
+    masters: 'Depozit kerak boʻlgan ustalar',
+    providers: 'Toʻlov tizimlari',
+    providersHint:
+      'Oʻzingizning Payme yoki Click merchant hisobingizni ulang. Kalitlar shifrlangan holda saqlanadi va qayta koʻrsatilmaydi.',
+    merchantId: 'Merchant ID (kassa ID)',
+    paymeKey: 'Kalit (key)',
+    serviceId: 'Service ID',
+    clickMerchantId: 'Merchant ID',
+    secretKey: 'Maxfiy kalit (secret key)',
+    savedSecret: 'Saqlangan. Almashtirish uchun yangisini kiriting.',
+    testMode: 'Test rejimi',
+    callback: 'Merchant kabinetiga shu manzilni kiriting:',
+    connect: '{provider} ulash',
+    disconnect: 'Uzish',
+    cannotConnect: 'Server kalitlarni saqlashga hali sozlanmagan. Administratorga murojaat qiling.',
+    noProvider: 'Toʻlov tizimi ulanmaguncha depozit soʻralmaydi.',
+    saved: 'Saqlandi.',
+    secretRequired: 'Yangi ulash uchun kalit kerak.',
+    required:
+      'Bu yozuv uchun {amount} depozit kerak. Yozilgach 30 daqiqa ichida toʻlang, aks holda vaqt boʻshatiladi.',
+    payTitle: 'Depozitni toʻlang',
+    payUntil: '{time} gacha toʻlang, aks holda yozuv bekor qilinadi.',
+    payWith: '{provider} orqali toʻlash',
+    afterPay: 'Toʻlovdan soʻng bot sizga xabar yuboradi.',
+    rules:
+      'Bekor qilsangiz: kamida 24 soat oldin — depozit qaytariladi; kechroq yoki kelmasangiz — qaytarilmaydi.',
+    status: {
+      AWAITING: 'Depozit kutilmoqda: {amount}',
+      PAID: 'Depozit toʻlandi: {amount}. Qolganini joyida toʻlaysiz.',
+      CANCELLED: 'Depozit ({amount}) toʻlanmadi — yozuv bekor qilindi.',
+      REFUND_DUE: 'Depozit ({amount}) qaytariladi.',
+      REFUNDED: 'Depozit ({amount}) qaytarildi.',
+      KEPT: 'Depozit ({amount}) qaytarilmaydi: kech bekor qilindi yoki kelinmadi.',
+    },
+    markRefunded: 'Qaytarildi deb belgilash',
+    refundHint:
+      'Pulni toʻlov tizimi kabinetida qaytaring. Payme orqali qaytarish oʻzi belgilanadi.',
+    closed: 'Bu depozitni endi toʻlab boʻlmaydi.',
+    unavailable: 'Bu toʻlov tizimi ulanmagan.',
+  },
   plans: {
     title: 'Tarif',
     current: 'Hozirgi tarif: {plan}',
@@ -596,6 +643,12 @@ export const uzLatn = {
     waitlistFree:
       'Boʻsh vaqt chiqdi: {shop}, {date}. Tezroq yoziling — bu vaqtni boshqalar ham olishi mumkin.',
     waitlistOpen: 'Vaqtni tanlash',
+    depositExpired:
+      '{shop}: {date}, soat {time} dagi yozuv bekor qilindi — depozit 30 daqiqa ichida toʻlanmadi. Xohlasangiz, qaytadan yoziling.',
+    depositRefund:
+      '{shop}: {date}, soat {time} dagi yozuv bekor qilindi. Depozitingiz ({amount}) qaytariladi.',
+    staffDepositRefund:
+      'Depozitni qaytaring: {client}, {amount}. Yozuv {date}, soat {time} bekor qilindi. Toʻlov tizimi kabinetida qaytaring.',
     billingPaid: '{shop}: toʻlov qabul qilindi. PRO tarifi {date} gacha. Rahmat!',
     billingOpen: 'Tarifni ochish',
     staffNew: 'Yangi yozuv: {client}, {date}, soat {time}. Usta: {master}.',

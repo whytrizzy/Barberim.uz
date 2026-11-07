@@ -40,6 +40,9 @@ export const serverEnvSchema = z
     CLICK_SERVICE_ID: optional(z.string().regex(/^\d+$/, 'must be a number')),
     CLICK_MERCHANT_ID: optional(z.string().regex(/^\d+$/, 'must be a number')),
     CLICK_SECRET_KEY: optional(z.string().min(6)),
+    // Encrypts each shop's own Payme/Click/Uzum secrets (client deposits). Random, 32+ chars;
+    // changing it makes saved shop keys unreadable, so shops would enter them again.
+    DEPOSIT_KEYS_SECRET: optional(z.string().min(32, 'must be at least 32 characters')),
   })
   .superRefine((env, ctx) => {
     if (env.APP_ENV === 'development') return;

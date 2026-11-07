@@ -1,7 +1,7 @@
 import { Api, GrammyError, InlineKeyboard } from 'grammy';
 import { z } from 'zod';
 import { parseDateKey, startOfTashkentDay } from '@/domain/time';
-import { formatDayMonth, formatTime } from '@/i18n/format';
+import { formatDayMonth, formatMoney, formatTime } from '@/i18n/format';
 import { interpolate } from '@/i18n/interpolate';
 import { locales, type Locale } from '@/i18n/locales';
 import { getMessages } from '@/i18n/messages';
@@ -24,6 +24,8 @@ export const bookingTemplates = [
   'booking.rebook_nudge',
   'booking.next_up',
   'booking.running_late',
+  'booking.deposit_expired',
+  'booking.deposit_refund',
 ] as const;
 export type BookingTemplate = (typeof bookingTemplates)[number];
 
@@ -34,6 +36,7 @@ export const LIVE_TEMPLATES = [
   'booking.next_up',
   'booking.running_late',
   'staff.client_late',
+  'staff.deposit_refund',
 ] as const;
 
 /** Notification.payload. Facts are copied in, so a message says what was true when it happened. */
@@ -45,6 +48,8 @@ export const bookingPayloadSchema = z.object({
   locale: z.enum(locales),
   /** How late, for the running-late notices. */
   minutes: z.number().int().optional(),
+  /** UZS, for the deposit notices. */
+  amount: z.number().int().optional(),
 });
 export type BookingPayload = z.infer<typeof bookingPayloadSchema>;
 
@@ -54,6 +59,7 @@ export const staffTemplates = [
   'staff.moved',
   'staff.cancelled',
   'staff.client_late',
+  'staff.deposit_refund',
 ] as const;
 export type StaffTemplate = (typeof staffTemplates)[number];
 
@@ -66,8 +72,9 @@ export const staffPayloadSchema = bookingPayloadSchema.extend({
 export type StaffPayload = z.infer<typeof staffPayloadSchema>;
 
 function renderStaffAlert(template: StaffTemplate, payload: StaffPayload): OutgoingMessage {
-  const { bookingId, shopId, clientName, masterName, startAt, oldStartAt, minutes, locale } =
+  const { bookingId, shopId, clientName, masterName, startAt, oldStartAt, minutes, amount } =
     payload;
+  const { locale } = payload;
   const { notify } = getMessages(locale);
   const moment = (iso: string) => {
     const when = new Date(iso);
@@ -79,6 +86,7 @@ function renderStaffAlert(template: StaffTemplate, payload: StaffPayload): Outgo
     'staff.moved': notify.staffMoved,
     'staff.cancelled': notify.staffCancelled,
     'staff.client_late': notify.staffClientLate,
+    'staff.deposit_refund': notify.staffDepositRefund,
   };
   const old = oldStartAt ? moment(oldStartAt) : null;
   const open = [{ label: notify.staffOpen, path: `/staff/shop/${shopId}/calendar/${bookingId}` }];
@@ -89,6 +97,7 @@ function renderStaffAlert(template: StaffTemplate, payload: StaffPayload): Outgo
       ...moment(startAt),
       old: old ? `${old.date}, ${old.time}` : '',
       minutes: minutes ?? '',
+      amount: amount === undefined ? '' : formatMoney(amount, locale),
     }),
     buttons: template === 'staff.request' ? [...requestButtons(locale, bookingId), open] : [open],
   };
@@ -220,7 +229,7 @@ export function renderNotification(template: string, payload: unknown): Outgoing
   const known = (bookingTemplates as readonly string[]).includes(template);
   if (!known) return null;
 
-  const { bookingId, shopName, masterName, startAt, minutes, locale } = parsed.data;
+  const { bookingId, shopName, masterName, startAt, minutes, amount, locale } = parsed.data;
   const { notify } = getMessages(locale);
   const start = new Date(startAt);
   const body: Record<BookingTemplate, string> = {
@@ -235,6 +244,8 @@ export function renderNotification(template: string, payload: unknown): Outgoing
     'booking.rebook_nudge': notify.rebookNudge,
     'booking.next_up': notify.nextUp,
     'booking.running_late': notify.runningLate,
+    'booking.deposit_expired': notify.depositExpired,
+    'booking.deposit_refund': notify.depositRefund,
   };
   const isReminder = (REMINDER_TEMPLATES as readonly string[]).includes(template);
   const buttonLabel: Partial<Record<BookingTemplate, string>> = {
@@ -248,6 +259,7 @@ export function renderNotification(template: string, payload: unknown): Outgoing
       date: formatDayMonth(start, locale),
       time: formatTime(start),
       minutes: minutes ?? '',
+      amount: amount === undefined ? '' : formatMoney(amount, locale),
     }),
     buttons: isReminder
       ? reminderButtons(locale, bookingId)

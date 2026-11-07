@@ -99,6 +99,7 @@ export async function getBookingForStaff(
     where: { id: bookingId, shopId },
     include: {
       items: { orderBy: { sortOrder: 'asc' } },
+      deposit: true,
       client: {
         select: {
           id: true,

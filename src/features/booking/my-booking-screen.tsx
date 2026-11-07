@@ -24,6 +24,7 @@ import { Button } from '@/ui/button';
 import { EnamelSign } from '@/ui/enamel-sign';
 import { SectionLabel } from '@/ui/section-label';
 import { TileList } from '@/ui/tile-list';
+import { ClientDepositPanel } from '@/features/deposits/deposit-panel';
 import { ClientLatePanel } from './client-late-panel';
 import { repeatBookingPath } from './repeat';
 import type { MyBookingDto } from './schemas';
@@ -204,6 +205,13 @@ function Details({ booking }: { booking: MyBookingDto }) {
         >
           {interpolate(t.book.depositNote, { amount: formatMoney(booking.depositAmount, locale) })}
         </p>
+      )}
+      {booking.deposit && (
+        <ClientDepositPanel
+          bookingId={booking.id}
+          shopSlug={booking.shop.slug}
+          deposit={booking.deposit}
+        />
       )}
       <ClientLatePanel booking={booking} />
 

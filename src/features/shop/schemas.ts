@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { publicReviewSchema, ratingSummarySchema } from '@/features/reviews/schemas';
+import { shopDepositInfoSchema } from '@/features/deposits/schemas';
 import { SERVICE_CATEGORIES } from '@/features/services/schemas';
 import { defaultBookingRules } from '@/domain/availability';
 import { isInUzbekistan, isRegion, isTashkentDistrict } from '@/domain/places';
@@ -23,6 +24,10 @@ export const shopSettingsSchema = z.object({
   requireApproval: z.boolean().catch(false),
   /** How many upcoming bookings one client may hold at this shop (abuse protection). */
   maxActiveBookingsPerClient: z.number().int().min(1).max(20).catch(3),
+  /** Online deposit in UZS; 0: none. Asked for masters marked so, and (see below) after a no-show. */
+  depositAmount: z.number().int().min(0).max(10_000_000).catch(0),
+  /** Clients who missed a visit pay a deposit next time (the no-show cycle). */
+  depositAfterNoShow: z.boolean().catch(true),
 });
 export type ShopSettings = z.infer<typeof shopSettingsSchema>;
 
@@ -145,10 +150,14 @@ export const shopProfileSchema = z.object({
       id: z.string(),
       name: z.string(),
       bio: z.string().nullable(),
+      /** Clients pay the shop's deposit to book them. */
+      requiresDeposit: z.boolean(),
       /** Photos of their work. */
       portfolio: z.array(z.object({ id: z.string(), url: z.string() })),
     }),
   ),
+  /** Online deposits, when the shop takes them. */
+  deposit: shopDepositInfoSchema.nullable(),
   rating: ratingSummarySchema,
   /** The latest few. */
   reviews: z.array(publicReviewSchema),

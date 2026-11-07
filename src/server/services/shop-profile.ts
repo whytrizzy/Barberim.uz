@@ -15,6 +15,7 @@ import { db } from '../db/client';
 import { AppError } from '../http/errors';
 import { photoDtos } from '../storage/media';
 import { dayInput, loadSchedule } from './availability';
+import { shopDepositInfo } from './deposits';
 import { isFavorite } from './favorites';
 import { latestReviews, ratingSummary } from './reviews';
 import { toShopDto } from './shop';
@@ -92,6 +93,7 @@ export async function getShopProfile(
         displayName: true,
         bio: true,
         portfolio: true,
+        requiresDeposit: true,
         sortOrder: true,
         services: {
           where: { service: { isActive: true } },
@@ -103,12 +105,14 @@ export async function getShopProfile(
   ]);
 
   const { photos } = toShopDto(shop);
-  const [rating, reviews, saved] = await Promise.all([
+  const [rating, reviews, saved, deposit] = await Promise.all([
     ratingSummary(shop.id),
     latestReviews(shop.id),
     isFavorite(user, shop.id),
+    isPreview ? null : shopDepositInfo(shop.id, shop.settings, user.id),
   ]);
   return {
+    deposit,
     isFavorite: saved,
     rating,
     reviews,
@@ -131,6 +135,7 @@ export async function getShopProfile(
       name: master.displayName,
       bio: master.bio,
       portfolio: photoDtos(master.portfolio),
+      requiresDeposit: master.requiresDeposit,
     })),
     // A shop that isn't live can't be booked, so it has no free times to show.
     today: isPreview

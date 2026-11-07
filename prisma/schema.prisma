@@ -84,15 +84,17 @@ model Shop {
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  staff     Staff[]
-  services  Service[]
-  clients   ShopClient[]
-  bookings  Booking[]
-  reviews   Review[]
-  favorites Favorite[]
-  waitlist  WaitlistEntry[]
-  payments  Payment[]
-  auditLogs AuditLog[]
+  staff           Staff[]
+  services        Service[]
+  clients         ShopClient[]
+  bookings        Booking[]
+  reviews         Review[]
+  favorites       Favorite[]
+  waitlist        WaitlistEntry[]
+  payments        Payment[]
+  paymentAccounts ShopPaymentAccount[]
+  deposits        Deposit[]
+  auditLogs       AuditLog[]
 
   @@index([status, district])
   @@map("shops")
@@ -106,23 +108,25 @@ enum StaffRole {
 
 /// A person working at a shop. `userId` stays null until the invite is accepted.
 model Staff {
-  id            String    @id @default(uuid(7)) @db.Uuid
-  shopId        String    @map("shop_id") @db.Uuid
-  userId        String?   @map("user_id") @db.Uuid
-  displayName   String    @map("display_name")
-  photoUrl      String?   @map("photo_url")
-  bio           String?
+  id              String    @id @default(uuid(7)) @db.Uuid
+  shopId          String    @map("shop_id") @db.Uuid
+  userId          String?   @map("user_id") @db.Uuid
+  displayName     String    @map("display_name")
+  photoUrl        String?   @map("photo_url")
+  bio             String?
   /// Storage keys of photos of their work, in display order (shops/<shopId>/<photoId>.<ext>).
-  portfolio     String[]  @default([])
-  role          StaffRole @default(MASTER)
+  portfolio       String[]  @default([])
+  role            StaffRole @default(MASTER)
   /// False for an owner/admin who doesn't take clients.
-  isBookable    Boolean   @default(true) @map("is_bookable")
+  isBookable      Boolean   @default(true) @map("is_bookable")
+  /// Clients pay the shop's deposit to book this master (online deposits, P3.1).
+  requiresDeposit Boolean   @default(false) @map("requires_deposit")
   /// Master's share of revenue, 0–100 (Phase 3).
-  commissionPct Int?      @map("commission_pct")
-  isActive      Boolean   @default(true) @map("is_active")
-  sortOrder     Int       @default(0) @map("sort_order")
-  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt     DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+  commissionPct   Int?      @map("commission_pct")
+  isActive        Boolean   @default(true) @map("is_active")
+  sortOrder       Int       @default(0) @map("sort_order")
+  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt       DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   shop      Shop               @relation(fields: [shopId], references: [id], onDelete: Cascade)
   user      User?              @relation(fields: [userId], references: [id], onDelete: SetNull)
@@ -326,6 +330,7 @@ model Booking {
   items         BookingItem[]
   notifications Notification[]
   review        Review?
+  deposit       Deposit?
 
   @@index([staffId, startAt])
   @@index([shopId, startAt])
@@ -483,6 +488,7 @@ model WaitlistEntry {
 enum PaymentProvider {
   PAYME
   CLICK
+  UZUM
 }
 
 enum PaymentStatus {
@@ -521,4 +527,74 @@ model Payment {
   @@unique([provider, providerTransId])
   @@index([shopId, createdAt])
   @@map("payments")
+}
+
+/// A shop's own merchant account with a payment provider, for client deposits. The secret (Payme
+/// key, Click secret key, Uzum password) is stored encrypted (src/server/deposits/secrets.ts).
+model ShopPaymentAccount {
+  id           String          @id @default(uuid(7)) @db.Uuid
+  shopId       String          @map("shop_id") @db.Uuid
+  provider     PaymentProvider
+  /// Payme: merchant (cashbox) id. Click: service_id. Uzum: serviceId.
+  accountId    String          @map("account_id")
+  /// Click: merchant_id. Uzum: the login for its Basic auth. Unused for Payme.
+  login        String?
+  secretCipher String          @map("secret_cipher")
+  /// Payme's test checkout.
+  test         Boolean         @default(false)
+  isActive     Boolean         @default(true) @map("is_active")
+  createdAt    DateTime        @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt    DateTime        @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  shop Shop @relation(fields: [shopId], references: [id], onDelete: Cascade)
+
+  @@unique([shopId, provider])
+  @@map("shop_payment_accounts")
+}
+
+enum DepositStatus {
+  /// Booked; the time is held until it's paid or the hold runs out.
+  AWAITING
+  PAID
+  /// Never paid: the hold ran out or the booking was cancelled first.
+  CANCELLED
+  /// The visit was called off in a way that returns the money; the shop still has to send it.
+  REFUND_DUE
+  REFUNDED
+  /// A no-show or a late cancellation: the shop keeps it.
+  KEPT
+}
+
+/// A client's deposit for a booking (the first booking of a family), paid to the shop's own account.
+model Deposit {
+  id              String           @id @default(uuid(7)) @db.Uuid
+  shopId          String           @map("shop_id") @db.Uuid
+  bookingId       String           @unique @map("booking_id") @db.Uuid
+  /// UZS.
+  amount          Int
+  status          DepositStatus    @default(AWAITING)
+  /// Set when the client picks how to pay.
+  provider        PaymentProvider?
+  /// Short number a client types in the Uzum Bank app to pay this deposit.
+  code            Int?
+  /// Unpaid by then: the booking is cancelled and the time freed.
+  expiresAt       DateTime         @map("expires_at") @db.Timestamptz(3)
+  providerTransId String?          @map("provider_trans_id")
+  providerState   Int?             @map("provider_state")
+  providerTime    BigInt?          @map("provider_time")
+  performTime     BigInt?          @map("perform_time")
+  cancelTime      BigInt?          @map("cancel_time")
+  cancelReason    Int?             @map("cancel_reason")
+  paidAt          DateTime?        @map("paid_at") @db.Timestamptz(3)
+  refundedAt      DateTime?        @map("refunded_at") @db.Timestamptz(3)
+  createdAt       DateTime         @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt       DateTime         @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  shop    Shop    @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  booking Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerTransId])
+  @@unique([shopId, code])
+  @@index([status, expiresAt])
+  @@map("deposits")
 }
