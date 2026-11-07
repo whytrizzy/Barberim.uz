@@ -21,7 +21,8 @@ The owner sets it up at `/staff/shop/:id/deposits` (the "Depozit" tile, owners o
 
 1. The booking is created as **PENDING** with a deposit **AWAITING** payment. No messages go out
    yet. The time is held for **30 minutes** (`DEPOSIT_HOLD_MINUTES`).
-2. The client pays from the booking screen (Payme or Click checkout opens outside Telegram).
+2. The client pays from the booking screen: Payme or Click checkout opens outside Telegram; for
+   Uzum, the screen shows a 6-digit code the client types in the Uzum Bank app.
 3. On payment the booking is confirmed (or waits for the shop when the shop approves bookings by
    hand), and the usual booking messages and reminders are queued.
 4. If nobody pays in time, the cron (`/api/cron/dispatch`, every 5 minutes) cancels the booking,
@@ -40,6 +41,7 @@ The owner sets it up at `/staff/shop/:id/deposits` (the "Depozit" tile, owners o
 
 - **Payme:** a refund is a cancel of the performed transaction, which the merchant starts in the
   Payme Business cabinet; Payme then calls our endpoint and the deposit becomes REFUNDED.
+- **Uzum:** when Uzum reverses a confirmed payment (`/reverse`), the deposit becomes REFUNDED.
 - **Click:** refunds are made by the shop in Click's cabinet, then the owner taps "Mark as
   refunded" on the booking.
 - Until then the booking shows "refund due", and the owner gets a bot message.
@@ -71,3 +73,12 @@ The settings screen shows each address after the provider is saved.
 - **Prepare URL:** `https://barberim-uz.onrender.com/api/deposits/click/<shopId>/prepare`
 - **Complete URL:** `https://barberim-uz.onrender.com/api/deposits/click/<shopId>/complete`
 - In Barberim: **service_id**, **merchant_id** and the **secret key**.
+
+### Uzum Bank (https://developer.uzumbank.uz/merchant)
+
+- **Base URL:** `https://barberim-uz.onrender.com/api/deposits/uzum/<shopId>` — Uzum calls
+  `/check`, `/create`, `/confirm`, `/reverse` and `/status` under it.
+- **Payment field** of the service: `account` (the client's 6-digit code).
+- In Barberim: **serviceId**, and the **login** and **password** Uzum uses for Basic auth.
+- A transaction Uzum created but didn't confirm within 30 minutes counts as failed; errors are
+  HTTP 400 with Uzum's `errorCode`.

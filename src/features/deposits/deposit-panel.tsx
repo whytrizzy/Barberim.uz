@@ -71,6 +71,12 @@ export function ClientDepositPanel({
   const checkout = useDepositCheckout(bookingId);
   const providers = shop.data?.deposit?.providers ?? [];
   const open = deposit.status === 'AWAITING' && new Date(deposit.expiresAt) > new Date();
+  // Uzum has no checkout page: the client types this code in the Uzum Bank app.
+  const uzumCode = checkout.data
+    ? checkout.data.code
+    : deposit.provider === 'UZUM'
+      ? deposit.code
+      : null;
 
   const pay = (provider: DepositProvider) => {
     haptic.selection();
@@ -102,6 +108,14 @@ export function ClientDepositPanel({
               {interpolate(t.deposits.payWith, { provider: PROVIDER_NAMES[provider] })}
             </Button>
           ))}
+          {uzumCode !== null && (
+            <div role="status" className="rounded-tile border border-chrome px-3 py-2.5">
+              <p className="text-sm text-ink-muted">{t.deposits.uzumCode}</p>
+              <p className="mt-1 font-sign text-[34px] leading-none font-bold tracking-[0.12em] tabular-nums select-all">
+                {uzumCode}
+              </p>
+            </div>
+          )}
           <p className="text-xs text-ink-muted">{t.deposits.afterPay}</p>
           <p className="text-xs text-ink-muted">{t.deposits.rules}</p>
         </>

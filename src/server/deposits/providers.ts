@@ -3,6 +3,13 @@ import type { Deposit } from '@/generated/prisma/client';
 import { db } from '../db/client';
 import { handleClickRequest, type ClickStore } from '../payments/click';
 import { handlePaymeRpc, PAYME_STATE, type PaymeOrder, type PaymeStore } from '../payments/payme';
+import {
+  handleUzumRequest,
+  UZUM_STATE,
+  type UzumMethod,
+  type UzumStore,
+  type UzumTransaction,
+} from '../payments/uzum';
 import { dropUnpaidDeposit, refundDeposit, settleDeposit, shopAccount } from '../services/deposits';
 
 // Client deposits through a shop's own Payme and Click accounts: the shared protocols
@@ -118,4 +125,99 @@ export async function handleShopClick(
   const account = await shopAccount(shopId, 'CLICK');
   const credentials = account ? { serviceId: account.accountId, secret: account.secret } : null;
   return handleClickRequest(clickStore(shopId), credentials, stage, form, now);
+}
+
+function uzumStore(shopId: string): UzumStore {
+  const toTransaction = (d: Deposit): UzumTransaction => ({
+    orderId: d.id,
+    transId: d.providerTransId ?? '',
+    amount: d.amount,
+    account: String(d.code ?? ''),
+    state: d.providerState ?? UZUM_STATE.created,
+    transTime: Number(d.providerTime ?? 0),
+    confirmTime: d.performTime === null ? null : Number(d.performTime),
+    reverseTime: d.cancelTime === null ? null : Number(d.cancelTime),
+  });
+  return {
+    async order(account) {
+      const d = await db.deposit.findFirst({ where: { shopId, code: Number(account) } });
+      if (!d) return null;
+      const state =
+        d.status === 'AWAITING'
+          ? d.expiresAt > new Date()
+            ? 'open'
+            : 'cancelled'
+          : d.status === 'CANCELLED'
+            ? 'cancelled'
+            : 'paid';
+      return { id: d.id, amount: d.amount, account, state };
+    },
+    async transaction(transId) {
+      const d = await db.deposit.findFirst({
+        where: { shopId, provider: 'UZUM', providerTransId: transId },
+      });
+      return d && toTransaction(d);
+    },
+    async create(orderId, transId, now) {
+      // A new try replaces one Uzum created but never confirmed; another provider's payment wins.
+      const { count } = await db.deposit.updateMany({
+        where: {
+          id: orderId,
+          shopId,
+          status: 'AWAITING',
+          expiresAt: { gt: now },
+          OR: [
+            { providerTransId: null },
+            {
+              provider: 'UZUM',
+              providerState: { in: [UZUM_STATE.created, UZUM_STATE.reversed] },
+            },
+          ],
+        },
+        data: {
+          provider: 'UZUM',
+          providerTransId: transId,
+          providerState: UZUM_STATE.created,
+          providerTime: BigInt(now.getTime()),
+          performTime: null,
+          cancelTime: null,
+        },
+      });
+      return count > 0;
+    },
+    confirm: (orderId, now) =>
+      settleDeposit(
+        orderId,
+        { providerState: UZUM_STATE.confirmed, performTime: BigInt(now.getTime()) },
+        now,
+      ),
+    async release(orderId, now) {
+      await db.deposit.updateMany({
+        where: { id: orderId, shopId, provider: 'UZUM', providerState: UZUM_STATE.created },
+        data: { providerState: UZUM_STATE.reversed, cancelTime: BigInt(now.getTime()) },
+      });
+    },
+    // Uzum gave a confirmed payment back (the shop refunded it through Uzum).
+    refund: (orderId, now) =>
+      refundDeposit(
+        orderId,
+        { providerState: UZUM_STATE.refunded, cancelTime: BigInt(now.getTime()) },
+        now,
+      ),
+  };
+}
+
+/** An Uzum Bank deposit request for this shop, with its own login and password. */
+export async function handleShopUzum(
+  shopId: string,
+  method: UzumMethod,
+  authorization: string | null,
+  body: unknown,
+  now = new Date(),
+) {
+  const account = await shopAccount(shopId, 'UZUM');
+  const credentials = account
+    ? { serviceId: account.accountId, login: account.login ?? '', password: account.secret }
+    : null;
+  return handleUzumRequest(uzumStore(shopId), credentials, method, authorization, body, now);
 }

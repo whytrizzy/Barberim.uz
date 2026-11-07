@@ -67,25 +67,27 @@ function DepositForm({ shopId, settings }: { shopId: string; settings: DepositSe
   const [masterIds, setMasterIds] = useState(
     settings.masters.filter((m) => m.requiresDeposit).map((m) => m.id),
   );
-  const [forms, setForms] = useState<Record<'PAYME' | 'CLICK', ProviderForm>>({
+  const [forms, setForms] = useState<Record<DepositProvider, ProviderForm>>({
     PAYME: initial('PAYME'),
     CLICK: initial('CLICK'),
+    UZUM: initial('UZUM'),
   });
-  const [editing, setEditing] = useState<Record<'PAYME' | 'CLICK', boolean>>({
+  const [editing, setEditing] = useState<Record<DepositProvider, boolean>>({
     PAYME: Boolean(connected('PAYME')),
     CLICK: Boolean(connected('CLICK')),
+    UZUM: Boolean(connected('UZUM')),
   });
   const [remove, setRemove] = useState<DepositProvider[]>([]);
   const [saved, setSaved] = useState(false);
 
-  const set = (p: 'PAYME' | 'CLICK', patch: Partial<ProviderForm>) => {
+  const set = (p: DepositProvider, patch: Partial<ProviderForm>) => {
     setForms((all) => ({ ...all, [p]: { ...all[p], ...patch } }));
     setSaved(false);
   };
 
   function submit() {
     const accounts: DepositSettingsRequest['accounts'] = [];
-    const secret = (p: 'PAYME' | 'CLICK') => forms[p].secret.trim() || undefined;
+    const secret = (p: DepositProvider) => forms[p].secret.trim() || undefined;
     if (editing.PAYME && !remove.includes('PAYME')) {
       accounts.push({
         provider: 'PAYME',
@@ -100,6 +102,14 @@ function DepositForm({ shopId, settings }: { shopId: string; settings: DepositSe
         accountId: forms.CLICK.accountId.trim(),
         login: forms.CLICK.login.trim(),
         secret: secret('CLICK'),
+      });
+    }
+    if (editing.UZUM && !remove.includes('UZUM')) {
+      accounts.push({
+        provider: 'UZUM',
+        accountId: forms.UZUM.accountId.trim(),
+        login: forms.UZUM.login.trim(),
+        secret: secret('UZUM'),
       });
     }
     save.mutate(
@@ -118,10 +128,12 @@ function DepositForm({ shopId, settings }: { shopId: string; settings: DepositSe
           setForms({
             PAYME: { ...forms.PAYME, secret: '' },
             CLICK: { ...forms.CLICK, secret: '' },
+            UZUM: { ...forms.UZUM, secret: '' },
           });
           setEditing({
             PAYME: next.accounts.some((a) => a.provider === 'PAYME'),
             CLICK: next.accounts.some((a) => a.provider === 'CLICK'),
+            UZUM: next.accounts.some((a) => a.provider === 'UZUM'),
           });
         },
         onError: () => haptic.notify('error'),
@@ -131,7 +143,7 @@ function DepositForm({ shopId, settings }: { shopId: string; settings: DepositSe
 
   useMainButton({ text: t.common.save, loading: save.isPending, onClick: submit });
 
-  const providerSection = (p: 'PAYME' | 'CLICK') => {
+  const providerSection = (p: DepositProvider) => {
     const account = connected(p);
     if (!editing[p]) {
       return (
@@ -166,8 +178,23 @@ function DepositForm({ shopId, settings }: { shopId: string; settings: DepositSe
             onChange={(e) => set(p, { login: e.target.value.replace(/\D/g, '') })}
           />
         )}
+        {p === 'UZUM' && (
+          <TextField
+            label={t.deposits.uzumLogin}
+            value={forms[p].login}
+            autoComplete="off"
+            disabled={removing}
+            onChange={(e) => set(p, { login: e.target.value })}
+          />
+        )}
         <TextField
-          label={p === 'PAYME' ? t.deposits.paymeKey : t.deposits.secretKey}
+          label={
+            p === 'PAYME'
+              ? t.deposits.paymeKey
+              : p === 'UZUM'
+                ? t.deposits.uzumPassword
+                : t.deposits.secretKey
+          }
           type="password"
           autoComplete="new-password"
           value={forms[p].secret}
@@ -191,6 +218,7 @@ function DepositForm({ shopId, settings }: { shopId: string; settings: DepositSe
                 {url}
               </p>
             ))}
+            {p === 'UZUM' && <p className="mt-1 text-ink-muted">{t.deposits.uzumField}</p>}
           </div>
         )}
         {account && (
@@ -265,6 +293,7 @@ function DepositForm({ shopId, settings }: { shopId: string; settings: DepositSe
         </div>
         {providerSection('PAYME')}
         {providerSection('CLICK')}
+        {providerSection('UZUM')}
       </section>
 
       {saved && (

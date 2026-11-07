@@ -159,7 +159,7 @@ AuditLog        actorId, action, entity, entityId, data, createdAt
 
 ## Phase 3 — Growth + scale (feature #9, 18, 29, 31, 34–38)
 
-- [ ] **P3.1 Online deposits** (Click / Payme / Uzum) for popular masters / peak hours, refunds on shop cancellation. (#9)
+- [x] **P3.1 Online deposits** (Click / Payme / Uzum) for popular masters / peak hours, refunds on shop cancellation. (#9) Paid to each shop's **own** merchant account (keys stored encrypted with `DEPOSIT_KEYS_SECRET`). The owner sets an amount, the masters who need it, and the no-show cycle (after a missed visit the next booking needs a deposit; once paid, the following one doesn't). The booking is held 30 minutes unpaid, then freed. Shop cancels, or the client cancels 24 h+ ahead: refund (Payme's cancel and Uzum's reverse close it; Click is marked by hand); later or a no-show: the shop keeps it. Payme and Click checkout, Uzum by a 6-digit code in the Uzum Bank app. Setup: `docs/DEPOSITS.md`.
 - [ ] **P3.2 SMS fallback** via Eskiz.uz for walk-in clients. (#18)
 - [ ] **P3.3 Commission split** per master + payout report. (#29)
 - [ ] **P3.4 Promotions:** % off by time, loyalty "every Nth free", referral bonus. (#31)

@@ -401,12 +401,15 @@ export const uzLatn = {
     masters: 'Depozit kerak boʻlgan ustalar',
     providers: 'Toʻlov tizimlari',
     providersHint:
-      'Oʻzingizning Payme yoki Click merchant hisobingizni ulang. Kalitlar shifrlangan holda saqlanadi va qayta koʻrsatilmaydi.',
+      'Oʻzingizning Payme, Click yoki Uzum merchant hisobingizni ulang. Kalitlar shifrlangan holda saqlanadi va qayta koʻrsatilmaydi.',
     merchantId: 'Merchant ID (kassa ID)',
     paymeKey: 'Kalit (key)',
     serviceId: 'Service ID',
     clickMerchantId: 'Merchant ID',
     secretKey: 'Maxfiy kalit (secret key)',
+    uzumLogin: 'Login',
+    uzumPassword: 'Parol',
+    uzumField: 'Xizmatning toʻlov maydoni nomi: account',
     savedSecret: 'Saqlangan. Almashtirish uchun yangisini kiriting.',
     testMode: 'Test rejimi',
     callback: 'Merchant kabinetiga shu manzilni kiriting:',
@@ -421,6 +424,7 @@ export const uzLatn = {
     payTitle: 'Depozitni toʻlang',
     payUntil: '{time} gacha toʻlang, aks holda yozuv bekor qilinadi.',
     payWith: '{provider} orqali toʻlash',
+    uzumCode: 'Uzum Bank ilovasida sartaroshxona xizmatini oching va shu kodni kiriting:',
     afterPay: 'Toʻlovdan soʻng bot sizga xabar yuboradi.',
     rules:
       'Bekor qilsangiz: kamida 24 soat oldin — depozit qaytariladi; kechroq yoki kelmasangiz — qaytarilmaydi.',
@@ -434,7 +438,7 @@ export const uzLatn = {
     },
     markRefunded: 'Qaytarildi deb belgilash',
     refundHint:
-      'Pulni toʻlov tizimi kabinetida qaytaring. Payme orqali qaytarish oʻzi belgilanadi.',
+      'Pulni toʻlov tizimi kabinetida qaytaring. Payme va Uzum orqali qaytarish oʻzi belgilanadi.',
     closed: 'Bu depozitni endi toʻlab boʻlmaydi.',
     unavailable: 'Bu toʻlov tizimi ulanmagan.',
   },

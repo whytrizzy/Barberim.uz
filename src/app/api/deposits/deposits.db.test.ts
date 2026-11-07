@@ -16,6 +16,7 @@ import { GET as getSettings, PUT as putSettings } from '../shops/[id]/deposits/r
 import { POST as clickComplete } from './click/[shopId]/complete/route';
 import { POST as clickPrepare } from './click/[shopId]/prepare/route';
 import { POST as payme } from './payme/[shopId]/route';
+import { POST as uzum } from './uzum/[shopId]/[method]/route';
 
 // Online deposits against the real database (npm run test:db), paid to the shop's own Payme and
 // Click accounts, with Payme and Click played here as their sandboxes would.
@@ -23,6 +24,7 @@ import { POST as payme } from './payme/[shopId]/route';
 Object.assign(serverEnv, { DEPOSIT_KEYS_SECRET: 'test-deposit-encryption-key-0123456789abcdef' });
 const PAYME_KEY = 'shop-payme-key-0123456789';
 const CLICK_SECRET = 'shop-click-secret';
+const UZUM_PASSWORD = 'shop-uzum-password';
 
 type User = Parameters<typeof applyBookingAction>[0];
 const token = process.env.TELEGRAM_BOT_TOKEN as string;
@@ -151,6 +153,7 @@ describe('settings', () => {
             test: true,
           },
           { provider: 'CLICK', accountId: '555', login: '777', secret: CLICK_SECRET },
+          { provider: 'UZUM', accountId: '888', login: 'uzum-shop', secret: UZUM_PASSWORD },
         ],
       }),
       shopCtx(),
@@ -162,8 +165,13 @@ describe('settings', () => {
     expect(settings.accounts.map((a: { provider: string }) => a.provider)).toEqual([
       'PAYME',
       'CLICK',
+      'UZUM',
     ]);
     expect(settings.accounts[0].callbackUrls[0]).toContain(`/api/deposits/payme/${shopId}`);
+    expect(settings.accounts[2].callbackUrls[0]).toMatch(
+      new RegExp(`/api/deposits/uzum/${shopId}$`),
+    );
+    expect(JSON.stringify(settings)).not.toContain(UZUM_PASSWORD);
     const stored = await db.shopPaymentAccount.findFirstOrThrow({
       where: { shopId, provider: 'PAYME' },
     });
@@ -348,5 +356,118 @@ describe('the no-show cycle', () => {
     await payWithPayme(owing.id, `pm-${owing.id}`);
     expect((await page()).deposit.youOwe).toBe(false);
     expect((await reserve(plainId, at(4, 12))).deposit).toBeNull();
+  });
+});
+
+describe('Uzum Bank', () => {
+  async function call(
+    method: string,
+    body: object | string,
+    auth = `uzum-shop:${UZUM_PASSWORD}`,
+  ): Promise<{ status: number; body: Record<string, unknown> }> {
+    const response = await uzum(
+      new Request('http://t/api', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Basic ${Buffer.from(auth).toString('base64')}`,
+        },
+        body: typeof body === 'string' ? body : JSON.stringify(body),
+      }),
+      { params: Promise.resolve({ shopId, method }) },
+    );
+    return { status: response.status, body: await response.json() };
+  }
+  const stamp = () => ({ serviceId: 888, timestamp: Date.now() });
+
+  async function heldWithCode(startAt: Date) {
+    const held = await reserve(starId, startAt);
+    const pay = await checkout(req('client', 'POST', { provider: 'UZUM' }), {
+      params: Promise.resolve({ id: held.id }),
+    });
+    const { url, code } = await pay.json();
+    expect(url).toBeNull();
+    expect(code).toBeGreaterThanOrEqual(100_000);
+    return { held, account: String(code) };
+  }
+
+  it('checks, creates and confirms a payment by its code, confirming the booking', async () => {
+    const { held, account } = await heldWithCode(at(5, 10));
+    const params = { account };
+
+    expect((await call('check', { ...stamp(), params }, 'uzum-shop:wrong')).body).toMatchObject({
+      status: 'FAILED',
+      errorCode: '10001',
+    });
+    expect(
+      (await call('check', { ...stamp(), params: { account: '000001' } })).body.errorCode,
+    ).toBe('10007');
+    const checked = await call('check', { ...stamp(), params });
+    expect(checked).toMatchObject({ status: 200, body: { status: 'OK', serviceId: 888 } });
+
+    const transId = crypto.randomUUID();
+    const wrong = await call('create', { ...stamp(), transId, params, amount: 100 });
+    expect(wrong).toMatchObject({ status: 400, body: { errorCode: '10011' } });
+    const created = await call('create', { ...stamp(), transId, params, amount: 5_000_000 });
+    expect(created.body).toMatchObject({ status: 'CREATED', transId, amount: 5_000_000 });
+    expect(
+      (await call('create', { ...stamp(), transId, params, amount: 5_000_000 })).body.errorCode,
+    ).toBe('10010');
+
+    const confirmed = await call('confirm', {
+      ...stamp(),
+      transId,
+      paymentSource: 'UZCARD',
+      phone: '998901112244',
+    });
+    expect(confirmed.body).toMatchObject({ status: 'CONFIRMED', transId, amount: 5_000_000 });
+    expect((await call('confirm', { ...stamp(), transId })).body.errorCode).toBe('10016');
+    expect((await call('status', { ...stamp(), transId })).body).toMatchObject({
+      status: 'CONFIRMED',
+      reverseTime: null,
+    });
+    expect((await call('check', { ...stamp(), params })).body.errorCode).toBe('10008');
+
+    expect(await depositOf(held.id)).toMatchObject({ status: 'PAID', provider: 'UZUM' });
+    const booking = await db.booking.findUniqueOrThrow({ where: { id: held.id } });
+    expect(booking.status).toBe('CONFIRMED');
+    expect(await sent(held.id, 'booking.created')).toBe(1);
+
+    // Uzum gives the money back: the deposit is refunded.
+    const reversed = await call('reverse', { ...stamp(), transId });
+    expect(reversed.body).toMatchObject({ status: 'REVERSED', transId });
+    expect((await depositOf(held.id)).status).toBe('REFUNDED');
+    expect((await call('reverse', { ...stamp(), transId })).body.errorCode).toBe('10018');
+  });
+
+  it('lets a payment Uzum called off be tried again, and fails one left unconfirmed', async () => {
+    const { held, account } = await heldWithCode(at(5, 12));
+    const params = { account };
+    const first = crypto.randomUUID();
+    await call('create', { ...stamp(), transId: first, params, amount: 5_000_000 });
+    expect((await call('reverse', { ...stamp(), transId: first })).body.status).toBe('REVERSED');
+    expect((await depositOf(held.id)).status).toBe('AWAITING');
+    expect((await call('confirm', { ...stamp(), transId: first })).body.errorCode).toBe('10015');
+
+    // A second try, never confirmed within Uzum's 30 minutes.
+    const second = crypto.randomUUID();
+    const created = await call('create', {
+      ...stamp(),
+      transId: second,
+      params,
+      amount: 5_000_000,
+    });
+    expect(created.body.status).toBe('CREATED');
+    await db.deposit.update({
+      where: { bookingId: held.id },
+      data: { providerTime: BigInt(Date.now() - 31 * 60_000) },
+    });
+    expect((await call('status', { ...stamp(), transId: second })).body.status).toBe('FAILED');
+    expect((await call('confirm', { ...stamp(), transId: second })).body.errorCode).toBe('10015');
+    expect((await call('status', { ...stamp(), transId: 'nope' })).body.errorCode).toBe('10014');
+    expect((await call('create', 'not json')).body.errorCode).toBe('10002');
+    expect(
+      (await call('status', { serviceId: 999, timestamp: 1, transId: second })).body.errorCode,
+    ).toBe('10006');
   });
 });
